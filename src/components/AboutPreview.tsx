@@ -14,7 +14,7 @@ export default function AboutPreview() {
           </p>
           <Link
             to="/profile"
-            className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-forest)] hover:text-[var(--color-forest-2)]"
+            className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-forest)] hover:text-[var(--color-forest-2)] min-h-[44px]"
           >
             Baca Profil Lengkap
             <ArrowRight size={15} />

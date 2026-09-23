@@ -21,12 +21,12 @@ export default function Footer() {
           <p className="text-sm font-semibold uppercase tracking-wide text-[var(--color-paper)]/60">
             Navigasi
           </p>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li><Link className="hover:underline" to="/">Beranda</Link></li>
-            <li><Link className="hover:underline" to="/profile">Profil</Link></li>
-            <li><Link className="hover:underline" to="/services">Layanan</Link></li>
-            <li><Link className="hover:underline" to="/information">Informasi</Link></li>
-            <li><Link className="hover:underline" to="/contact">Kontak</Link></li>
+          <ul className="mt-3 space-y-1 text-sm">
+            <li><Link className="hover:underline inline-flex items-center min-h-[44px]" to="/">Beranda</Link></li>
+            <li><Link className="hover:underline inline-flex items-center min-h-[44px]" to="/profile">Profil</Link></li>
+            <li><Link className="hover:underline inline-flex items-center min-h-[44px]" to="/services">Layanan</Link></li>
+            <li><Link className="hover:underline inline-flex items-center min-h-[44px]" to="/information">Informasi</Link></li>
+            <li><Link className="hover:underline inline-flex items-center min-h-[44px]" to="/contact">Kontak</Link></li>
           </ul>
         </div>
 
@@ -34,10 +34,10 @@ export default function Footer() {
           <p className="text-sm font-semibold uppercase tracking-wide text-[var(--color-paper)]/60">
             Layanan
           </p>
-          <ul className="mt-3 space-y-2 text-sm">
+          <ul className="mt-3 space-y-1 text-sm">
             {featuredServices.map((service) => (
               <li key={service.id}>
-                <Link className="hover:underline" to="/services">
+                <Link className="hover:underline inline-flex items-center min-h-[44px]" to="/services">
                   {service.name}
                 </Link>
               </li>

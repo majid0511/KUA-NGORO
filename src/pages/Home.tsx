@@ -34,7 +34,7 @@ export default function Home() {
           />
           <Link
             to="/services"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-forest)] hover:text-[var(--color-forest-2)] shrink-0"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-forest)] hover:text-[var(--color-forest-2)] shrink-0 min-h-[44px]"
           >
             Lihat Semua Layanan
             <ArrowRight size={15} />
@@ -53,7 +53,7 @@ export default function Home() {
           />
           <Link
             to="/information"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-forest)] hover:text-[var(--color-forest-2)] shrink-0"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-forest)] hover:text-[var(--color-forest-2)] shrink-0 min-h-[44px]"
           >
             Lihat Semua Informasi
             <ArrowRight size={15} />
@@ -105,7 +105,7 @@ export default function Home() {
         </div>
         <Link
           to="/contact"
-          className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-forest)] hover:text-[var(--color-forest-2)]"
+          className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--color-forest)] hover:text-[var(--color-forest-2)] min-h-[44px]"
         >
           Lihat Detail Kontak
           <ArrowRight size={15} />

@@ -53,7 +53,7 @@ export default function Contact() {
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="grid place-items-center w-10 h-10 rounded-full bg-[var(--color-forest-tint)] text-[var(--color-forest)] hover:bg-[var(--color-forest)] hover:text-[var(--color-paper)] transition-colors"
+                  className="grid place-items-center w-11 h-11 rounded-full bg-[var(--color-forest-tint)] text-[var(--color-forest)] hover:bg-[var(--color-forest)] hover:text-[var(--color-paper)] transition-colors"
                 >
                   <item.icon size={18} />
                 </a>

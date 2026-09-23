@@ -42,12 +42,12 @@ export default function Profile() {
         aria-label="Navigasi profil"
         className="sticky top-16 z-40 bg-[var(--color-paper)]/95 backdrop-blur border-b border-[var(--color-line)] overflow-x-auto"
       >
-        <div className="container-page flex gap-5 py-3 text-sm whitespace-nowrap">
+        <div className="container-page flex gap-5 py-2 text-sm whitespace-nowrap">
           {anchors.map((anchor) => (
             <a
               key={anchor.id}
               href={`#${anchor.id}`}
-              className="text-[var(--color-ink-soft)] hover:text-[var(--color-forest)] font-medium"
+              className="inline-flex items-center text-[var(--color-ink-soft)] hover:text-[var(--color-forest)] font-medium min-h-[44px]"
             >
               {anchor.label}
             </a>

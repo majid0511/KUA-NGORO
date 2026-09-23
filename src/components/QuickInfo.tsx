@@ -20,7 +20,7 @@ export default function QuickInfo() {
               <p className="text-xs uppercase tracking-wide text-[var(--color-ink-soft)]">
                 {item.label}
               </p>
-              <p className="mt-1 font-display text-lg font-semibold text-[var(--color-ink)]">
+              <p className="mt-1 font-display text-base sm:text-lg font-semibold text-[var(--color-ink)] break-words">
                 {item.value}
               </p>
             </div>

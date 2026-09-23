@@ -46,7 +46,7 @@ export default function Navbar() {
 
         <button
           type="button"
-          className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg text-[var(--color-ink)] hover:bg-[var(--color-paper-2)]"
+          className="md:hidden inline-flex items-center justify-center w-11 h-11 -mr-2 rounded-lg text-[var(--color-ink)] hover:bg-[var(--color-paper-2)]"
           aria-expanded={open}
           aria-label={open ? "Tutup menu" : "Buka menu"}
           onClick={() => setOpen((v) => !v)}
@@ -56,7 +56,7 @@ export default function Navbar() {
       </nav>
 
       {open && (
-        <div className="md:hidden border-t border-[var(--color-line)] bg-[var(--color-paper)]">
+        <div className="md:hidden border-t border-[var(--color-line)] bg-[var(--color-paper)] max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
           <div className="container-page py-3 flex flex-col">
             {navItems.map((item) => (
               <NavLink
@@ -65,7 +65,7 @@ export default function Navbar() {
                 end={item.to === "/"}
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
-                  `py-3 text-base font-medium border-b border-[var(--color-line)] last:border-none ${
+                  `py-3.5 text-base font-medium border-b border-[var(--color-line)] last:border-none min-h-[48px] flex items-center ${
                     isActive ? "text-[var(--color-forest)]" : "text-[var(--color-ink)]"
                   }`
                 }

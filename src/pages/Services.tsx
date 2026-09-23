@@ -31,7 +31,7 @@ export default function Services() {
               key={category}
               type="button"
               onClick={() => setActive(category)}
-              className={`px-3.5 py-2 rounded-full text-sm font-medium border transition-colors ${
+              className={`px-4 py-2.5 rounded-full text-sm font-medium border transition-colors min-h-[44px] ${
                 active === category
                   ? "bg-[var(--color-forest)] text-[var(--color-paper)] border-[var(--color-forest)]"
                   : "border-[var(--color-line)] text-[var(--color-ink-soft)] hover:border-[var(--color-forest)]"
