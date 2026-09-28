@@ -1,65 +1,57 @@
-import { fetchCmsData, queryWithFallback } from './client';
+import { supabase } from '../supabase';
+import { queryWithFallback } from './client';
 import type { Berita, CmsResponse } from './types';
 import { newsData } from '../../data/news';
 
-// Fallback mapper from existing local newsData
+// ── Fallback (local static data) ─────────────────────────────
 const fallbackBeritaList: Berita[] = newsData.map((item) => ({
-  id: item.id,
-  title: item.title,
-  slug: item.slug,
-  excerpt: item.excerpt,
-  content: item.content,
+  id:             item.id,
+  title:          item.title,
+  slug:           item.slug,
+  excerpt:        item.excerpt,
+  content:        item.content,
   featured_image: item.imageUrl,
-  category: item.category,
-  author: item.author || 'Tim Humas KUA Ngoro',
-  published_at: item.date,
-  status: 'published',
+  category:       item.category,
+  author:         item.author || 'Tim Humas KUA Ngoro',
+  published_at:   item.date,
+  status:         'published' as const,
 }));
 
-/**
-  * Fetch published news list from CMS with fallback
-  */
-export async function getBerita(): Promise<CmsResponse<Berita[]>> {
-  const query = `*[_type == "berita" && status == "published"] | order(published_at desc) {
-    "id": _id,
-    title,
-    "slug": slug.current,
-    excerpt,
-    content,
-    "featured_image": featured_image.asset->url,
-    category,
-    author,
-    published_at,
-    status
-  }`;
+// ── Fetchers ──────────────────────────────────────────────────
 
-  return queryWithFallback(
-    () => fetchCmsData<Berita[]>(query),
-    fallbackBeritaList
-  );
+/**
+ * Returns all published berita ordered by published_at desc.
+ * Empty result from Supabase → returns [], no fallback.
+ */
+export async function getBerita(): Promise<CmsResponse<Berita[]>> {
+  return queryWithFallback(async () => {
+    const { data, error } = await supabase!
+      .from('berita')
+      .select('id,title,slug,excerpt,content,featured_image,category,author,published_at,status')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Berita[];
+  }, fallbackBeritaList);
 }
 
 /**
-  * Fetch single published news item by slug from CMS with fallback
-  */
+ * Returns a single published berita by slug.
+ * Not found → null, no fallback.
+ */
 export async function getBeritaBySlug(slug: string): Promise<CmsResponse<Berita | null>> {
-  const query = `*[_type == "berita" && slug.current == $slug && status == "published"][0] {
-    "id": _id,
-    title,
-    "slug": slug.current,
-    excerpt,
-    content,
-    "featured_image": featured_image.asset->url,
-    category,
-    author,
-    published_at,
-    status
-  }`;
+  const localMatch = fallbackBeritaList.find((b) => b.slug === slug) ?? null;
 
-  const localMatch = fallbackBeritaList.find((b) => b.slug === slug) || null;
+  return queryWithFallback(async () => {
+    const { data, error } = await supabase!
+      .from('berita')
+      .select('id,title,slug,excerpt,content,featured_image,category,author,published_at,status')
+      .eq('status', 'published')
+      .eq('slug', slug)
+      .maybeSingle();
 
-  return queryWithFallback(
-    () => fetchCmsData<Berita | null>(query, { slug }),
-    localMatch
-  );
+    if (error) throw new Error(error.message);
+    return (data ?? null) as Berita | null;
+  }, localMatch);
 }

@@ -1,51 +1,33 @@
-import { createClient, type SanityClient } from '@sanity/client';
+import { supabase } from '../supabase';
 import type { CmsResponse } from './types';
 
-// Konfigurasi publik (read-only). Jangan taruh token di sini: semua VITE_* masuk ke bundle browser.
-export const CMS_CONFIG = {
-  projectId: import.meta.env.VITE_CMS_PROJECT_ID || '',
-  dataset: import.meta.env.VITE_CMS_DATASET || 'production',
-  apiVersion: '2023-08-01',
-};
-
-export function isCmsConfigured(): boolean {
-  return Boolean(CMS_CONFIG.projectId);
-}
-
-let client: SanityClient | null = null;
-
-function getClient(): SanityClient {
-  if (!client) {
-    // Konten publik yang hanya dibaca -> pakai CDN (apicdn.sanity.io)
-    client = createClient({ ...CMS_CONFIG, useCdn: true });
-  }
-  return client;
-}
-
 /**
- * Menjalankan query GROQ. Melempar error jika jaringan/API gagal,
- * supaya queryWithFallback bisa membedakan "gagal" dari "kosong".
+ * Returns true when both Supabase env vars are present.
+ * Used by pages to decide whether to show a "CMS not configured" note.
  */
-export async function fetchCmsData<T>(groqQuery: string, params?: Record<string, string>): Promise<T> {
-  const c = getClient();
-  return params ? c.fetch<T>(groqQuery, params) : c.fetch<T>(groqQuery);
+export function isCmsConfigured(): boolean {
+  return supabase !== null;
 }
 
 /**
- * - CMS belum dikonfigurasi -> data lokal, tanpa error
- * - CMS berhasil (termasuk hasil kosong) -> data dari CMS apa adanya
- * - CMS gagal -> data lokal + pesan error
+ * Core fallback wrapper.
+ *
+ * Semantics (per spec):
+ *  • CMS not configured  → return fallback, error: null
+ *  • CMS returns data    → return CMS data, fromFallback: false
+ *  • CMS returns empty   → return empty ([], null), fromFallback: false  ← NOT falling back
+ *  • CMS throws          → return fallback, error message
  */
 export async function queryWithFallback<T>(
-  cmsFetcher: () => Promise<T>,
-  fallbackData: T
+  fetcher: () => Promise<T>,
+  fallbackData: T,
 ): Promise<CmsResponse<T>> {
   if (!isCmsConfigured()) {
     return { data: fallbackData, fromFallback: true, error: null };
   }
 
   try {
-    const data = await cmsFetcher();
+    const data = await fetcher();
     return { data, fromFallback: false, error: null };
   } catch (err) {
     console.warn('[CMS Error] Fetch failed, using fallback data:', err);

@@ -1,34 +1,33 @@
-import { fetchCmsData, queryWithFallback } from './client';
+import { supabase } from '../supabase';
+import { queryWithFallback } from './client';
 import type { Staf, CmsResponse } from './types';
 import { profileData } from '../../data/profile';
 
-// Fallback mapper from local staff array
+// ── Fallback ──────────────────────────────────────────────────
 const fallbackStafList: Staf[] = profileData.staff.map((s, idx) => ({
-  id: s.id,
-  name: s.name,
+  id:       s.id,
+  name:     s.name,
   position: s.position,
-  photo: s.photoUrl,
-  bio: s.description,
-  order: idx + 1,
-  active: true,
+  photo:    s.photoUrl,
+  bio:      s.description,
+  order:    idx + 1,
+  active:   true,
 }));
 
-/**
-  * Fetch active staff members from CMS with fallback, ordered by `order asc`
-  */
-export async function getStaf(): Promise<CmsResponse<Staf[]>> {
-  const query = `*[_type == "staf" && active == true] | order(order asc) {
-    "id": _id,
-    name,
-    position,
-    "photo": photo.asset->url,
-    bio,
-    order,
-    active
-  }`;
+// ── Fetcher ───────────────────────────────────────────────────
 
-  return queryWithFallback(
-    () => fetchCmsData<Staf[]>(query),
-    fallbackStafList
-  );
+/**
+ * Returns all active staf ordered by order asc.
+ */
+export async function getStaf(): Promise<CmsResponse<Staf[]>> {
+  return queryWithFallback(async () => {
+    const { data, error } = await supabase!
+      .from('staf')
+      .select('id,name,position,photo,bio,order,active')
+      .eq('active', true)
+      .order('order', { ascending: true });
+
+    if (error) throw new Error(error.message);
+    return (data ?? []) as Staf[];
+  }, fallbackStafList);
 }
