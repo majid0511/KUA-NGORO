@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
-import type { Berita } from '../../../lib/cms/types';
+import { supabase } from '../../lib/supabase';
+import type { Berita } from '../../lib/cms/types';
 import {
   AdminListPage, AdminLoading, AdminEmpty, AdminError,
   ConfirmDelete, EditBtn, DeleteBtn, ToggleBtn,
-  Field, inputCls, textareaCls, FormActions,
-} from '../AdminUI';
-import { useImageUpload } from '../useImageUpload';
+  Field, inputCls, textareaCls, FormActions, run,
+} from './AdminUI';
+import { useImageUpload } from './useImageUpload';
 import { Image as ImageIcon } from 'lucide-react';
 
 type Mode = 'list' | 'form';
@@ -59,27 +59,28 @@ export default function BeritaAdmin() {
     if (!form.title.trim() || !form.slug.trim()) return;
     setSaving(true);
     const payload = { ...form };
-    if (editing) {
-      await supabase!.from('berita').update(payload).eq('id', editing.id);
-    } else {
-      await supabase!.from('berita').insert(payload);
-    }
+    const ok = await run(
+      editing
+        ? supabase!.from('berita').update(payload).eq('id', editing.id)
+        : supabase!.from('berita').insert(payload),
+    );
     setSaving(false);
+    if (!ok) return;
     setMode('list');
     load();
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    await supabase!.from('berita').delete().eq('id', deleteTarget.id);
+    if (!(await run(supabase!.from('berita').delete().eq('id', deleteTarget.id)))) return;
     setDeleteTarget(null);
     load();
   }
 
   async function toggleStatus(item: Berita) {
-    await supabase!.from('berita')
+    if (!(await run(supabase!.from('berita')
       .update({ status: item.status === 'published' ? 'draft' : 'published' })
-      .eq('id', item.id);
+      .eq('id', item.id)))) return;
     load();
   }
 
@@ -126,7 +127,7 @@ export default function BeritaAdmin() {
               onChange={(e) => setForm((f) => ({ ...f, author: e.target.value }))} />
           </Field>
           <Field label="Tanggal Terbit">
-            <input type="date" className={inputCls} value={form.published_at}
+            <input type="date" required className={inputCls} value={form.published_at}
               onChange={(e) => setForm((f) => ({ ...f, published_at: e.target.value }))} />
           </Field>
           <Field label="Ringkasan (Excerpt)" required>

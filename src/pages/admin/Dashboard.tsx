@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Newspaper, Bell, Landmark, User, Users, Image, ArrowRight } from 'lucide-react';
@@ -72,9 +72,9 @@ export default function AdminDashboard() {
         <h3 className="text-sm font-bold text-stone-700 uppercase tracking-wide">Pintasan</h3>
         <div className="divide-y divide-stone-100">
           {[
-            { to: '/admin/berita/tambah',     label: 'Tulis berita baru' },
-            { to: '/admin/pengumuman/tambah', label: 'Buat pengumuman baru' },
-            { to: '/admin/galeri/tambah',     label: 'Unggah foto galeri baru' },
+            { to: '/admin/berita',            label: 'Kelola berita' },
+            { to: '/admin/pengumuman',        label: 'Kelola pengumuman' },
+            { to: '/admin/galeri',            label: 'Kelola galeri' },
             { to: '/admin/profil',            label: 'Edit profil KUA' },
           ].map(({ to, label }) => (
             <Link

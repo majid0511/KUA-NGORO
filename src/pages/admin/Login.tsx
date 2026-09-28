@@ -43,6 +43,17 @@ export default function AdminLogin() {
     navigate('/admin', { replace: true });
   }
 
+  if (!supabase) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fbfbf9] px-4">
+        <p className="max-w-sm text-center text-sm text-stone-600">
+          Supabase belum dikonfigurasi. Isi <code>VITE_SUPABASE_URL</code> dan{' '}
+          <code>VITE_SUPABASE_ANON_KEY</code> di file <code>.env</code>, lalu jalankan ulang.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* noindex for admin pages */}

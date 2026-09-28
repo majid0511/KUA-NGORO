@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
-import type { Layanan } from '../../../lib/cms/types';
+import { supabase } from '../../lib/supabase';
+import type { Layanan } from '../../lib/cms/types';
 import {
   AdminListPage, AdminLoading, AdminEmpty, AdminError,
   ConfirmDelete, EditBtn, DeleteBtn, ToggleBtn,
-  Field, inputCls, textareaCls, FormActions,
-} from '../AdminUI';
+  Field, inputCls, textareaCls, FormActions, run,
+} from './AdminUI';
 
 type Mode = 'list' | 'form';
 
@@ -66,21 +66,26 @@ export default function LayananAdmin() {
       requirements: reqText.split('\n').map(s => s.trim()).filter(Boolean),
       procedure: procText.split('\n').map(s => s.trim()).filter(Boolean),
     };
-    if (editing) await supabase!.from('layanan').update(payload).eq('id', editing.id);
-    else await supabase!.from('layanan').insert(payload);
-    setSaving(false); setMode('list'); load();
+    const ok = await run(
+      editing
+        ? supabase!.from('layanan').update(payload).eq('id', editing.id)
+        : supabase!.from('layanan').insert(payload),
+    );
+    setSaving(false);
+    if (!ok) return;
+    setMode('list'); load();
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    await supabase!.from('layanan').delete().eq('id', deleteTarget.id);
+    if (!(await run(supabase!.from('layanan').delete().eq('id', deleteTarget.id)))) return;
     setDeleteTarget(null); load();
   }
 
   async function toggleStatus(item: Layanan) {
-    await supabase!.from('layanan')
+    if (!(await run(supabase!.from('layanan')
       .update({ status: item.status === 'active' ? 'inactive' : 'active' })
-      .eq('id', item.id);
+      .eq('id', item.id)))) return;
     load();
   }
 

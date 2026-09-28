@@ -1,5 +1,5 @@
-import { Routes, Route, useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
 import { Navbar } from "./components/layout/Navbar";
 import { Footer } from "./components/layout/Footer";
 import { MobileStickyBar } from "./components/layout/MobileStickyBar";
@@ -13,6 +13,9 @@ import Contact from "./pages/Contact";
 import NewsDetail from "./pages/NewsDetail";
 import NotFound from "./pages/NotFound";
 
+// Panel admin dimuat terpisah (tidak menambah bundle halaman publik)
+const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -22,6 +25,18 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  const { pathname } = useLocation();
+
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-[#fbfbf9]" />}>
+        <Routes>
+          <Route path="/admin/*" element={<AdminApp />} />
+        </Routes>
+      </Suspense>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#fbfbf9] text-stone-900 font-sans relative">
       <ScrollToTop />
@@ -38,20 +53,20 @@ export default function App() {
           <Route path="/kegiatan" element={<Activities />} />
           <Route path="/kontak" element={<Contact />} />
 
-          {/* New News routes */}
-          <Route path="/news" element={<Information />} />
+          {/* Detail berita */}
           <Route path="/news/:slug" element={<NewsDetail />} />
 
-          {/* Spec CMS alias routes */}
-          <Route path="/pengumuman" element={<Information />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/marriage" element={<Marriage />} />
-          <Route path="/information" element={<Information />} />
-          <Route path="/staff" element={<Profile />} />
-          <Route path="/activities" element={<Activities />} />
-          <Route path="/gallery" element={<Activities />} />
-          <Route path="/contact" element={<Contact />} />
+          {/* Alias lama -> URL utama (satu URL per halaman, baik untuk SEO) */}
+          <Route path="/news" element={<Navigate to="/informasi" replace />} />
+          <Route path="/pengumuman" element={<Navigate to="/informasi" replace />} />
+          <Route path="/information" element={<Navigate to="/informasi" replace />} />
+          <Route path="/profile" element={<Navigate to="/profil" replace />} />
+          <Route path="/staff" element={<Navigate to="/profil" replace />} />
+          <Route path="/services" element={<Navigate to="/layanan" replace />} />
+          <Route path="/marriage" element={<Navigate to="/layanan/pernikahan" replace />} />
+          <Route path="/activities" element={<Navigate to="/kegiatan" replace />} />
+          <Route path="/gallery" element={<Navigate to="/kegiatan" replace />} />
+          <Route path="/contact" element={<Navigate to="/kontak" replace />} />
 
           {/* Custom 404 */}
           <Route path="*" element={<NotFound />} />

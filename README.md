@@ -116,7 +116,7 @@ Menyediakan:
 
 # 🧠 Headless CMS
 
-Website dirancang dengan arsitektur **Headless CMS** menggunakan **Sanity.io** sebagai sistem pengelolaan konten.
+Website dirancang dengan arsitektur **Headless CMS** menggunakan **Supabase** (PostgreSQL + Auth + Storage) sebagai sistem pengelolaan konten, dengan panel admin di `/admin`.
 
 Pendekatan ini memisahkan antara:
 
@@ -136,14 +136,14 @@ Sehingga pengelola dapat memperbarui konten tanpa harus mengubah source code fro
              │
              ▼
 ┌──────────────────────────┐
-│      SANITY STUDIO       │
-│      CMS Dashboard       │
+│      PANEL ADMIN         │
+│      /admin (Supabase)   │
 └────────────┬─────────────┘
              │
              ▼
 ┌──────────────────────────┐
-│       SANITY API         │
-│      GROQ Queries        │
+│    SUPABASE (Postgres)   │
+│   RLS + Auth + Storage   │
 └────────────┬─────────────┘
              │
              ▼
@@ -171,7 +171,7 @@ Pengelola dapat mengubah konten melalui dashboard CMS tanpa harus memahami React
 Contohnya:
 
 ```text
-Admin membuka Sanity Studio
+Admin login di /admin
         ↓
 Membuat berita baru
         ↓
@@ -234,7 +234,7 @@ Konten yang belum dipublikasikan tidak ditampilkan kepada pengunjung.
 | Build Tool    | Vite                |
 | Styling       | Tailwind CSS v4     |
 | Routing       | React Router        |
-| CMS Client    | `@sanity/client`    |
+| CMS / Backend | `@supabase/supabase-js` |
 | Animation     | Framer Motion       |
 | Smooth Scroll | Lenis               |
 | Icons         | Lucide React        |
@@ -340,7 +340,7 @@ kua-ngoro-website/
 
 # 🔌 CMS Abstraction Layer
 
-Komunikasi antara frontend dan Sanity dipusatkan pada:
+Komunikasi antara frontend dan Supabase dipusatkan pada:
 
 ```text
 src/lib/cms/
@@ -370,7 +370,7 @@ CMS Function
  ↓
 CMS Client
  ↓
-Sanity API
+Supabase API
  ↓
 Data
 ```
@@ -416,35 +416,29 @@ Tujuannya adalah mencegah pengalaman pengguna berubah menjadi halaman kosong ket
 Buat file `.env` berdasarkan `.env.example`.
 
 ```env
-# Sanity Project (publik, read-only)
-VITE_CMS_PROJECT_ID=your_sanity_project_id
-VITE_CMS_DATASET=production
+# Supabase → Project Settings → API
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
 
 > **Security Note**
 >
-> Environment variable dengan prefix `VITE_` tersedia pada frontend/browser setelah proses build. Jangan memasukkan **admin token, write token, atau secret credential** ke dalam variable tersebut.
->
-> Website hanya membaca konten publik, jadi dataset Sanity harus bersifat **public** dan tidak memerlukan token.
+> Variabel `VITE_*` ikut ter-bundle ke browser. Pakai **hanya anon key**. Jangan pernah memakai `service_role` key di frontend. Keamanan data dijaga oleh Row Level Security (RLS) di database, bukan oleh kerahasiaan anon key.
 
-Jika CMS tidak dikonfigurasi, website tetap dapat menggunakan data fallback lokal.
+Jika Supabase tidak dikonfigurasi atau sedang gagal, website memakai data fallback lokal.
 
-## Setup Sanity Studio
+## Setup Supabase
 
-Schema konten ada di folder `studio/` (Berita, Pengumuman, Layanan, Profil, Staf, Galeri) dan sudah cocok dengan query di `src/lib/cms/`.
-
-```bash
-cd studio
-npm install
-npx sanity login
-npx sanity init --env   # pilih "Create new project" atau project yang ada, dataset: production
-```
-
-1. Isi `SANITY_STUDIO_PROJECT_ID` di `studio/.env`, lalu `npm run dev` untuk membuka Studio lokal.
-2. Di sanity.io/manage: **API → CORS origins**, tambahkan URL website (dan `http://localhost:5173` untuk dev). Tanpa ini browser akan memblokir request.
-3. Pastikan dataset `production` bersifat public (**Datasets → Visibility**).
-4. Salin Project ID ke `.env` di root (`VITE_CMS_PROJECT_ID`).
-5. `npm run deploy` di folder `studio` untuk publish Studio ke `<nama>.sanity.studio`.
+1. Buat project di supabase.com.
+2. **SQL Editor** → jalankan isi `supabase/migrations/0001_init.sql`, lalu `supabase/migrations/0002_hardening_storage.sql`. Ini membuat tabel, kebijakan RLS, dan bucket Storage `media`.
+3. **Authentication → Users → Add user**: buat akun admin (email + password). Salin `User UID`-nya.
+4. Daftarkan sebagai admin di SQL Editor:
+   ```sql
+   insert into public.admins (user_id) values ('<User UID>');
+   ```
+5. **Authentication → URL Configuration**: isi Site URL dengan domain produksi, dan tambahkan Redirect URL `http://localhost:5173` untuk pengembangan.
+6. Salin **Project URL** dan **anon key** dari **Project Settings → API** ke `.env` (lokal) dan ke Environment Variables Vercel, lalu redeploy.
+7. Buka `/admin/login` dan masuk.
 
 Hanya dokumen dengan status `published` (berita, pengumuman) atau `active` (layanan) yang tampil di website.
 
@@ -478,7 +472,7 @@ Salin `.env.example` menjadi `.env`.
 cp .env.example .env
 ```
 
-Kemudian masukkan konfigurasi Sanity jika CMS digunakan.
+Kemudian isi konfigurasi Supabase jika CMS digunakan.
 
 ## 4. Jalankan Development Server
 

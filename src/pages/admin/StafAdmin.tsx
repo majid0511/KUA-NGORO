@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
-import type { Staf } from '../../../lib/cms/types';
+import { supabase } from '../../lib/supabase';
+import type { Staf } from '../../lib/cms/types';
 import {
   AdminListPage, AdminLoading, AdminEmpty, AdminError,
   ConfirmDelete, EditBtn, DeleteBtn, ToggleBtn,
-  Field, inputCls, textareaCls, FormActions,
-} from '../AdminUI';
-import { useImageUpload } from '../useImageUpload';
+  Field, inputCls, textareaCls, FormActions, run,
+} from './AdminUI';
+import { useImageUpload } from './useImageUpload';
 import { Image as ImageIcon, UserCircle } from 'lucide-react';
 
 type Mode = 'list' | 'form';
@@ -54,21 +54,26 @@ export default function StafAdmin() {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSaving(true);
-    if (editing) await supabase!.from('staf').update(form).eq('id', editing.id);
-    else await supabase!.from('staf').insert(form);
-    setSaving(false); setMode('list'); load();
+    const ok = await run(
+      editing
+        ? supabase!.from('staf').update(form).eq('id', editing.id)
+        : supabase!.from('staf').insert(form),
+    );
+    setSaving(false);
+    if (!ok) return;
+    setMode('list'); load();
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    await supabase!.from('staf').delete().eq('id', deleteTarget.id);
+    if (!(await run(supabase!.from('staf').delete().eq('id', deleteTarget.id)))) return;
     setDeleteTarget(null); load();
   }
 
   async function toggleStatus(item: Staf) {
-    await supabase!.from('staf')
+    if (!(await run(supabase!.from('staf')
       .update({ active: !item.active })
-      .eq('id', item.id);
+      .eq('id', item.id)))) return;
     load();
   }
   

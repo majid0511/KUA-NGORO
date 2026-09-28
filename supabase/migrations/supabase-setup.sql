@@ -216,3 +216,97 @@ create policy "galeri_write" on public.galeri for all    using (public.is_admin(
 --   for update using (bucket_id = 'media' and public.is_admin());
 -- create policy "media_admin_delete" on storage.objects
 --   for delete using (bucket_id = 'media' and public.is_admin());
+-- ============================================================
+-- KUA Ngoro – Migration 0002: hardening + Storage bucket "media"
+-- Jalankan SETELAH 0001_init.sql (Dashboard → SQL Editor → Run).
+-- Aman dijalankan ulang.
+-- ============================================================
+
+-- ─── 1. Kunci search_path fungsi (rekomendasi Supabase linter) ─
+alter function public.set_updated_at() set search_path = '';
+alter function public.is_admin()       set search_path = '';
+
+-- ─── 2. profil harus singleton: maksimal satu baris ─────────
+create unique index if not exists profil_singleton on public.profil ((true));
+
+-- ─── 3. Storage bucket "media" (baca publik lewat URL) ──────
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'media', 'media', true,
+  2097152,                                             -- 2 MB
+  array['image/jpeg','image/png','image/webp','image/gif']
+)
+on conflict (id) do update
+  set public             = excluded.public,
+      file_size_limit    = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+-- Tulis/ubah/hapus file hanya untuk admin. Sengaja TIDAK ada policy select:
+-- file tetap terbaca lewat URL publik, tapi isi bucket tidak bisa di-list anon.
+drop policy if exists "media_admin_insert" on storage.objects;
+drop policy if exists "media_admin_update" on storage.objects;
+drop policy if exists "media_admin_delete" on storage.objects;
+
+create policy "media_admin_insert" on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'media' and public.is_admin());
+
+create policy "media_admin_update" on storage.objects
+  for update to authenticated
+  using (bucket_id = 'media' and public.is_admin())
+  with check (bucket_id = 'media' and public.is_admin());
+
+create policy "media_admin_delete" on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'media' and public.is_admin());
+-- ============================================================
+-- KUA Ngoro – Migration 0003: kolom tanggal bertipe date
+-- Jalankan SETELAH 0001 dan 0002. Aman dijalankan ulang.
+-- Sebelumnya published_at / expires_at bertipe text. Nilai lama
+-- (format YYYY-MM-DD) dikonversi; nilai kosong jadi tanggal
+-- pembuatan (published_at) atau NULL (expires_at).
+-- Zona waktu memakai Asia/Jakarta agar pengumuman tidak hilang
+-- atau tampil di hari yang salah.
+-- ============================================================
+
+-- Policy bergantung pada expires_at: lepas dulu sebelum ubah tipe kolom.
+drop policy if exists "pengumuman_read" on public.pengumuman;
+
+do $$
+declare
+  t text;
+  c text;
+  expr text;
+begin
+  for t, c in
+    select * from (values
+      ('berita',     'published_at'),
+      ('pengumuman', 'published_at'),
+      ('pengumuman', 'expires_at'),
+      ('galeri',     'published_at')
+    ) as v(t, c)
+  loop
+    if (select data_type from information_schema.columns
+         where table_schema = 'public' and table_name = t and column_name = c) = 'text' then
+
+      if c = 'expires_at' then
+        expr := format('nullif(%I, '''')::date', c);
+      else
+        expr := format('coalesce(nullif(%I, '''')::date, (created_at at time zone ''Asia/Jakarta'')::date)', c);
+      end if;
+
+      execute format('alter table public.%I alter column %I drop default', t, c);
+      execute format('alter table public.%I alter column %I type date using %s', t, c, expr);
+    end if;
+  end loop;
+end $$;
+
+alter table public.berita     alter column published_at set default (now() at time zone 'Asia/Jakarta')::date;
+alter table public.pengumuman alter column published_at set default (now() at time zone 'Asia/Jakarta')::date;
+alter table public.galeri     alter column published_at set default (now() at time zone 'Asia/Jakarta')::date;
+
+create policy "pengumuman_read" on public.pengumuman
+  for select using (
+    status = 'published'
+    and (expires_at is null or expires_at >= (now() at time zone 'Asia/Jakarta')::date)
+  );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { User } from '@supabase/supabase-js';
@@ -10,9 +10,10 @@ type GuardState = 'loading' | 'authorized' | 'unauthorized';
  * Checks Supabase Auth session AND that the user exists in the `admins` table.
  */
 export default function AdminGuard() {
-  const [state, setState] = useState<GuardState>('loading');
+  const [state, setState] = useState<GuardState>(supabase ? 'loading' : 'unauthorized');
 
   useEffect(() => {
+    if (!supabase) return;
     let cancelled = false;
 
     async function check(user: User | null) {

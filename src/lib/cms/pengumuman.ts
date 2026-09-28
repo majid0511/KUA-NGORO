@@ -18,7 +18,7 @@ const fallbackPengumumanList: Pengumuman[] = newsData
 
 // Client-side expiry filter (applied to both CMS and fallback data)
 function filterExpired(list: Pengumuman[]): Pengumuman[] {
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, zona waktu perangkat
   return list.filter((p) => !p.expires_at || p.expires_at >= today);
 }
 

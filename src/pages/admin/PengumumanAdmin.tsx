@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
-import type { Pengumuman } from '../../../lib/cms/types';
+import { supabase } from '../../lib/supabase';
+import type { Pengumuman } from '../../lib/cms/types';
 import {
   AdminListPage, AdminLoading, AdminEmpty, AdminError,
   ConfirmDelete, EditBtn, DeleteBtn, ToggleBtn,
-  Field, inputCls, textareaCls, FormActions,
-} from '../AdminUI';
+  Field, inputCls, textareaCls, FormActions, run,
+} from './AdminUI';
 
 type Mode = 'list' | 'form';
 
@@ -46,21 +46,26 @@ export default function PengumumanAdmin() {
     if (!form.title.trim()) return;
     setSaving(true);
     const payload = { ...form, expires_at: form.expires_at || null };
-    if (editing) await supabase!.from('pengumuman').update(payload).eq('id', editing.id);
-    else await supabase!.from('pengumuman').insert(payload);
-    setSaving(false); setMode('list'); load();
+    const ok = await run(
+      editing
+        ? supabase!.from('pengumuman').update(payload).eq('id', editing.id)
+        : supabase!.from('pengumuman').insert(payload),
+    );
+    setSaving(false);
+    if (!ok) return;
+    setMode('list'); load();
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
-    await supabase!.from('pengumuman').delete().eq('id', deleteTarget.id);
+    if (!(await run(supabase!.from('pengumuman').delete().eq('id', deleteTarget.id)))) return;
     setDeleteTarget(null); load();
   }
 
   async function toggleStatus(item: Pengumuman) {
-    await supabase!.from('pengumuman')
+    if (!(await run(supabase!.from('pengumuman')
       .update({ status: item.status === 'published' ? 'draft' : 'published' })
-      .eq('id', item.id);
+      .eq('id', item.id)))) return;
     load();
   }
 
@@ -95,7 +100,7 @@ export default function PengumumanAdmin() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Tanggal Terbit">
-              <input type="date" className={inputCls} value={form.published_at}
+              <input type="date" required className={inputCls} value={form.published_at}
                 onChange={(e) => setForm((f) => ({ ...f, published_at: e.target.value }))} />
             </Field>
             <Field label="Berlaku Hingga (opsional)">

@@ -23,7 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 
-studio/node_modules
-studio/dist
-studio/.sanity
-.env
+

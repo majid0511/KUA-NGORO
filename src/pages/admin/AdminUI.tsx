@@ -1,6 +1,19 @@
 import React from 'react';
 import { Loader2, Inbox, AlertCircle, Trash2, Pencil, ToggleLeft, ToggleRight } from 'lucide-react';
 
+// ── Mutation helper: tampilkan error Supabase (mis. RLS/duplikat slug) ──
+
+export async function run(
+  op: PromiseLike<{ error: { message: string } | null }>,
+): Promise<boolean> {
+  const { error } = await op;
+  if (error) {
+    alert(`Gagal menyimpan perubahan: ${error.message}`);
+    return false;
+  }
+  return true;
+}
+
 // ── Loading / Empty / Error states ───────────────────────────
 
 export function AdminLoading({ message = 'Memuat data...' }: { message?: string }) {

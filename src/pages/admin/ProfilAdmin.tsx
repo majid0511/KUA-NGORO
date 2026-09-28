@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../../lib/supabase';
-import type { Profil } from '../../../lib/cms/types';
-import { AdminLoading, AdminError, Field, inputCls, textareaCls, FormActions } from '../AdminUI';
+import { supabase } from '../../lib/supabase';
+import type { Profil } from '../../lib/cms/types';
+import { AdminLoading, AdminError, Field, inputCls, textareaCls, run } from './AdminUI';
 
 const EMPTY_PROFIL: Profil = {
   office_name: '', description: '', history: '', vision: '',
@@ -13,7 +13,7 @@ export default function ProfilAdmin() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState<string | null>(null);
-  const [hasData, setHasData] = useState(false);
+  const [profilId, setProfilId] = useState<string | null>(null);
   const [form, setForm]       = useState<Profil>(EMPTY_PROFIL);
   const [missionText, setMissionText] = useState('');
 
@@ -23,11 +23,9 @@ export default function ProfilAdmin() {
     if (error) {
       setError(error.message);
     } else if (data) {
-      setHasData(true);
+      setProfilId(data.id as string);
       setForm(data as Profil);
       setMissionText((data.mission as string[]).join('\n'));
-    } else {
-      setHasData(false);
     }
     setLoading(false);
   }
@@ -38,21 +36,32 @@ export default function ProfilAdmin() {
     e.preventDefault();
     setSaving(true);
     const payload = {
-      ...form,
-      mission: missionText.split('\n').map(s => s.trim()).filter(Boolean),
+      office_name:  form.office_name,
+      description:  form.description,
+      history:      form.history,
+      vision:       form.vision,
+      mission:      missionText.split('\n').map((s) => s.trim()).filter(Boolean),
+      address:      form.address,
+      phone:        form.phone,
+      email:        form.email,
+      office_hours: form.office_hours,
     };
-    
-    // Because profil is a singleton, we clear the table first if it's the first time
-    if (!hasData) {
-      await supabase!.from('profil').delete().neq('office_name', 'impossible_value'); 
-      await supabase!.from('profil').insert(payload);
-    } else {
-      // update all (since there is only 1 row)
-      await supabase!.from('profil').update(payload).neq('office_name', 'impossible_value');
+
+    // Singleton: update baris yang ada; insert hanya jika belum ada sama sekali.
+    if (profilId) {
+      const ok = await run(supabase!.from('profil').update(payload).eq('id', profilId));
+      setSaving(false);
+      if (ok) alert('Profil berhasil disimpan');
+      return;
     }
-    
+    const { data, error: insertError } = await supabase!
+      .from('profil').insert(payload).select('id').single();
     setSaving(false);
-    setHasData(true);
+    if (insertError) {
+      alert(`Gagal menyimpan perubahan: ${insertError.message}`);
+      return;
+    }
+    setProfilId(data.id as string);
     alert('Profil berhasil disimpan');
   }
 
