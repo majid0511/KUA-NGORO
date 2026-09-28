@@ -1,128 +1,336 @@
-# KUA Kecamatan Ngoro — Website Resmi
+# KUA Kecamatan Ngoro
 
-> **Portal Informasi Publik & Layanan Digital Keagamaan**  
-> Kantor Urusan Agama (KUA) Kecamatan Ngoro, Kabupaten Jombang, Jawa Timur.  
-> *Internship Project • 2026*
-
----
-
-## 📌 Tentang Project
-
-**KUA Ngoro Website** adalah portal web resmi Kantor Urusan Agama Kecamatan Ngoro yang dirancang sebagai pusat informasi publik dan layanan digital keagamaan bagi seluruh warga di 13 desa se-Kecamatan Ngoro, Kabupaten Jombang.
-
-Konsep desain: **Modern Islamic Governmental Minimalism** — profesional, tenang, accessible, dan mobile-first.
-
-Fitur utama:
-- Informasi profil, visi-misi, dan struktur organisasi KUA
-- Direktori layanan (Pencatatan Nikah, SIMKAH, Wakaf, Zakat, Hisab Rukyat, dan lainnya)
-- Portal Calon Pengantin (alur nikah, checklist berkas, panduan SIMKAH)
-- Pusat berita & pengumuman resmi yang dapat dikelola melalui Headless CMS
-- Galeri dokumentasi kegiatan
-- Kontak resmi, WhatsApp, dan Google Maps embed
+> **Portal Informasi Publik & Layanan Digital Keagamaan**
+> Kantor Urusan Agama (KUA) Kecamatan Ngoro, Kabupaten Jombang, Jawa Timur.
+>
+> **Internship Project • 2026**
 
 ---
 
-## 🌐 Headless CMS Integration
+## 📖 Tentang Project
 
-Website ini terintegrasi dengan **Headless CMS** berbasis cloud (**Sanity.io**) agar pengelola/admin KUA dapat memperbarui konten publik secara mandiri melalui dashboard admin — tanpa menyentuh source code.
+**KUA Ngoro Website** adalah sebuah portal informasi publik dan layanan digital keagamaan yang dikembangkan sebagai bagian dari **project magang** di KUA Kecamatan Ngoro, Kabupaten Jombang.
 
-### Arsitektur Data
+Website ini dirancang sebagai pusat informasi yang membantu masyarakat memperoleh informasi mengenai profil KUA, layanan keagamaan, informasi pernikahan, berita, pengumuman, kegiatan, serta kontak dan lokasi kantor.
 
+Konsep desain yang digunakan:
+
+**Modern Islamic Governmental Minimalism**
+
+Dengan pendekatan:
+
+* Profesional
+* Tenang dan terpercaya
+* Mudah dipahami masyarakat umum
+* Accessible
+* Mobile-first
+* Fokus pada informasi dan layanan publik
+
+> **Project Status:** Internship Project
+> **Year:** 2026
+> **Institution:** IAI At-Tahdzib Jombang
+> **Location:** KUA Kecamatan Ngoro, Kabupaten Jombang
+
+---
+
+## 🎯 Tujuan
+
+Project ini dikembangkan dengan beberapa tujuan utama:
+
+1. Membuat pusat informasi digital untuk KUA Kecamatan Ngoro.
+2. Mempermudah masyarakat dalam menemukan informasi layanan KUA.
+3. Menyediakan informasi pernikahan dan panduan calon pengantin secara lebih terstruktur.
+4. Menyediakan media publikasi berita, pengumuman, dan kegiatan.
+5. Membangun fondasi website yang dapat dikembangkan dan dikelola secara berkelanjutan.
+6. Memisahkan antara sistem pengelolaan konten dan tampilan website melalui pendekatan **Headless CMS**.
+
+---
+
+## ✨ Fitur Utama
+
+### 🏛️ Profil KUA
+
+Menyediakan informasi mengenai:
+
+* Profil kantor
+* Sejarah
+* Visi dan misi
+* Struktur organisasi
+* Direktori staf
+
+### 📋 Direktori Layanan
+
+Informasi mengenai layanan KUA, termasuk:
+
+* Pencatatan pernikahan
+* SIMKAH
+* Wakaf
+* Zakat
+* Hisab dan Rukyat
+* Layanan keagamaan lainnya
+
+Setiap layanan dapat memiliki informasi:
+
+* Deskripsi
+* Persyaratan
+* Prosedur
+* Estimasi waktu
+* Status layanan
+
+### 💍 Portal Calon Pengantin
+
+Menyediakan informasi praktis bagi calon pengantin, seperti:
+
+* Alur pernikahan
+* Persiapan administrasi
+* Checklist dokumen
+* Panduan SIMKAH
+* Tahapan pelayanan
+
+### 📰 Pusat Informasi
+
+Pusat publikasi untuk:
+
+* Berita
+* Pengumuman
+* Informasi terbaru
+* Dokumentasi kegiatan
+
+Konten berita dan pengumuman dirancang agar dapat dikelola melalui Headless CMS.
+
+### 🖼️ Galeri Kegiatan
+
+Menampilkan dokumentasi kegiatan KUA dalam bentuk galeri visual.
+
+### 📍 Kontak & Lokasi
+
+Menyediakan:
+
+* Informasi kontak
+* WhatsApp
+* Alamat kantor
+* Google Maps
+* Informasi jam pelayanan
+
+---
+
+# 🧠 Headless CMS
+
+Website dirancang dengan arsitektur **Headless CMS** menggunakan **Sanity.io** sebagai sistem pengelolaan konten.
+
+Pendekatan ini memisahkan antara:
+
+**Content Management**
+dan
+**Frontend Presentation**
+
+Sehingga pengelola dapat memperbarui konten tanpa harus mengubah source code frontend.
+
+### Arsitektur
+
+```text
+┌──────────────────────────┐
+│     ADMIN / PENGELOLA    │
+│           KUA            │
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│      SANITY STUDIO       │
+│      CMS Dashboard       │
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│       SANITY API         │
+│      GROQ Queries        │
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│      src/lib/cms/        │
+│  CMS Abstraction Layer   │
+│    + Fallback System     │
+└────────────┬─────────────┘
+             │
+             ▼
+┌──────────────────────────┐
+│     React + Vite         │
+│       Frontend           │
+└──────────────────────────┘
 ```
-ADMIN / PENGELOLA KUA
+
+---
+
+## Kenapa Headless CMS?
+
+### 👨‍💼 Untuk Pengelola
+
+Pengelola dapat mengubah konten melalui dashboard CMS tanpa harus memahami React, TypeScript, atau source code.
+
+Contohnya:
+
+```text
+Admin membuka Sanity Studio
         ↓
- Sanity Studio (Dashboard CMS)
+Membuat berita baru
         ↓
- Sanity API (GROQ)
+Upload gambar
         ↓
- src/lib/cms/   ← Abstraction & Fallback Layer
+Publish
         ↓
- React + Vite Frontend
+Website mengambil data melalui API
+        ↓
+Berita tampil di website
 ```
 
-### Mengapa Sanity.io?
-| Keunggulan | Keterangan |
-|---|---|
-| **Free Tier** | 100k API req/hari — ideal untuk website instansi publik |
-| **Dashboard Non-Developer** | Admin KUA dapat edit berita, pengumuman & upload foto tanpa coding |
-| **Fallback Otomatis** | Jika CMS belum dikonfigurasi atau API gagal, website tetap tampil menggunakan data lokal di `src/data/` |
-| **GROQ Query** | Bahasa query yang ekspresif dan efisien untuk filter & sorting konten |
+### 👨‍💻 Untuk Developer
 
----
+Frontend tetap memiliki struktur kode yang terorganisasi karena komunikasi dengan CMS dipusatkan pada:
 
-## 📋 Content Models (6 Koleksi)
-
-| # | Koleksi | Field Utama |
-|---|---|---|
-| 1 | **Berita** | `title`, `slug`, `excerpt`, `content`, `featured_image`, `category`, `author`, `published_at`, `status` |
-| 2 | **Pengumuman** | `title`, `content`, `published_at`, `expires_at`, `priority`, `status` |
-| 3 | **Layanan** | `title`, `slug`, `description`, `requirements`, `procedure`, `estimated_time`, `icon`, `status`, `order` |
-| 4 | **Profil** | `office_name`, `description`, `history`, `vision`, `mission`, `address`, `phone`, `email`, `office_hours` |
-| 5 | **Staf** | `name`, `position`, `photo`, `bio`, `order`, `active` |
-| 6 | **Galeri** | `title`, `image`, `description`, `category`, `published_at` |
-
----
-
-## 🛠️ Tech Stack
-
-| Kategori | Teknologi |
-|---|---|
-| Framework | React 19 + TypeScript |
-| Build Tool | Vite 8 |
-| Styling | Tailwind CSS v4 |
-| Routing | React Router 7 |
-| CMS Client | `@sanity/client` + `@sanity/image-url` |
-| Animasi | Framer Motion |
-| Scroll | Lenis |
-| Icons | Lucide React |
-| Linter | OxLint |
-
----
-
-## 📁 Struktur Project
-
+```text
+src/lib/cms/
 ```
+
+Dengan demikian komponen UI tidak perlu mengetahui detail implementasi API CMS.
+
+---
+
+# 📋 Content Models
+
+Website menggunakan enam jenis konten utama.
+
+| # | Koleksi        | Field Utama                                                                                               |
+| - | -------------- | --------------------------------------------------------------------------------------------------------- |
+| 1 | **Berita**     | `title`, `slug`, `excerpt`, `content`, `featured_image`, `category`, `author`, `published_at`, `status`   |
+| 2 | **Pengumuman** | `title`, `content`, `published_at`, `expires_at`, `priority`, `status`                                    |
+| 3 | **Layanan**    | `title`, `slug`, `description`, `requirements`, `procedure`, `estimated_time`, `icon`, `status`, `order`  |
+| 4 | **Profil**     | `office_name`, `description`, `history`, `vision`, `mission`, `address`, `phone`, `email`, `office_hours` |
+| 5 | **Staf**       | `name`, `position`, `photo`, `bio`, `order`, `active`                                                     |
+| 6 | **Galeri**     | `title`, `image`, `description`, `category`, `published_at`                                               |
+
+### Status Konten
+
+Konten yang membutuhkan publikasi menggunakan status:
+
+```text
+Draft
+  ↓
+Review
+  ↓
+Published
+```
+
+Konten yang belum dipublikasikan tidak ditampilkan kepada pengunjung.
+
+---
+
+# 🛠️ Tech Stack
+
+| Kategori      | Teknologi           |
+| ------------- | ------------------- |
+| Framework     | React 19            |
+| Language      | TypeScript          |
+| Build Tool    | Vite                |
+| Styling       | Tailwind CSS v4     |
+| Routing       | React Router        |
+| CMS Client    | `@sanity/client`    |
+| CMS Image     | `@sanity/image-url` |
+| Animation     | Framer Motion       |
+| Smooth Scroll | Lenis               |
+| Icons         | Lucide React        |
+| Linter        | OxLint              |
+
+---
+
+# 📁 Project Structure
+
+```text
 kua-ngoro-website/
-├── public/                     # Static assets
+│
+├── public/
+│   └── # Static assets
+│
 ├── src/
-│   ├── assets/                 # Branding & media
+│   │
+│   ├── assets/
+│   │   └── # Branding & media
+│   │
 │   ├── components/
-│   │   ├── cards/              # NewsCard, ServiceCard, ActivityCard, StaffCard, OfficialLinkCard
-│   │   ├── layout/             # Navbar, Footer, MobileStickyBar
-│   │   ├── navigation/         # NavLinks, MobileDrawer
-│   │   ├── sections/           # HeroSection, QuickAccessSection, AboutSection,
-│   │   │                       # ServicesSection, MarriageTimelineSection, NewsSection,
-│   │   │                       # ActivitiesSection, OfficialLinksSection, LocationSection,
-│   │   │                       # ContactCtaSection
-│   │   └── ui/                 # Button, SectionHeading, Modal, Accordion, Badge,
-│   │                           # SearchInput, CmsState (Loading / Empty / Error)
-│   ├── data/                   # Local fallback data (profile, services, news, activities, marriage, faq)
-│   ├── hooks/                  # useScrollPosition
+│   │   │
+│   │   ├── cards/
+│   │   │   ├── NewsCard
+│   │   │   ├── ServiceCard
+│   │   │   ├── ActivityCard
+│   │   │   ├── StaffCard
+│   │   │   └── OfficialLinkCard
+│   │   │
+│   │   ├── layout/
+│   │   │   ├── Navbar
+│   │   │   ├── Footer
+│   │   │   └── MobileStickyBar
+│   │   │
+│   │   ├── navigation/
+│   │   │   ├── NavLinks
+│   │   │   └── MobileDrawer
+│   │   │
+│   │   ├── sections/
+│   │   │   ├── HeroSection
+│   │   │   ├── QuickAccessSection
+│   │   │   ├── AboutSection
+│   │   │   ├── ServicesSection
+│   │   │   ├── MarriageTimelineSection
+│   │   │   ├── NewsSection
+│   │   │   ├── ActivitiesSection
+│   │   │   ├── OfficialLinksSection
+│   │   │   ├── LocationSection
+│   │   │   └── ContactCtaSection
+│   │   │
+│   │   └── ui/
+│   │       ├── Button
+│   │       ├── SectionHeading
+│   │       ├── Modal
+│   │       ├── Accordion
+│   │       ├── Badge
+│   │       ├── SearchInput
+│   │       └── CmsState
+│   │
+│   ├── data/
+│   │   └── # Local fallback data
+│   │
+│   ├── hooks/
+│   │   └── useScrollPosition
+│   │
 │   ├── lib/
-│   │   └── cms/                # Headless CMS Integration Layer
-│   │       ├── types.ts        # TypeScript interfaces (6 content models)
-│   │       ├── client.ts       # Fetcher + queryWithFallback engine
-│   │       ├── berita.ts       # getBerita(), getBeritaBySlug()
-│   │       ├── pengumuman.ts   # getPengumuman() (+ client-side expiry filter)
-│   │       ├── layanan.ts      # getLayanan(), getLayananBySlug()
-│   │       ├── profil.ts       # getProfil()
-│   │       ├── staf.ts         # getStaf()
-│   │       ├── galeri.ts       # getGaleri()
-│   │       └── index.ts        # Re-export barrel
+│   │   └── cms/
+│   │       ├── types.ts
+│   │       ├── client.ts
+│   │       ├── berita.ts
+│   │       ├── pengumuman.ts
+│   │       ├── layanan.ts
+│   │       ├── profil.ts
+│   │       ├── staf.ts
+│   │       ├── galeri.ts
+│   │       └── index.ts
+│   │
 │   ├── pages/
-│   │   ├── Home.tsx            # Beranda utama
-│   │   ├── Profile.tsx         # Profil, Visi-Misi, Struktur Organisasi, Staf (CMS)
-│   │   ├── Services.tsx        # Direktori layanan + modal persyaratan (CMS)
-│   │   ├── Marriage.tsx        # Portal Calon Pengantin, alur nikah, SIMKAH
-│   │   ├── Information.tsx     # Pusat berita & pengumuman (CMS)
-│   │   ├── NewsDetail.tsx      # Detail berita /news/:slug (CMS)
-│   │   ├── Activities.tsx      # Galeri kegiatan (CMS)
-│   │   ├── Contact.tsx         # Kontak resmi, WhatsApp, peta
-│   │   └── NotFound.tsx        # Halaman 404
-│   ├── utils/                  # cn() helper
-│   ├── App.tsx                 # Root router & layout
-│   └── index.css               # Design system tokens & utilities
-├── .env.example                # Template environment variables
+│   │   ├── Home.tsx
+│   │   ├── Profile.tsx
+│   │   ├── Services.tsx
+│   │   ├── Marriage.tsx
+│   │   ├── Information.tsx
+│   │   ├── NewsDetail.tsx
+│   │   ├── Activities.tsx
+│   │   ├── Contact.tsx
+│   │   └── NotFound.tsx
+│   │
+│   ├── utils/
+│   │   └── cn()
+│   │
+│   ├── App.tsx
+│   └── index.css
+│
+├── .env.example
 ├── index.html
 ├── package.json
 ├── tsconfig.json
@@ -131,93 +339,376 @@ kua-ngoro-website/
 
 ---
 
-## ⚙️ Environment Variables
+# 🔌 CMS Abstraction Layer
 
-Salin `.env.example` menjadi `.env`, lalu isi kredensial Sanity Anda:
+Komunikasi antara frontend dan Sanity dipusatkan pada:
 
-```env
-# Sanity.io Project ID & Dataset
-VITE_CMS_PROJECT_ID=your_sanity_project_id
-VITE_CMS_DATASET=production
-
-# Optional: Generic REST API URL (alternatif non-Sanity)
-VITE_CMS_API_URL=
-
-# Optional: Read token (jika dataset bersifat private)
-VITE_CMS_TOKEN=
+```text
+src/lib/cms/
 ```
 
-> **Catatan:** Jika `.env` tidak dikonfigurasi, website tetap berjalan normal menggunakan data lokal di `src/data/`. Tidak ada halaman yang akan blank atau crash.
+Contoh API internal:
+
+```ts
+getBerita()
+getBeritaBySlug()
+getPengumuman()
+getLayanan()
+getLayananBySlug()
+getProfil()
+getStaf()
+getGaleri()
+```
+
+Komponen frontend hanya berinteraksi dengan fungsi tersebut.
+
+Contoh:
+
+```text
+Page
+ ↓
+CMS Function
+ ↓
+CMS Client
+ ↓
+Sanity API
+ ↓
+Data
+```
+
+Hal ini membuat implementasi CMS lebih mudah dipelihara dan memungkinkan sumber data diganti di masa depan tanpa harus mengubah seluruh komponen frontend.
 
 ---
 
-## 🚀 Cara Menjalankan
+# 🛡️ Fallback & Error Handling
+
+Website dirancang agar tetap dapat digunakan ketika CMS belum tersedia atau mengalami gangguan.
+
+| Kondisi                 | Perilaku                   |
+| ----------------------- | -------------------------- |
+| CMS tidak dikonfigurasi | Menggunakan data lokal     |
+| API gagal               | Fallback ke data lokal     |
+| API timeout             | Fallback ke data lokal     |
+| Data kosong             | Menampilkan `EmptyState`   |
+| Fetch error             | Menampilkan `ErrorState`   |
+| Gambar gagal dimuat     | Menggunakan fallback image |
+
+### CMS State Components
+
+Tersedia pada:
+
+```text
+src/components/ui/CmsState.tsx
+```
+
+Komponen:
+
+```tsx
+<LoadingState />
+<EmptyState />
+<ErrorState />
+```
+
+Tujuannya adalah mencegah pengalaman pengguna berubah menjadi halaman kosong ketika sumber data mengalami masalah.
+
+---
+
+# ⚙️ Environment Variables
+
+Buat file `.env` berdasarkan `.env.example`.
+
+```env
+# Sanity Project
+VITE_CMS_PROJECT_ID=your_sanity_project_id
+VITE_CMS_DATASET=production
+
+# Optional
+VITE_CMS_TOKEN=
+```
+
+> **Security Note**
+>
+> Environment variable dengan prefix `VITE_` tersedia pada frontend/browser setelah proses build. Jangan memasukkan **admin token, write token, atau secret credential** ke dalam variable tersebut.
+>
+> Untuk kebutuhan publik, gunakan konfigurasi dan credential dengan hak akses seminimal mungkin.
+
+Jika CMS tidak dikonfigurasi, website tetap dapat menggunakan data fallback lokal.
+
+---
+
+# 🚀 Getting Started
+
+## 1. Clone Repository
 
 ```bash
-# 1. Clone repository
 git clone https://github.com/majid0511/KUA-NGORO.git
+```
+
+Masuk ke directory project:
+
+```bash
 cd KUA-NGORO
+```
 
-# 2. Install dependencies
+## 2. Install Dependencies
+
+```bash
 npm install
+```
 
-# 3. (Opsional) Konfigurasi CMS
+## 3. Konfigurasi Environment
+
+Salin `.env.example` menjadi `.env`.
+
+```bash
 cp .env.example .env
-# → Edit .env dengan kredensial Sanity Anda
+```
 
-# 4. Jalankan development server
+Kemudian masukkan konfigurasi Sanity jika CMS digunakan.
+
+## 4. Jalankan Development Server
+
+```bash
 npm run dev
+```
 
-# 5. Linting
+Website akan tersedia melalui development server Vite.
+
+## 5. Jalankan Linter
+
+```bash
 npm run lint
+```
 
-# 6. Build untuk production
+## 6. Build Production
+
+```bash
 npm run build
 ```
 
 ---
 
-## 🛡️ Sistem Fallback & Error Handling
+# 🗺️ Routes
 
-Seluruh halaman yang terhubung CMS memiliki tiga lapisan proteksi:
-
-| State | Perilaku |
-|---|---|
-| **CMS tidak dikonfigurasi** | Otomatis tampilkan data lokal dari `src/data/` |
-| **API gagal / timeout** | Fallback ke data lokal, log peringatan di console |
-| **Data kosong** | Tampilkan komponen `EmptyState` dengan pesan ramah pengguna |
-| **Error fetch** | Tampilkan komponen `ErrorState` dengan pesan informatif |
-
-Komponen UI state tersedia di `src/components/ui/CmsState.tsx`:
-- `<LoadingState />` — skeleton/spinner saat data sedang dimuat
-- `<EmptyState />` — tampilan saat tidak ada data tersedia
-- `<ErrorState />` — tampilan saat terjadi kesalahan koneksi
+| Route                 | Halaman                | CMS                 |
+| --------------------- | ---------------------- | ------------------- |
+| `/`                   | Beranda                | —                   |
+| `/profil`             | Profil KUA             | Profil + Staf       |
+| `/layanan`            | Direktori Layanan      | Layanan             |
+| `/layanan/pernikahan` | Portal Calon Pengantin | —                   |
+| `/informasi`          | Berita & Pengumuman    | Berita + Pengumuman |
+| `/news/:slug`         | Detail Berita          | Berita              |
+| `/kegiatan`           | Galeri Kegiatan        | Galeri              |
+| `/kontak`             | Kontak & Lokasi        | —                   |
 
 ---
 
-## 🗺️ Halaman & Rute
+# 📱 Responsive Design
 
-| Rute | Halaman | CMS |
-|---|---|---|
-| `/` | Beranda | — |
-| `/profil` | Profil KUA | ✅ Profil + Staf |
-| `/layanan` | Direktori Layanan | ✅ Layanan |
-| `/layanan/pernikahan` | Portal Calon Pengantin | — |
-| `/informasi` | Berita & Pengumuman | ✅ Berita + Pengumuman |
-| `/news/:slug` | Detail Berita | ✅ Berita |
-| `/kegiatan` | Galeri Kegiatan | ✅ Galeri |
-| `/kontak` | Kontak & Peta | — |
+Website dikembangkan dengan pendekatan **mobile-first** untuk memastikan informasi tetap mudah diakses melalui berbagai perangkat.
 
----
+Target perangkat:
 
-## 👨‍💻 Developer
+* 📱 Mobile
+* 📲 Tablet
+* 💻 Laptop
+* 🖥️ Desktop
 
-**Mahasiswa Program Studi Hukum Keluarga (Syariah)**  
-IAI At-Tahdzib Jombang
-
-*Internship Project • 2026*
+Elemen navigasi dan konten dirancang agar tetap nyaman digunakan pada layar berukuran kecil maupun besar.
 
 ---
 
-**KUA Kecamatan Ngoro** — Kabupaten Jombang, Jawa Timur  
-Kementerian Agama Republik Indonesia
+# ♿ Accessibility
+
+Beberapa prinsip accessibility yang diterapkan meliputi:
+
+* Semantic HTML
+* Struktur heading yang terorganisasi
+* Kontras warna yang diperhatikan
+* `alt` text untuk gambar
+* Keyboard-friendly interaction
+* Responsive typography
+* Tombol dan link dengan area interaksi yang memadai
+* State loading, empty, dan error yang informatif
+
+---
+
+# ⚡ Performance
+
+Beberapa pendekatan yang digunakan:
+
+* Vite production build
+* Lazy loading gambar
+* Responsive image handling
+* CMS image optimization
+* Component-based architecture
+* Pemisahan data dan presentation layer
+* Fallback data untuk mengurangi ketergantungan terhadap satu sumber data
+
+---
+
+# 🔗 Integrasi Informasi Resmi
+
+Website dapat menyediakan akses menuju sumber informasi resmi terkait layanan KUA dan Kementerian Agama.
+
+Link eksternal dapat diarahkan ke sumber resmi seperti:
+
+* Kementerian Agama Republik Indonesia
+* Kantor Wilayah Kementerian Agama Jawa Timur
+* Sistem informasi terkait layanan pernikahan
+* Sumber informasi pemerintah lainnya
+
+Informasi dan link resmi harus diverifikasi sebelum dipublikasikan kepada masyarakat.
+
+---
+
+# 🧪 Testing Checklist
+
+Sebelum deployment, beberapa bagian yang perlu diuji:
+
+### Pages
+
+* [ ] Beranda
+* [ ] Profil
+* [ ] Layanan
+* [ ] Portal Pernikahan
+* [ ] Informasi
+* [ ] Detail Berita
+* [ ] Kegiatan
+* [ ] Kontak
+* [ ] 404
+
+### CMS
+
+* [ ] CMS aktif
+* [ ] CMS tidak dikonfigurasi
+* [ ] API gagal
+* [ ] API timeout
+* [ ] Data kosong
+* [ ] Data berita
+* [ ] Data pengumuman
+* [ ] Data layanan
+* [ ] Data profil
+* [ ] Data staf
+* [ ] Data galeri
+* [ ] Gambar CMS
+
+### Responsive
+
+* [ ] Mobile
+* [ ] Tablet
+* [ ] Desktop
+
+### Routing
+
+* [ ] Navigasi internal
+* [ ] Direct URL
+* [ ] Browser refresh
+* [ ] Invalid route
+* [ ] `/news/:slug`
+
+### Build
+
+```bash
+npm run lint
+npm run build
+```
+
+---
+
+# ☁️ Deployment
+
+Project dapat dideploy menggunakan platform hosting modern yang mendukung aplikasi Vite/React.
+
+Contoh:
+
+* Vercel
+* Netlify
+* Cloudflare Pages
+* Static hosting lainnya
+
+Untuk deployment menggunakan Vercel, pastikan konfigurasi environment variables telah ditambahkan pada project deployment.
+
+---
+
+# 🧩 Development Philosophy
+
+Project ini tidak hanya berfokus pada tampilan website, tetapi juga pada bagaimana sebuah website informasi publik dapat dikembangkan menjadi sistem yang:
+
+```text
+Simple
+   ↓
+Maintainable
+   ↓
+Scalable
+   ↓
+Manageable
+   ↓
+Sustainable
+```
+
+Beberapa prinsip yang digunakan:
+
+### Separation of Concerns
+
+Data, UI, routing, dan CMS dipisahkan berdasarkan tanggung jawabnya.
+
+### Progressive Enhancement
+
+Website tetap memiliki data fallback ketika layanan eksternal belum tersedia.
+
+### Content Independence
+
+Konten publik tidak harus melekat langsung pada source code frontend.
+
+### Maintainability
+
+Struktur folder dan abstraction layer dibuat agar project dapat dikembangkan oleh developer berikutnya.
+
+---
+
+# 👨‍💻 Developer
+
+Project ini dikembangkan sebagai bagian dari kegiatan magang mahasiswa:
+
+**Mahasiswa Program Studi Hukum Keluarga (Syariah)**
+**IAI At-Tahdzib Jombang**
+
+> **Internship Project • 2026**
+
+Kontribusi utama mencakup perancangan konsep, UI/UX, pengembangan frontend, struktur aplikasi, integrasi CMS, serta deployment dan dokumentasi project.
+
+---
+
+# 🏛️ Project Context
+
+**KUA Kecamatan Ngoro**
+Kabupaten Jombang, Jawa Timur
+
+Project ini dibuat dalam konteks kegiatan magang dan pengembangan media informasi digital.
+
+> **Catatan:** Status project sebagai *internship project* tidak dengan sendirinya berarti website ini merupakan situs resmi pemerintah atau telah menjadi sistem operasional resmi KUA. Informasi kelembagaan, kontak, layanan, dan tautan eksternal perlu diverifikasi oleh pihak terkait sebelum digunakan sebagai informasi publik resmi.
+
+---
+
+# 📄 License
+
+Project ini dibuat untuk kebutuhan:
+
+* Internship
+* Portfolio
+* Pembelajaran
+* Pengembangan teknologi informasi
+* Dokumentasi project
+
+Penggunaan identitas, logo, data kelembagaan, maupun informasi resmi KUA harus memperhatikan izin dan ketentuan dari pihak terkait.
+
+---
+
+## 🌱 Legacy
+
+> **Built as an internship project. Designed to remain useful beyond the internship.**
+
+Project ini diharapkan tidak berhenti sebagai hasil tugas magang, tetapi menjadi fondasi yang dapat dikembangkan lebih lanjut apabila dibutuhkan.
+
+**2026 • KUA Kecamatan Ngoro × IAI At-Tahdzib Jombang**
