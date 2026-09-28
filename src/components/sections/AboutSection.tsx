@@ -26,9 +26,9 @@ export const AboutSection: React.FC = () => {
                 loading="lazy"
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-stone-950/60 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-stone-950/30 to-transparent" />
 
-              <div className="absolute bottom-6 left-6 right-6 text-white">
+              <div className="absolute bottom-6 sm:bottom-28 left-6 right-6 text-white">
                 <span className="text-xs font-bold uppercase tracking-wider text-amber-400 block mb-1">
                   KUA Kecamatan Ngoro
                 </span>

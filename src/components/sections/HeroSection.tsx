@@ -4,7 +4,29 @@ import { ArrowRight, Phone, ShieldCheck, MapPin, CheckCircle } from "lucide-reac
 import { motion, type Variants } from "framer-motion";
 import fotoDepan from "../../assets/fotoDepan.jpg";
 
+// Jam layanan mengikuti src/data/profile.ts (WIB). Hari libur nasional belum terdeteksi.
+const isServiceOpen = (now: Date = new Date()): boolean => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const day = get("weekday");
+  const minutes = Number(get("hour")) * 60 + Number(get("minute"));
+  if (["Mon", "Tue", "Wed", "Thu"].includes(day)) return minutes >= 450 && minutes < 960; // 07.30 - 16.00
+  if (day === "Fri") return minutes >= 450 && minutes < 990; // 07.30 - 16.30
+  return false; // Sabtu - Minggu
+};
+
 export const HeroSection: React.FC = () => {
+  const [open, setOpen] = React.useState(isServiceOpen);
+  React.useEffect(() => {
+    const id = setInterval(() => setOpen(isServiceOpen()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const headlineWords = ["KUA", "Kecamatan", "Ngoro"];
 
   const containerVariants: Variants = {
@@ -143,9 +165,9 @@ export const HeroSection: React.FC = () => {
                   alt="Pelayanan Kantor Urusan Agama Ngoro"
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-900/70 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-stone-900/85 via-stone-900/30 to-transparent" />
 
-                <div className="absolute bottom-5 left-5 right-5 text-white">
+                <div className="absolute bottom-[4.5rem] left-5 right-5 text-white">
                   <span className="inline-block px-2.5 py-1 rounded bg-amber-600 text-white text-xs font-bold uppercase tracking-wider mb-1.5">
                     Pelayanan Keagamaan
                   </span>
@@ -171,9 +193,20 @@ export const HeroSection: React.FC = () => {
               </div>
 
               {/* Floating Status Badge */}
-              <div className="absolute -top-4 -right-4 bg-emerald-950 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 border border-emerald-800 text-xs font-semibold">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                <span>Pelayanan Buka</span>
+              <div
+                className={`absolute -top-4 -right-4 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 border text-xs font-semibold ${
+                  open ? "bg-emerald-950 border-emerald-800" : "bg-stone-800 border-stone-600"
+                }`}
+              >
+                <span className="relative flex w-2.5 h-2.5">
+                  {open && (
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                  )}
+                  <span
+                    className={`relative inline-flex w-2.5 h-2.5 rounded-full ${open ? "bg-emerald-400" : "bg-stone-400"}`}
+                  />
+                </span>
+                <span>{open ? "Pelayanan Buka" : "Pelayanan Tutup"}</span>
               </div>
             </div>
           </motion.div>
