@@ -60,7 +60,7 @@ export const services: Service[] = [
     name: "SIWAK",
     description: "Sistem informasi dan layanan data wakaf.",
     // TODO: Verifikasi URL resmi SIWAK sebelum ditayangkan.
-    url: "#",
+    url: "https://siwak.kemenag.go.id/",
     icon: "Landmark",
     category: "Wakaf",
     external: true,
@@ -71,7 +71,7 @@ export const services: Service[] = [
     name: "SIMAS",
     description: "Sistem informasi masjid dan musala.",
     // TODO: Verifikasi URL resmi SIMAS sebelum ditayangkan.
-    url: "#",
+    url: "https://simas.kemenag.go.id/",
     icon: "Building2",
     category: "Kemasjidan",
     external: true,
@@ -82,7 +82,7 @@ export const services: Service[] = [
     name: "Kembangdaman",
     description: "Layanan sertifikasi dan pendataan masjid/musala.",
     // TODO: Verifikasi URL resmi Kembangdaman sebelum ditayangkan.
-    url: "#",
+    url: "https://kemenagkabjombang.web.id/kembangdaman/users/login_user.php#!",
     icon: "Building2",
     category: "Kemasjidan",
     external: true,
@@ -104,7 +104,7 @@ export const services: Service[] = [
     name: "Simpenais",
     description: "Layanan terkait pendataan majelis taklim.",
     // TODO: Verifikasi URL resmi Simpenais sebelum ditayangkan.
-    url: "#",
+    url: "https://simpenais.kemenag.go.id/login",
     icon: "BookOpenText",
     category: "Majelis Taklim",
     external: true,
