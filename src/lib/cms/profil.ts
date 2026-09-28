@@ -32,11 +32,7 @@ export async function getProfil(): Promise<CmsResponse<Profil>> {
   }`;
 
   return queryWithFallback(
-    async () => {
-      const res = await fetchCmsData<Profil[] | Profil>(query);
-      if (Array.isArray(res)) return res[0] || null;
-      return res as Profil | null;
-    },
+    async () => (await fetchCmsData<Profil | null>(query)) ?? fallbackProfil,
     fallbackProfil
   );
 }

@@ -59,11 +59,7 @@ export async function getLayananBySlug(slug: string): Promise<CmsResponse<Layana
   const localMatch = fallbackLayananList.find((l) => l.slug === slug || l.id === slug) || null;
 
   return queryWithFallback(
-    async () => {
-      const res = await fetchCmsData<Layanan[]>(query, { slug });
-      if (Array.isArray(res)) return res[0] || null;
-      return res as Layanan | null;
-    },
+    () => fetchCmsData<Layanan | null>(query, { slug }),
     localMatch
   );
 }

@@ -59,11 +59,7 @@ export async function getBeritaBySlug(slug: string): Promise<CmsResponse<Berita 
   const localMatch = fallbackBeritaList.find((b) => b.slug === slug) || null;
 
   return queryWithFallback(
-    async () => {
-      const res = await fetchCmsData<Berita[]>(query, { slug });
-      if (Array.isArray(res)) return res[0] || null;
-      return res as Berita | null;
-    },
+    () => fetchCmsData<Berita | null>(query, { slug }),
     localMatch
   );
 }

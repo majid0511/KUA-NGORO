@@ -19,7 +19,7 @@ const fallbackPengumumanList: Pengumuman[] = newsData
   * Filters out expired announcements (expires_at < current date)
   */
 export async function getPengumuman(): Promise<CmsResponse<Pengumuman[]>> {
-  const query = `*[_type == "pengumuman" && status == "published"] | order(published_at desc) {
+  const query = `*[_type == "pengumuman" && status == "published" && (!defined(expires_at) || expires_at >= now())] | order(published_at desc) {
     "id": _id,
     title,
     content,
@@ -34,7 +34,7 @@ export async function getPengumuman(): Promise<CmsResponse<Pengumuman[]>> {
     fallbackPengumumanList
   );
 
-  // Client-side expiry filtering
+  // Filter kedaluwarsa di klien, berlaku juga untuk data fallback lokal
   if (response.data) {
     const now = new Date().toISOString();
     response.data = response.data.filter((item) => {

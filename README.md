@@ -235,7 +235,6 @@ Konten yang belum dipublikasikan tidak ditampilkan kepada pengunjung.
 | Styling       | Tailwind CSS v4     |
 | Routing       | React Router        |
 | CMS Client    | `@sanity/client`    |
-| CMS Image     | `@sanity/image-url` |
 | Animation     | Framer Motion       |
 | Smooth Scroll | Lenis               |
 | Icons         | Lucide React        |
@@ -387,9 +386,8 @@ Website dirancang agar tetap dapat digunakan ketika CMS belum tersedia atau meng
 | Kondisi                 | Perilaku                   |
 | ----------------------- | -------------------------- |
 | CMS tidak dikonfigurasi | Menggunakan data lokal     |
-| API gagal               | Fallback ke data lokal     |
-| API timeout             | Fallback ke data lokal     |
-| Data kosong             | Menampilkan `EmptyState`   |
+| API gagal / timeout     | Fallback ke data lokal     |
+| CMS aktif, data kosong  | Menampilkan `EmptyState` (tidak fallback) |
 | Fetch error             | Menampilkan `ErrorState`   |
 | Gambar gagal dimuat     | Menggunakan fallback image |
 
@@ -418,21 +416,37 @@ Tujuannya adalah mencegah pengalaman pengguna berubah menjadi halaman kosong ket
 Buat file `.env` berdasarkan `.env.example`.
 
 ```env
-# Sanity Project
+# Sanity Project (publik, read-only)
 VITE_CMS_PROJECT_ID=your_sanity_project_id
 VITE_CMS_DATASET=production
-
-# Optional
-VITE_CMS_TOKEN=
 ```
 
 > **Security Note**
 >
 > Environment variable dengan prefix `VITE_` tersedia pada frontend/browser setelah proses build. Jangan memasukkan **admin token, write token, atau secret credential** ke dalam variable tersebut.
 >
-> Untuk kebutuhan publik, gunakan konfigurasi dan credential dengan hak akses seminimal mungkin.
+> Website hanya membaca konten publik, jadi dataset Sanity harus bersifat **public** dan tidak memerlukan token.
 
 Jika CMS tidak dikonfigurasi, website tetap dapat menggunakan data fallback lokal.
+
+## Setup Sanity Studio
+
+Schema konten ada di folder `studio/` (Berita, Pengumuman, Layanan, Profil, Staf, Galeri) dan sudah cocok dengan query di `src/lib/cms/`.
+
+```bash
+cd studio
+npm install
+npx sanity login
+npx sanity init --env   # pilih "Create new project" atau project yang ada, dataset: production
+```
+
+1. Isi `SANITY_STUDIO_PROJECT_ID` di `studio/.env`, lalu `npm run dev` untuk membuka Studio lokal.
+2. Di sanity.io/manage: **API → CORS origins**, tambahkan URL website (dan `http://localhost:5173` untuk dev). Tanpa ini browser akan memblokir request.
+3. Pastikan dataset `production` bersifat public (**Datasets → Visibility**).
+4. Salin Project ID ke `.env` di root (`VITE_CMS_PROJECT_ID`).
+5. `npm run deploy` di folder `studio` untuk publish Studio ke `<nama>.sanity.studio`.
+
+Hanya dokumen dengan status `published` (berita, pengumuman) atau `active` (layanan) yang tampil di website.
 
 ---
 
