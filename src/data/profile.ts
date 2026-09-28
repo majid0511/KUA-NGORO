@@ -86,14 +86,18 @@ export const profileData: ProfileData = {
 
   history: "Sebagai lembaga keagamaan resmi tingkat kecamatan di bawah Naungan Kantor Kementerian Agama Kabupaten Jombang, KUA Kecamatan Ngoro telah berdiri dan bertransformasi seiring perkembangan jaman. Dalam beberapa tahun terakhir, KUA Ngoro secara konsisten melakukan digitalisasi layanan publik, mempermudah pendaftaran nikah secara online melalui SIMKAH, melayani konsultasi langsung maupun via WhatsApp, serta memperkuat pembinaan kerukunan umat beragama di wilayah Kecamatan Ngoro.",
 
-  vision: "Terwujudnya masyarakat Kecamatan Ngoro yang taat beragama, rukun, cerdas, berakhlak mulia, dan sejahtera lahir batin dalam bingkai Negara Kesatuan Republik Indonesia.",
+  vision: "Terwujudnya Pelayanan Kantor Urusan Agama Kecamatan Ngoro yang Profesional, Transparan, dan Berintegritas dalam Membangun Masyarakat Kecamatan Ngoro yang Religius, Rukun, Moderat, serta Berakhlakul Karimah.",
 
   missions: [
-    "Peningkatan kualitas pelayanan pencatatan nikah dan rujuk yang akuntabel, transparan, dan responsif.",
-    "Peningkatan kualitas bimbingan keluarga sakinah dan ketahanan keluarga di tingkat masyarakat.",
-    "Pembinaan kemasjidan dan optimalisasi tata kelola rumah ibadah serta sertifikasi tanah wakaf.",
-    "Pemberdayaan penyuluhan agama Islam untuk menciptakan kerukunan beragama dan suasana kondusif di Ngoro.",
-    "Modernisasi dan digitalisasi pelayanan publik untuk kemudahan akses seluruh warga."
+    "Meningkatkan kualitas pelayanan administrasi nikah dan rujuk yang cepat, akurat, tertib hukum, dan sesuai dengan regulasi perundang-undangan.",
+    "Menguatkan pelayanan bimbingan dan ketahanan keluarga melalui program Bimbingan Perkawinan (Bimwin) menuju keluarga sakinah, mawaddah, wa rahmah.",
+    "Mengarusutaman dan menguatkan Moderasi Beragama serta memelihara kerukunan umat beragama di wilayah Kecamatan Ngoro.",
+    "Meningkatkan tata kelola, pembinaan, dan pemberdayaan di bidang kemasjidan, zakat, wakaf, serta ibadah sosial secara akuntabel.",
+    "Meningkatkan kualitas bimbingan, penyuluhan, dan penerangan agama Islam secara edukatif, inovatif, dan berkelanjutan.",
+    "Mengoptimalkan pelayanan manasik, bimbingan, dan penyajian data informasi penyelenggaraan ibadah haji dan umrah.",
+    "Mempercepat transformasi digital (digitalisasi layanan), akurasi tata kelola administrasi perkantoran, dan peningkatan kompetensi SDM.",
+    "Membangun kemitraan dan kerja sama lintas sektor dengan pemerintah daerah, institusi pendidikan, organisasi kemasyarakatan Islam, dan pemangku kepentingan terkait."
+    
   ],
 
   duties: [
