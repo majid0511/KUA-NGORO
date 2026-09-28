@@ -2,6 +2,7 @@ import React from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { ArrowRight, Phone, ShieldCheck, MapPin, CheckCircle } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
+import fotoDepan from "../../assets/fotoDepan.jpg";
 
 export const HeroSection: React.FC = () => {
   const headlineWords = ["KUA", "Kecamatan", "Ngoro"];
@@ -138,7 +139,7 @@ export const HeroSection: React.FC = () => {
               {/* Main Image Container */}
               <div className="relative rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-stone-100 aspect-[4/3] sm:aspect-[14/10]">
                 <img
-                  src="https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?auto=format&fit=crop&w=1200&q=80"
+                  src= {fotoDepan}
                   alt="Pelayanan Kantor Urusan Agama Ngoro"
                   className="w-full h-full object-cover"
                 />
