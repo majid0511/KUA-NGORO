@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { profileData } from "../../data/profile";
 import { SectionHeading } from "../ui/SectionHeading";
+import fotoNikah from "../../assets/fotoNikah.jpg";
 
 export const AboutSection: React.FC = () => {
   return (
@@ -20,7 +21,7 @@ export const AboutSection: React.FC = () => {
           >
             <div className="relative rounded-3xl overflow-hidden border border-stone-200 shadow-lg bg-stone-100 aspect-[4/3]">
               <img
-                src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=1000&q=80"
+                src={fotoNikah}
                 alt="Kantor KUA Ngoro Melayani Masyarakat"
                 loading="lazy"
                 className="w-full h-full object-cover"
