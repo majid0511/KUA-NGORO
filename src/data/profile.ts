@@ -155,7 +155,7 @@ export const profileData: ProfileData = {
   staff: [
     {
       id: "staf-1",
-      name: "Kepala KUA Ngoro", // TODO: Replace with verified KUA data (Nama Kepala KUA)
+      name: "Achmad Cholili, S.Ag., M.H.I.", // TODO: Replace with verified KUA data (Nama Kepala KUA)
       position: "Kepala KUA Kecamatan Ngoro",
       roleCategory: "Kepala",
       description: "Memimpin pelaksanaan tugas dan fungsi KUA Kecamatan Ngoro sesuai petunjuk teknis Kementerian Agama.",
@@ -163,27 +163,65 @@ export const profileData: ProfileData = {
     },
     {
       id: "staf-2",
-      name: "Penghulu KUA Ngoro", // TODO: Replace with verified KUA data
-      position: "Penghulu Ahli Muda / Utama",
-      roleCategory: "Penghulu",
+      name: "Purwaning Rohmah", // TODO: Replace with verified KUA data
+      position: "Pengolah Data dan Informasi",
+      roleCategory: "Pelaksana",
       description: "Melakukan tugas pelayanan dan pengawasan nikah / rujuk serta bimbingan keluarga sakinah.",
       photoUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80"
     },
     {
       id: "staf-3",
-      name: "Tim Penyuluh Agama Islam", // TODO: Replace with verified KUA data
-      position: "Penyuluh Agama Islam Fungsional",
-      roleCategory: "Penyuluh",
+      name: "Moh. Hadi Ismanto, S.H.I.", // TODO: Replace with verified KUA data
+      position: "Penghulu Ahli Pertama",
+      roleCategory: "Penghulu",
       description: "Melaksanakan bimbingan keagamaan Islam, penyuluhan produk halal, dan fasilitasi majelis taklim di desa.",
       photoUrl: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=600&q=80"
     },
     {
       id: "staf-4",
-      name: "Staf Administrasi & SIMKAH", // TODO: Replace with verified KUA data
-      position: "Pengelola Data Layanan / SIMKAH",
-      roleCategory: "Pelaksana",
+      name: "Moh. Maslihan, S.Pd.I.", // TODO: Replace with verified KUA data
+      position: "Penyuluh Agama Islam Ahli Pertama",
+      roleCategory: "Penyuluh",
       description: "Mengelola administrasi surat menyurat, validasi data pendaftaran nikah online, dan pelayanan front office.",
       photoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      id: "staf-5",
+      name: "Rohmatulloh, S.Pd.I", // TODO: Replace with verified KUA data
+      position: "Penata Layanan Operasional",
+      roleCategory: "Pelaksana",
+      description: "Memberikan bimbingan dan penyuluhan agama Islam di masyarakat, termasuk pembinaan majelis taklim.",
+      photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      id: "staf-6",
+      name: "Asmik Nasikah, S.Sy.", // TODO: Replace with verified KUA data
+      position: "Penyuluh Agama Islam Ahli Pertama",
+      roleCategory: "Penyuluh",
+      description: "Melaksanakan bimbingan keagamaan Islam, pembinaan kemasjidan, dan fasilitasi majelis taklim di desa.",
+      photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80"
+    },
+    {
+      id: "staf-7",
+      name: "Muhammad Yusuf Effendi, S.Pd.", // TODO: Replace with verified KUA data
+      position: "Penyuluh Agama Islam Ahli Pertama",
+      roleCategory: "Penyuluh",
+      description: "Memberikan bimbingan dan penyuluhan agama Islam di masyarakat, termasuk pembinaan majelis taklim.",
+      photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80"
+    },{
+      id: "staf-8",
+      name: "Hizbiyah, S.Th.I.", // TODO: Replace with verified KUA data
+      position: "Penyuluh Agama Islam Ahli Pertama",
+      roleCategory: "Penyuluh",
+      description: "Melaksanakan bimbingan keagamaan Islam, pembinaan kemasjidan, dan fasilitasi majelis taklim di desa.",
+      photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80"
+    },{
+      id: "staf-9",
+      name: "M. Sibghotulloh As Salafi, S.Ag.", // TODO: Replace with verified KUA data
+      position: "Penyuluh Agama Islam Ahli Pertama",
+      roleCategory: "Penyuluh",
+      description: "Memberikan bimbingan dan penyuluhan agama Islam di masyarakat, termasuk pembinaan majelis taklim.",
+      photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80"
     }
   ],
 

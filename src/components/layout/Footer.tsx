@@ -131,7 +131,7 @@ export const Footer: React.FC = () => {
               </p>
               <div className="space-y-0.5">
                 <p className="font-bold text-white text-xs sm:text-sm leading-snug">
-                  Mahasiswa Program Studi Hukum Keluarga (Syariah)
+                  Mahasiswa Program Studi Hukum Keluarga (Syariah) est. 2024
                 </p>
                 <p className="font-semibold text-emerald-300 text-xs">
                   IAI At-Tahdzib Jombang
