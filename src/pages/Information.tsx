@@ -1,20 +1,47 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Newspaper, Bell, Phone, Clock } from "lucide-react";
 import { SearchInput } from "../components/ui/SearchInput";
 import { NewsCard } from "../components/cards/NewsCard";
-import { newsData, type NewsItem } from "../data/news";
-import { Modal } from "../components/ui/Modal";
+import { getBerita, getPengumuman } from "../lib/cms";
+import type { Berita, Pengumuman } from "../lib/cms/types";
+import { LoadingState, EmptyState, ErrorState } from "../components/ui/CmsState";
 import { profileData } from "../data/profile";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
+import { Modal } from "../components/ui/Modal";
 
 export default function Information() {
+  const [beritaList, setBeritaList] = useState<Berita[]>([]);
+  const [pengumumanList, setPengumumanList] = useState<Pengumuman[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
-  const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const [selectedNews, setSelectedNews] = useState<Berita | null>(null);
 
   const categories = ["Semua", "Pengumuman", "Berita", "Artikel"];
 
-  const filteredNews = newsData.filter((item) => {
+  useEffect(() => {
+    async function loadCmsData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [beritaRes, pengumumanRes] = await Promise.all([
+          getBerita(),
+          getPengumuman(),
+        ]);
+        if (beritaRes.data) setBeritaList(beritaRes.data);
+        if (pengumumanRes.data) setPengumumanList(pengumumanRes.data);
+      } catch {
+        setError("Informasi belum dapat dimuat. Silakan coba kembali beberapa saat lagi.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadCmsData();
+  }, []);
+
+  const filteredNews = beritaList.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
@@ -74,43 +101,63 @@ export default function Information() {
               </div>
             </div>
 
-            {/* News List */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {filteredNews.map((item) => (
-                <NewsCard
-                  key={item.id}
-                  id={item.id}
-                  title={item.title}
-                  excerpt={item.excerpt}
-                  category={item.category}
-                  date={item.date}
-                  author={item.author}
-                  imageUrl={item.imageUrl}
-                  onClick={() => setSelectedNews(item)}
-                />
-              ))}
-            </div>
+            {/* CMS Loading / Error / Content */}
+            {loading && <LoadingState message="Memuat daftar berita & pengumuman..." />}
+            {error && <ErrorState message={error} />}
 
-            {filteredNews.length === 0 && (
-              <div className="text-center py-16 bg-white border border-stone-200 rounded-3xl p-8">
-                <p className="text-stone-500 font-medium text-base">
-                  Tidak ada informasi yang sesuai dengan filter atau kata kunci "{searchQuery}".
-                </p>
-              </div>
+            {!loading && !error && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {filteredNews.map((item) => (
+                    <NewsCard
+                      key={item.id}
+                      id={item.id}
+                      title={item.title}
+                      excerpt={item.excerpt}
+                      category={item.category as any}
+                      date={item.published_at}
+                      author={item.author}
+                      imageUrl={item.featured_image}
+                      onClick={() => setSelectedNews(item)}
+                    />
+                  ))}
+                </div>
+
+                {filteredNews.length === 0 && (
+                  <EmptyState
+                    message="Belum ada informasi yang tersedia."
+                    submessage={`Tidak ada informasi yang sesuai dengan filter atau kata kunci "${searchQuery}".`}
+                  />
+                )}
+              </>
             )}
           </div>
 
           {/* Sidebar Area (4 cols desktop) */}
           <aside className="lg:col-span-4 space-y-6">
-            {/* Quick Announcement Widget */}
+            {/* Quick Announcement Widget from CMS */}
             <div className="bg-amber-50/80 border border-amber-200 rounded-3xl p-6 space-y-4">
               <div className="flex items-center gap-2 text-amber-900 font-bold text-base">
                 <Bell className="w-5 h-5 text-amber-700" />
-                <span>Pengumuman Penting</span>
+                <span>Pengumuman Resmi ({pengumumanList.length})</span>
               </div>
-              <p className="text-xs text-amber-900/90 leading-relaxed">
-                Pendaftaran nikah wajib diajukan minimal 10 hari kerja sebelum akad. Apabila kurang dari 10 hari, diperlukan Surat Dispensasi dari Camat Ngoro.
-              </p>
+
+              {pengumumanList.length > 0 ? (
+                <div className="space-y-3 divide-y divide-amber-200/60">
+                  {pengumumanList.slice(0, 3).map((p) => (
+                    <div key={p.id} className="pt-2 first:pt-0">
+                      <h4 className="font-bold text-xs text-amber-950">{p.title}</h4>
+                      <p className="text-xs text-amber-900/90 leading-relaxed mt-0.5 line-clamp-2">
+                        {p.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-amber-900/90 leading-relaxed">
+                  Pendaftaran nikah wajib diajukan minimal 10 hari kerja sebelum akad.
+                </p>
+              )}
             </div>
 
             {/* Office Hours Widget */}
@@ -166,17 +213,19 @@ export default function Information() {
       >
         {selectedNews && (
           <div className="space-y-4">
-            <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-stone-100">
-              <img
-                src={selectedNews.imageUrl}
-                alt={selectedNews.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            {selectedNews.featured_image && (
+              <div className="aspect-[16/9] rounded-2xl overflow-hidden bg-stone-100">
+                <img
+                  src={selectedNews.featured_image}
+                  alt={selectedNews.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
 
             <div className="flex items-center gap-4 text-xs text-stone-500 border-b border-stone-100 pb-3">
               <span className="font-semibold text-[#0f5132]">{selectedNews.category}</span>
-              <span>{selectedNews.date}</span>
+              <span>{selectedNews.published_at}</span>
               <span>Penulis: {selectedNews.author}</span>
             </div>
 
@@ -185,7 +234,7 @@ export default function Information() {
             </p>
 
             <div className="text-sm text-stone-800 leading-relaxed pt-2 space-y-3">
-              <p>{selectedNews.content}</p>
+              <p className="whitespace-pre-line">{selectedNews.content}</p>
             </div>
           </div>
         )}

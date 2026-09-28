@@ -1,23 +1,44 @@
-import { useState } from "react";
-import { Landmark, Search, CheckCircle, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Landmark, Search, CheckCircle } from "lucide-react";
 import { ServiceCard } from "../components/cards/ServiceCard";
-import { servicesData, type ServiceItem } from "../data/services";
+import { getLayanan } from "../lib/cms";
+import type { Layanan } from "../lib/cms/types";
+import { LoadingState, EmptyState, ErrorState } from "../components/ui/CmsState";
 import { Modal } from "../components/ui/Modal";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 
 export default function Services() {
+  const [layananList, setLayananList] = useState<Layanan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
-  const [selectedService, setSelectedService] = useState<ServiceItem | null>(null);
+  const [selectedService, setSelectedService] = useState<Layanan | null>(null);
 
   const categories = ["Semua", "Utama", "Bimbingan", "Kelembagaan"];
 
-  const filteredServices = servicesData.filter((svc) => {
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await getLayanan();
+        if (res.data) setLayananList(res.data);
+      } catch {
+        setError("Layanan belum dapat dimuat. Silakan coba kembali beberapa saat lagi.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const filteredServices = layananList.filter((svc) => {
     const matchesSearch =
       svc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      svc.shortDesc.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "Semua" || svc.category === selectedCategory;
+      svc.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "Semua";
 
     return matchesSearch && matchesCategory;
   });
@@ -75,27 +96,33 @@ export default function Services() {
           </div>
         </div>
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredServices.map((svc) => (
-            <div key={svc.id} onClick={() => setSelectedService(svc)} className="cursor-pointer">
-              <ServiceCard
-                id={svc.id}
-                number={svc.number}
-                title={svc.title}
-                description={svc.shortDesc}
-                iconName={svc.icon}
-              />
-            </div>
-          ))}
-        </div>
+        {/* CMS Loading / Error / Content */}
+        {loading && <LoadingState message="Memuat daftar layanan KUA..." />}
+        {error && <ErrorState message={error} />}
 
-        {filteredServices.length === 0 && (
-          <div className="text-center py-16 bg-white border border-stone-200 rounded-3xl p-8">
-            <p className="text-stone-500 font-medium text-base">
-              Tidak ada layanan yang sesuai dengan kriteria pencarian "{searchQuery}".
-            </p>
-          </div>
+        {!loading && !error && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredServices.map((svc, idx) => (
+                <div key={svc.id} onClick={() => setSelectedService(svc)} className="cursor-pointer">
+                  <ServiceCard
+                    id={svc.id}
+                    number={String(svc.order || idx + 1).padStart(2, "0")}
+                    title={svc.title}
+                    description={svc.description}
+                    iconName={svc.icon}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {filteredServices.length === 0 && (
+              <EmptyState
+                message="Belum ada layanan yang tersedia."
+                submessage={`Tidak ada layanan yang sesuai dengan kriteria pencarian "${searchQuery}".`}
+              />
+            )}
+          </>
         )}
       </section>
 
@@ -109,52 +136,48 @@ export default function Services() {
         {selectedService && (
           <div className="space-y-6">
             <p className="text-sm text-stone-600 leading-relaxed">
-              {selectedService.fullDesc}
+              {selectedService.description}
             </p>
 
+            {selectedService.estimated_time && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100 text-xs font-semibold text-[#0f5132]">
+                ⏱ Est. Waktu Penyelesaian: {selectedService.estimated_time}
+              </div>
+            )}
+
             {/* Persyaratan */}
-            <div className="space-y-3">
-              <h4 className="font-bold text-stone-900 text-sm uppercase tracking-wider text-[#0f5132]">
-                Dokumen & Persyaratan:
-              </h4>
-              <ul className="space-y-2">
-                {selectedService.requirements.map((req, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-stone-700">
-                    <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>{req}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {selectedService.requirements && selectedService.requirements.length > 0 && (
+              <div className="space-y-3">
+                <h4 className="font-bold text-stone-900 text-sm uppercase tracking-wider text-[#0f5132]">
+                  Dokumen & Persyaratan:
+                </h4>
+                <ul className="space-y-2">
+                  {selectedService.requirements.map((req, idx) => (
+                    <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-stone-700">
+                      <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{req}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Prosedur Tahapan */}
-            <div className="space-y-3 pt-2">
-              <h4 className="font-bold text-stone-900 text-sm uppercase tracking-wider text-[#0f5132]">
-                Tahapan Prosedur Pelayanan:
-              </h4>
-              <div className="space-y-2.5">
-                {selectedService.procedure.map((step, idx) => (
-                  <div key={idx} className="flex items-start gap-3 text-xs sm:text-sm text-stone-700">
-                    <span className="w-5 h-5 rounded-full bg-emerald-100 text-[#0f5132] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <span className="leading-normal">{step}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {selectedService.externalUrl && (
-              <div className="pt-4 border-t border-stone-100">
-                <a
-                  href={selectedService.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 bg-[#0f5132] text-white hover:bg-[#073822] py-3 rounded-xl font-bold text-sm transition"
-                >
-                  <span>Akses Aplikasi Online ({selectedService.title})</span>
-                  <ExternalLink className="w-4 h-4" />
-                </a>
+            {selectedService.procedure && selectedService.procedure.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <h4 className="font-bold text-stone-900 text-sm uppercase tracking-wider text-[#0f5132]">
+                  Tahapan Prosedur Pelayanan:
+                </h4>
+                <div className="space-y-2.5">
+                  {selectedService.procedure.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-3 text-xs sm:text-sm text-stone-700">
+                      <span className="w-5 h-5 rounded-full bg-emerald-100 text-[#0f5132] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <span className="leading-normal">{step}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

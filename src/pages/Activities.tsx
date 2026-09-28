@@ -1,17 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Camera } from "lucide-react";
 import { ActivityCard } from "../components/cards/ActivityCard";
-import { activitiesData, type ActivityItem } from "../data/activities";
+import { getGaleri } from "../lib/cms";
+import type { Galeri } from "../lib/cms/types";
+import { LoadingState, EmptyState, ErrorState } from "../components/ui/CmsState";
 import { Modal } from "../components/ui/Modal";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 
 export default function Activities() {
+  const [galeriList, setGaleriList] = useState<Galeri[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
-  const [selectedActivity, setSelectedActivity] = useState<ActivityItem | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<Galeri | null>(null);
 
-  const categories = ["Semua", "Bimbingan", "Pernikahan", "Wakaf", "Penyuluhan", "Kemasjidan", "Kelembagaan"];
+  const categories = ["Semua", "Kegiatan", "Pelayanan", "Acara", "Lainnya"];
 
-  const filteredActivities = activitiesData.filter(
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await getGaleri();
+        if (res.data) setGaleriList(res.data);
+      } catch {
+        setError("Galeri kegiatan belum dapat dimuat. Silakan coba kembali.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const filteredActivities = galeriList.filter(
     (act) => selectedCategory === "Semua" || act.category === selectedCategory
   );
 
@@ -53,22 +75,35 @@ export default function Activities() {
           ))}
         </div>
 
-        {/* Gallery Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredActivities.map((act) => (
-            <ActivityCard
-              key={act.id}
-              id={act.id}
-              title={act.title}
-              category={act.category}
-              date={act.date}
-              location={act.location}
-              description={act.description}
-              imageUrl={act.imageUrl}
-              onPreview={() => setSelectedActivity(act)}
-            />
-          ))}
-        </div>
+        {/* CMS Loading / Error / Content */}
+        {loading && <LoadingState message="Memuat galeri kegiatan KUA..." />}
+        {error && <ErrorState message={error} />}
+
+        {!loading && !error && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredActivities.map((act) => (
+                <ActivityCard
+                  key={act.id}
+                  id={act.id}
+                  title={act.title}
+                  category={act.category}
+                  date={act.published_at}
+                  description={act.description}
+                  imageUrl={act.image}
+                  onPreview={() => setSelectedActivity(act)}
+                />
+              ))}
+            </div>
+
+            {filteredActivities.length === 0 && (
+              <EmptyState
+                message="Belum ada dokumentasi galeri yang tersedia."
+                submessage={`Tidak ada foto pada kategori "${selectedCategory}".`}
+              />
+            )}
+          </>
+        )}
       </section>
 
       {/* Lightbox Preview Modal */}
@@ -82,7 +117,7 @@ export default function Activities() {
           <div className="space-y-4">
             <div className="rounded-2xl overflow-hidden aspect-[16/9] bg-stone-100">
               <img
-                src={selectedActivity.imageUrl}
+                src={selectedActivity.image}
                 alt={selectedActivity.title}
                 className="w-full h-full object-cover"
               />
@@ -92,8 +127,7 @@ export default function Activities() {
               <span className="font-semibold text-[#0f5132]">
                 Kategori: {selectedActivity.category}
               </span>
-              <span>Waktu: {selectedActivity.date}</span>
-              <span>Lokasi: {selectedActivity.location}</span>
+              <span>Tanggal: {selectedActivity.published_at}</span>
             </div>
 
             <p className="text-sm text-stone-700 leading-relaxed pt-2">

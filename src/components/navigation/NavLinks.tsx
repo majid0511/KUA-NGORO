@@ -6,7 +6,7 @@ export interface NavItem {
   path: string;
 }
 
-export const navItems: NavItem[] = [
+const navItemsList: NavItem[] = [
   { label: "Home", path: "/" },
   { label: "Profil", path: "/profil" },
   { label: "Layanan", path: "/layanan" },
@@ -29,7 +29,7 @@ export const NavLinks: React.FC<NavLinksProps> = ({
 }) => {
   return (
     <nav className={`flex ${vertical ? "flex-col space-y-1" : "items-center space-x-1 lg:space-x-2"} ${className}`}>
-      {navItems.map((item) => (
+      {navItemsList.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}

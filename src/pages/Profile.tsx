@@ -1,10 +1,51 @@
+import { useState, useEffect } from "react";
 import { Landmark, Shield, Target, MapPin, CheckCircle } from "lucide-react";
 import { SectionHeading } from "../components/ui/SectionHeading";
 import { StaffCard } from "../components/cards/StaffCard";
+import { getProfil, getStaf } from "../lib/cms";
+import type { Profil, Staf } from "../lib/cms/types";
+import { LoadingState, ErrorState } from "../components/ui/CmsState";
 import { profileData } from "../data/profile";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 
 export default function Profile() {
+  const [profil, setProfil] = useState<Profil | null>(null);
+  const [stafList, setStafList] = useState<Staf[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [profilRes, stafRes] = await Promise.all([
+          getProfil(),
+          getStaf(),
+        ]);
+        if (profilRes.data) setProfil(profilRes.data);
+        if (stafRes.data) setStafList(stafRes.data);
+      } catch (_err) {
+        setError("Profil belum dapat dimuat. Silakan coba kembali.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const displayProfil = profil || {
+    office_name: profileData.name,
+    description: profileData.aboutFull,
+    history: profileData.history,
+    vision: profileData.vision,
+    mission: profileData.missions,
+    address: profileData.address,
+    phone: profileData.phone,
+    email: profileData.email,
+    office_hours: profileData.officeHours,
+  };
+
   return (
     <div className="py-10 space-y-16">
       {/* Page Header */}
@@ -16,7 +57,7 @@ export default function Profile() {
               <span>PROFIL KELEMBAGAAN</span>
             </div>
             <h1 className="text-3xl sm:text-5xl font-extrabold text-stone-900 tracking-tight">
-              Profil KUA Kecamatan Ngoro
+              Profil {displayProfil.office_name}
             </h1>
             <p className="mt-4 text-base sm:text-lg text-stone-600 leading-relaxed">
               Mengenal lebih dekat sejarah, visi & misi, tugas fungsi, serta struktur organisasi Kantor Urusan Agama Kecamatan Ngoro, Kabupaten Jombang.
@@ -25,17 +66,20 @@ export default function Profile() {
         </div>
       </section>
 
+      {loading && <LoadingState message="Memuat profil KUA..." />}
+      {error && <ErrorState message={error} />}
+
       {/* Tentang & Sejarah */}
       <section className="container-kua">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           <div className="lg:col-span-7 space-y-6">
             <SectionHeading
               eyebrow="GAMBARAN UMUM"
-              title="Tentang & Sejarah KUA Ngoro"
+              title={`Tentang & Sejarah ${displayProfil.office_name}`}
               className="mb-4"
             />
             <p className="text-stone-600 leading-relaxed text-base sm:text-lg">
-              {profileData.aboutFull}
+              {displayProfil.description}
             </p>
             <div className="p-6 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-stone-800 space-y-3">
               <h4 className="font-bold text-[#0f5132] text-base flex items-center gap-2">
@@ -43,7 +87,7 @@ export default function Profile() {
                 <span>Transformasi Digital & Transparansi Layanan</span>
               </h4>
               <p className="text-sm leading-relaxed text-stone-700">
-                {profileData.history}
+                {displayProfil.history}
               </p>
             </div>
           </div>
@@ -78,7 +122,7 @@ export default function Profile() {
         <div className="container-kua space-y-10">
           <SectionHeading
             eyebrow="PEDOMAN KERJA"
-            title="Visi & Misi KUA Kecamatan Ngoro"
+            title={`Visi & Misi ${displayProfil.office_name}`}
             centered
           />
 
@@ -93,12 +137,12 @@ export default function Profile() {
                   VISI RESMI
                 </span>
                 <p className="text-lg sm:text-xl font-bold leading-relaxed text-emerald-50">
-                  "{profileData.vision}"
+                  "{displayProfil.vision}"
                 </p>
               </div>
 
               <div className="pt-8 border-t border-emerald-800 text-xs text-emerald-300 font-medium">
-                KUA Kecamatan Ngoro • Kabupaten Jombang
+                {displayProfil.office_name} • Kabupaten Jombang
               </div>
             </div>
 
@@ -108,16 +152,17 @@ export default function Profile() {
                 Misi Utama Pelayanan:
               </h3>
               <div className="space-y-3.5">
-                {profileData.missions.map((misi, idx) => (
-                  <div key={idx} className="flex items-start gap-3.5">
-                    <span className="w-7 h-7 rounded-lg bg-emerald-100 text-[#0f5132] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
-                      {idx + 1}
-                    </span>
-                    <p className="text-sm sm:text-base text-stone-700 leading-relaxed font-medium">
-                      {misi}
-                    </p>
-                  </div>
-                ))}
+                {Array.isArray(displayProfil.mission) &&
+                  displayProfil.mission.map((misi, idx) => (
+                    <div key={idx} className="flex items-start gap-3.5">
+                      <span className="w-7 h-7 rounded-lg bg-emerald-100 text-[#0f5132] font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                        {idx + 1}
+                      </span>
+                      <p className="text-sm sm:text-base text-stone-700 leading-relaxed font-medium">
+                        {misi}
+                      </p>
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
@@ -150,50 +195,7 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* Struktur Organisasi Visual */}
-      <section className="bg-stone-50/80 py-16 border-y border-stone-200/60">
-        <div className="container-kua">
-          <SectionHeading
-            eyebrow="BAGAN ORGANISASI"
-            title="Struktur Organisasi KUA Ngoro"
-            description="Visual hierarki kepemimpinan dan pembagian fungsi kerja pelayanan."
-          />
-
-          <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-10 shadow-sm">
-            {/* Top Node: Kepala KUA */}
-            <div className="max-w-sm mx-auto text-center p-5 rounded-2xl bg-[#0f5132] text-white shadow-md mb-8">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-200 block mb-1">
-                {profileData.orgChart.title}
-              </span>
-              <h3 className="text-xl font-extrabold">{profileData.orgChart.name}</h3>
-            </div>
-
-            <div className="w-0.5 h-8 bg-emerald-700 mx-auto mb-8" />
-
-            {/* Sub Nodes */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {profileData.orgChart.children?.map((child) => (
-                <div
-                  key={child.id}
-                  className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-5 text-center space-y-2"
-                >
-                  <span className="text-xs font-bold text-[#0f5132] uppercase tracking-wider block">
-                    {child.title}
-                  </span>
-                  <h4 className="text-base font-bold text-stone-900">{child.name}</h4>
-                  {child.children && (
-                    <div className="pt-2 border-t border-emerald-200/60 text-xs text-stone-600 font-medium">
-                      {child.children.map((sub) => sub.title).join(" • ")}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Staff Members Section */}
+      {/* Staff Members Section from CMS */}
       <section className="container-kua">
         <SectionHeading
           eyebrow="SUMBER DAYA MANUSIA"
@@ -202,15 +204,14 @@ export default function Profile() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {profileData.staff.map((staf) => (
+          {stafList.map((staf) => (
             <StaffCard
               key={staf.id}
               name={staf.name}
               position={staf.position}
-              nip={staf.nip}
-              roleCategory={staf.roleCategory}
-              description={staf.description}
-              photoUrl={staf.photoUrl}
+              roleCategory={staf.position.includes("Kepala") ? "Kepala" : staf.position.includes("Penghulu") ? "Penghulu" : "Staf"}
+              description={staf.bio}
+              photoUrl={staf.photo}
             />
           ))}
         </div>

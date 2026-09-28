@@ -1,146 +1,223 @@
-# KUA Kecamatan Ngoro Website
+# KUA Kecamatan Ngoro — Website Resmi
 
-> **Official Public Information & Digital Service Portal**  
+> **Portal Informasi Publik & Layanan Digital Keagamaan**  
 > Kantor Urusan Agama (KUA) Kecamatan Ngoro, Kabupaten Jombang, Jawa Timur.  
-> *Developed during internship project — 2026*
+> *Internship Project • 2026*
 
 ---
 
-## 📌 Project Overview
+## 📌 Tentang Project
 
-Portal web resmi **KUA Kecamatan Ngoro** dirancang sebagai pusat informasi publik dan layanan digital keagamaan untuk seluruh warga di 13 desa se-Kecamatan Ngoro, Kabupaten Jombang. Website ini memiliki konsep visual **Modern Islamic Governmental Minimalism** yang profesional, tenang, accessible, dan mudah digunakan masyarakat (terutama pengguna perangkat seluler/mobile-first).
+**KUA Ngoro Website** adalah portal web resmi Kantor Urusan Agama Kecamatan Ngoro yang dirancang sebagai pusat informasi publik dan layanan digital keagamaan bagi seluruh warga di 13 desa se-Kecamatan Ngoro, Kabupaten Jombang.
 
-### Main Objectives:
-- Menyediakan informasi resmi profil, tugas, dan fungsi KUA Ngoro.
-- Memfasilitasi pendaftaran nikah online via SIMKAH 4.0 dan panduan transparan biaya nikah (Rp 0 di KUA vs Rp 600.000 Bedol).
-- Menyediakan direktori 6 layanan utama KUA (Pernikahan, Kemasjidan, Wakaf, Keluarga Sakinah, Bimbingan Keagamaan, Informasi Keagamaan).
-- Publikasi pengumuman, berita, dan galeri dokumentasi kegiatan KUA Ngoro.
-- Menghubungkan langsung masyarakat dengan saluran kontak resmi WhatsApp & lokasi Google Maps KUA.
+Konsep desain: **Modern Islamic Governmental Minimalism** — profesional, tenang, accessible, dan mobile-first.
+
+Fitur utama:
+- Informasi profil, visi-misi, dan struktur organisasi KUA
+- Direktori layanan (Pencatatan Nikah, SIMKAH, Wakaf, Zakat, Hisab Rukyat, dan lainnya)
+- Portal Calon Pengantin (alur nikah, checklist berkas, panduan SIMKAH)
+- Pusat berita & pengumuman resmi yang dapat dikelola melalui Headless CMS
+- Galeri dokumentasi kegiatan
+- Kontak resmi, WhatsApp, dan Google Maps embed
+
+---
+
+## 🌐 Headless CMS Integration
+
+Website ini terintegrasi dengan **Headless CMS** berbasis cloud (**Sanity.io**) agar pengelola/admin KUA dapat memperbarui konten publik secara mandiri melalui dashboard admin — tanpa menyentuh source code.
+
+### Arsitektur Data
+
+```
+ADMIN / PENGELOLA KUA
+        ↓
+ Sanity Studio (Dashboard CMS)
+        ↓
+ Sanity API (GROQ)
+        ↓
+ src/lib/cms/   ← Abstraction & Fallback Layer
+        ↓
+ React + Vite Frontend
+```
+
+### Mengapa Sanity.io?
+| Keunggulan | Keterangan |
+|---|---|
+| **Free Tier** | 100k API req/hari — ideal untuk website instansi publik |
+| **Dashboard Non-Developer** | Admin KUA dapat edit berita, pengumuman & upload foto tanpa coding |
+| **Fallback Otomatis** | Jika CMS belum dikonfigurasi atau API gagal, website tetap tampil menggunakan data lokal di `src/data/` |
+| **GROQ Query** | Bahasa query yang ekspresif dan efisien untuk filter & sorting konten |
+
+---
+
+## 📋 Content Models (6 Koleksi)
+
+| # | Koleksi | Field Utama |
+|---|---|---|
+| 1 | **Berita** | `title`, `slug`, `excerpt`, `content`, `featured_image`, `category`, `author`, `published_at`, `status` |
+| 2 | **Pengumuman** | `title`, `content`, `published_at`, `expires_at`, `priority`, `status` |
+| 3 | **Layanan** | `title`, `slug`, `description`, `requirements`, `procedure`, `estimated_time`, `icon`, `status`, `order` |
+| 4 | **Profil** | `office_name`, `description`, `history`, `vision`, `mission`, `address`, `phone`, `email`, `office_hours` |
+| 5 | **Staf** | `name`, `position`, `photo`, `bio`, `order`, `active` |
+| 6 | **Galeri** | `title`, `image`, `description`, `category`, `published_at` |
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Framework**: React 19 + TypeScript + Vite
-- **Routing**: React Router 7 (`react-router-dom`)
-- **Styling**: Modern CSS & Tailwind CSS v4
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **Smooth Scroll**: Lenis
+| Kategori | Teknologi |
+|---|---|
+| Framework | React 19 + TypeScript |
+| Build Tool | Vite 8 |
+| Styling | Tailwind CSS v4 |
+| Routing | React Router 7 |
+| CMS Client | `@sanity/client` + `@sanity/image-url` |
+| Animasi | Framer Motion |
+| Scroll | Lenis |
+| Icons | Lucide React |
+| Linter | OxLint |
 
 ---
 
-## 📁 Project Structure
+## 📁 Struktur Project
 
-```text
-src/
-├── assets/                 # Custom static images & branding assets
-├── components/
-│   ├── cards/              # ServiceCard, NewsCard, ActivityCard, StaffCard, OfficialLinkCard
-│   ├── layout/             # Navbar (Sticky header), Footer (Institutional), Page headers
-│   ├── navigation/         # NavLinks, MobileDrawer
-│   ├── sections/           # HeroSection, QuickAccessSection, AboutSection, ServicesSection,
-│   │                       # MarriageTimelineSection, NewsSection, ActivitiesSection,
-│   │                       # OfficialLinksSection, LocationSection, ContactCtaSection
-│   └── ui/                 # Button, SectionHeading, Modal, Accordion, Badge, SearchInput
-├── data/
-│   ├── profile.ts          # Profil KUA, visi-misi, tugas fungsi, bagan organisasi, daftar staf
-│   ├── services.ts         # 6 Layanan utama & sistem digital Kemenag
-│   ├── news.ts             # Pengumuman, berita kegiatan, dan artikel edukasi
-│   ├── activities.ts       # Dokumentasi foto & galeri kegiatan
-│   ├── officialLinks.ts    # Tautan resmi Kemenag RI, Kanwil Jatim, Kemenag Jombang, SIMKAH, SIWAK
-│   ├── marriage.ts         # Prosedur nikah, checklist berkas N1-N6, & transparansi biaya
-│   └── faq.ts              # Tanya jawab publik (FAQ)
-├── hooks/
-│   └── useScrollPosition.ts # Hook pelacak posisi scroll untuk sticky navbar
-├── pages/
-│   ├── Home.tsx            # Beranda utama (12 section terintegrasi)
-│   ├── Profile.tsx         # Profil lengkap, Visi Misi, Tugas, Organisasi, Pegawai
-│   ├── Services.tsx        # Direktori layanan & modal persyaratan
-│   ├── Marriage.tsx        # Portal Calon Pengantin, alur nikah, checklist berkas & SIMKAH
-│   ├── Information.tsx     # Pusat informasi, pencarian pengumuman & berita
-│   ├── Activities.tsx      # Galeri arsip kegiatan KUA Ngoro
-│   ├── Contact.tsx         # Hub kontak resmi, formulir WhatsApp, & Google Maps
-│   └── NotFound.tsx        # Halaman 404
-├── utils/
-│   └── cn.ts               # Helper penggabung class name
-├── App.tsx                 # Root router & layout wrapper
-├── main.tsx                # Entry point aplikasi
-└── index.css               # Design system tokens & utility classes
+```
+kua-ngoro-website/
+├── public/                     # Static assets
+├── src/
+│   ├── assets/                 # Branding & media
+│   ├── components/
+│   │   ├── cards/              # NewsCard, ServiceCard, ActivityCard, StaffCard, OfficialLinkCard
+│   │   ├── layout/             # Navbar, Footer, MobileStickyBar
+│   │   ├── navigation/         # NavLinks, MobileDrawer
+│   │   ├── sections/           # HeroSection, QuickAccessSection, AboutSection,
+│   │   │                       # ServicesSection, MarriageTimelineSection, NewsSection,
+│   │   │                       # ActivitiesSection, OfficialLinksSection, LocationSection,
+│   │   │                       # ContactCtaSection
+│   │   └── ui/                 # Button, SectionHeading, Modal, Accordion, Badge,
+│   │                           # SearchInput, CmsState (Loading / Empty / Error)
+│   ├── data/                   # Local fallback data (profile, services, news, activities, marriage, faq)
+│   ├── hooks/                  # useScrollPosition
+│   ├── lib/
+│   │   └── cms/                # Headless CMS Integration Layer
+│   │       ├── types.ts        # TypeScript interfaces (6 content models)
+│   │       ├── client.ts       # Fetcher + queryWithFallback engine
+│   │       ├── berita.ts       # getBerita(), getBeritaBySlug()
+│   │       ├── pengumuman.ts   # getPengumuman() (+ client-side expiry filter)
+│   │       ├── layanan.ts      # getLayanan(), getLayananBySlug()
+│   │       ├── profil.ts       # getProfil()
+│   │       ├── staf.ts         # getStaf()
+│   │       ├── galeri.ts       # getGaleri()
+│   │       └── index.ts        # Re-export barrel
+│   ├── pages/
+│   │   ├── Home.tsx            # Beranda utama
+│   │   ├── Profile.tsx         # Profil, Visi-Misi, Struktur Organisasi, Staf (CMS)
+│   │   ├── Services.tsx        # Direktori layanan + modal persyaratan (CMS)
+│   │   ├── Marriage.tsx        # Portal Calon Pengantin, alur nikah, SIMKAH
+│   │   ├── Information.tsx     # Pusat berita & pengumuman (CMS)
+│   │   ├── NewsDetail.tsx      # Detail berita /news/:slug (CMS)
+│   │   ├── Activities.tsx      # Galeri kegiatan (CMS)
+│   │   ├── Contact.tsx         # Kontak resmi, WhatsApp, peta
+│   │   └── NotFound.tsx        # Halaman 404
+│   ├── utils/                  # cn() helper
+│   ├── App.tsx                 # Root router & layout
+│   └── index.css               # Design system tokens & utilities
+├── .env.example                # Template environment variables
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
 ```
 
 ---
 
-## 🚀 Installation & Local Development
+## ⚙️ Environment Variables
 
-### Prerequisites
-- Node.js version `>= 18.0.0`
-- npm version `>= 9.0.0`
+Salin `.env.example` menjadi `.env`, lalu isi kredensial Sanity Anda:
 
-### Step-by-Step
+```env
+# Sanity.io Project ID & Dataset
+VITE_CMS_PROJECT_ID=your_sanity_project_id
+VITE_CMS_DATASET=production
 
-1. **Clone & Extract Repository**:
-   ```bash
-   cd kua-ngoro-website
-   ```
+# Optional: Generic REST API URL (alternatif non-Sanity)
+VITE_CMS_API_URL=
 
-2. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
+# Optional: Read token (jika dataset bersifat private)
+VITE_CMS_TOKEN=
+```
 
-3. **Run Development Server**:
-   ```bash
-   npm run dev
-   ```
-   Aplikasi akan berjalan secara lokal di `http://localhost:5173`.
-
-4. **Run Linter**:
-   ```bash
-   npm run lint
-   ```
+> **Catatan:** Jika `.env` tidak dikonfigurasi, website tetap berjalan normal menggunakan data lokal di `src/data/`. Tidak ada halaman yang akan blank atau crash.
 
 ---
 
-## 📦 Production Build & Deployment
+## 🚀 Cara Menjalankan
 
-1. **Build Project**:
-   ```bash
-   npm run build
-   ```
-   Hasil kompilasi produksi akan tersimpan di dalam folder `dist/`.
+```bash
+# 1. Clone repository
+git clone https://github.com/majid0511/KUA-NGORO.git
+cd KUA-NGORO
 
-2. **Preview Production Build**:
-   ```bash
-   npm run preview
-   ```
+# 2. Install dependencies
+npm install
 
-3. **Deployment**:
-   Folder `dist/` siap didistribusikan ke web server static host seperti Vercel, Netlify, Cloudflare Pages, atau cPanel web hosting instansi Kemenag.
+# 3. (Opsional) Konfigurasi CMS
+cp .env.example .env
+# → Edit .env dengan kredensial Sanity Anda
 
----
+# 4. Jalankan development server
+npm run dev
 
-## 📝 Content Management & Data Update Guide
+# 5. Linting
+npm run lint
 
-Seluruh data konten bersifat terpisah dari komponen UI (data-driven architecture) sehingga memudahkan pengembang berikutnya untuk memperbarui informasi tanpa perlu mengubah kode JSX:
-
-- **Memperbarui Data Profil / Pegawai / Visi Misi**: Edit file [`src/data/profile.ts`](file:///c:/Users/attah/OneDrive/문서/HILMI%20NITIP/tes/kua-ngoro-website/src/data/profile.ts)
-- **Memperbarui Layanan**: Edit file [`src/data/services.ts`](file:///c:/Users/attah/OneDrive/문서/HILMI%20NITIP/tes/kua-ngoro-website/src/data/services.ts)
-- **Menambah Pengumuman / Berita**: Edit file [`src/data/news.ts`](file:///c:/Users/attah/OneDrive/문서/HILMI%20NITIP/tes/kua-ngoro-website/src/data/news.ts)
-- **Menambah Foto Galeri Kegiatan**: Edit file [`src/data/activities.ts`](file:///c:/Users/attah/OneDrive/문서/HILMI%20NITIP/tes/kua-ngoro-website/src/data/activities.ts)
-- **Memperbarui Persyaratan Nikah**: Edit file [`src/data/marriage.ts`](file:///c:/Users/attah/OneDrive/문서/HILMI%20NITIP/tes/kua-ngoro-website/src/data/marriage.ts)
-
-*Catatan: Apabila terdapat data resmi KUA seperti foto pegawai atau nomor SK baru, ganti placeholder yang ditandai dengan comment `TODO: Replace with verified KUA data`.*
+# 6. Build untuk production
+npm run build
+```
 
 ---
 
-## 🔮 Future Development Roadmap
+## 🛡️ Sistem Fallback & Error Handling
 
-1. **Integrasi Headless CMS**: Menghubungkan file data dengan Strapi / Directus agar staf KUA dapat menambah berita tanpa menyentuh kode.
-2. **Formulir Cek Berkas Realtime**: Integrasi API SIMKAH 4.0 untuk pelacakan status pemeriksaan nikah masyarakat.
-3. **Peta Interaktif Lokasi Tanah Wakaf**: Visualisasi lokasi tanah wakaf bersertifikat di 13 desa se-Kecamatan Ngoro.
+Seluruh halaman yang terhubung CMS memiliki tiga lapisan proteksi:
+
+| State | Perilaku |
+|---|---|
+| **CMS tidak dikonfigurasi** | Otomatis tampilkan data lokal dari `src/data/` |
+| **API gagal / timeout** | Fallback ke data lokal, log peringatan di console |
+| **Data kosong** | Tampilkan komponen `EmptyState` dengan pesan ramah pengguna |
+| **Error fetch** | Tampilkan komponen `ErrorState` dengan pesan informatif |
+
+Komponen UI state tersedia di `src/components/ui/CmsState.tsx`:
+- `<LoadingState />` — skeleton/spinner saat data sedang dimuat
+- `<EmptyState />` — tampilan saat tidak ada data tersedia
+- `<ErrorState />` — tampilan saat terjadi kesalahan koneksi
 
 ---
 
-**KUA Kecamatan Ngoro Website**  
-*Developed with excellence during internship project • 2026*
+## 🗺️ Halaman & Rute
+
+| Rute | Halaman | CMS |
+|---|---|---|
+| `/` | Beranda | — |
+| `/profil` | Profil KUA | ✅ Profil + Staf |
+| `/layanan` | Direktori Layanan | ✅ Layanan |
+| `/layanan/pernikahan` | Portal Calon Pengantin | — |
+| `/informasi` | Berita & Pengumuman | ✅ Berita + Pengumuman |
+| `/news/:slug` | Detail Berita | ✅ Berita |
+| `/kegiatan` | Galeri Kegiatan | ✅ Galeri |
+| `/kontak` | Kontak & Peta | — |
+
+---
+
+## 👨‍💻 Developer
+
+**Mahasiswa Program Studi Hukum Keluarga (Syariah)**  
+IAI At-Tahdzib Jombang
+
+*Internship Project • 2026*
+
+---
+
+**KUA Kecamatan Ngoro** — Kabupaten Jombang, Jawa Timur  
+Kementerian Agama Republik Indonesia
