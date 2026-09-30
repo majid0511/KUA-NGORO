@@ -111,6 +111,17 @@ Menyediakan:
 * Alamat kantor
 * Google Maps
 * Informasi jam pelayanan
+* Badge status **Pelayanan Buka / Tutup** pada Beranda, dihitung otomatis dari jam layanan (WIB) yang tersimpan di data Profil
+
+### 🔐 Panel Admin
+
+Dashboard internal di `/admin` untuk mengelola seluruh konten tanpa menyentuh kode:
+
+* Login khusus akun yang terdaftar sebagai admin
+* CRUD Berita, Pengumuman, Layanan, Staf, Galeri
+* Edit Profil KUA (data singleton)
+* Upload gambar langsung ke Supabase Storage
+* Toggle status draft/published, active/inactive
 
 ---
 
@@ -234,7 +245,7 @@ Konten yang belum dipublikasikan tidak ditampilkan kepada pengunjung.
 | Build Tool    | Vite                |
 | Styling       | Tailwind CSS v4     |
 | Routing       | React Router        |
-| CMS / Backend | `@supabase/supabase-js` |
+| CMS / Backend | Supabase (`@supabase/supabase-js`) — Postgres + Auth + Storage |
 | Animation     | Framer Motion       |
 | Smooth Scroll | Lenis               |
 | Icons         | Lucide React        |
@@ -253,7 +264,7 @@ kua-ngoro-website/
 ├── src/
 │   │
 │   ├── assets/
-│   │   └── # Branding & media
+│   │   └── # Foto & branding yang ikut di-bundle (fotoDepan.jpg, fotoNikah.jpg, dst.)
 │   │
 │   ├── components/
 │   │   │
@@ -274,7 +285,7 @@ kua-ngoro-website/
 │   │   │   └── MobileDrawer
 │   │   │
 │   │   ├── sections/
-│   │   │   ├── HeroSection
+│   │   │   ├── HeroSection        # + badge status "Pelayanan Buka/Tutup"
 │   │   │   ├── QuickAccessSection
 │   │   │   ├── AboutSection
 │   │   │   ├── ServicesSection
@@ -301,9 +312,10 @@ kua-ngoro-website/
 │   │   └── useScrollPosition
 │   │
 │   ├── lib/
+│   │   ├── supabase.ts        # Klien Supabase untuk panel admin (Auth + Storage)
 │   │   └── cms/
 │   │       ├── types.ts
-│   │       ├── client.ts
+│   │       ├── client.ts      # Klien Supabase read-only untuk halaman publik
 │   │       ├── berita.ts
 │   │       ├── pengumuman.ts
 │   │       ├── layanan.ts
@@ -321,13 +333,34 @@ kua-ngoro-website/
 │   │   ├── NewsDetail.tsx
 │   │   ├── Activities.tsx
 │   │   ├── Contact.tsx
-│   │   └── NotFound.tsx
+│   │   ├── NotFound.tsx
+│   │   │
+│   │   └── admin/              # Panel admin, lazy-loaded lewat App.tsx
+│   │       ├── AdminApp.tsx    # Routing /admin/*
+│   │       ├── AdminGuard.tsx  # Cek login + status admin
+│   │       ├── AdminLayout.tsx
+│   │       ├── AdminUI.tsx     # Komponen & helper bersama (list, form, run())
+│   │       ├── Login.tsx
+│   │       ├── Dashboard.tsx
+│   │       ├── useImageUpload.ts
+│   │       ├── BeritaAdmin.tsx
+│   │       ├── PengumumanAdmin.tsx
+│   │       ├── LayananAdmin.tsx
+│   │       ├── ProfilAdmin.tsx
+│   │       ├── StafAdmin.tsx
+│   │       └── GaleriAdmin.tsx
 │   │
 │   ├── utils/
 │   │   └── cn()
 │   │
 │   ├── App.tsx
 │   └── index.css
+│
+├── supabase/
+│   └── migrations/
+│       ├── 0001_init.sql               # Tabel, RLS dasar
+│       ├── 0002_hardening_storage.sql  # Bucket "media", hardening fungsi
+│       └── 0003_date_columns.sql       # Kolom tanggal text → date
 │
 ├── .env.example
 ├── index.html
@@ -391,6 +424,8 @@ Website dirancang agar tetap dapat digunakan ketika CMS belum tersedia atau meng
 | Fetch error             | Menampilkan `ErrorState`   |
 | Gambar gagal dimuat     | Menggunakan fallback image |
 
+> Dua sumber gambar berbeda dipakai di project ini: foto statis (Hero, About) di-import dari `src/assets/` dan ikut ter-bundle; gambar yang diupload lewat panel admin (berita, staf, galeri) disimpan di **Supabase Storage** (bucket `media`) dan dipanggil lewat URL publik.
+
 ### CMS State Components
 
 Tersedia pada:
@@ -429,18 +464,19 @@ Jika Supabase tidak dikonfigurasi atau sedang gagal, website memakai data fallba
 
 ## Setup Supabase
 
-1. Buat project di supabase.com.
-2. **SQL Editor** → jalankan isi `supabase/migrations/0001_init.sql`, lalu `supabase/migrations/0002_hardening_storage.sql`. Ini membuat tabel, kebijakan RLS, dan bucket Storage `media`.
-3. **Authentication → Users → Add user**: buat akun admin (email + password). Salin `User UID`-nya.
+1. Buat project di supabase.com (dataset/region terdekat, tidak perlu paket berbayar untuk skala situs ini).
+2. **SQL Editor** → jalankan tiga file di `supabase/migrations/` berurutan: `0001_init.sql`, `0002_hardening_storage.sql`, `0003_date_columns.sql`. Ini membuat tabel, kebijakan RLS, bucket Storage `media`, dan mengunci tipe kolom tanggal.
+3. **Authentication → Users → Add user**: buat akun admin (email + password, centang *Auto Confirm User*). Salin `User UID`-nya.
 4. Daftarkan sebagai admin di SQL Editor:
    ```sql
    insert into public.admins (user_id) values ('<User UID>');
    ```
+   Tanpa baris ini, akun tetap bisa login tapi ditolak masuk ke `/admin` (lihat `AdminGuard.tsx`).
 5. **Authentication → URL Configuration**: isi Site URL dengan domain produksi, dan tambahkan Redirect URL `http://localhost:5173` untuk pengembangan.
 6. Salin **Project URL** dan **anon key** dari **Project Settings → API** ke `.env` (lokal) dan ke Environment Variables Vercel, lalu redeploy.
-7. Buka `/admin/login` dan masuk.
+7. Buka `/admin/login` dan masuk. Halaman ini diberi `noindex` dan tidak muncul di navigasi publik.
 
-Hanya dokumen dengan status `published` (berita, pengumuman) atau `active` (layanan) yang tampil di website.
+Hanya dokumen dengan status `published` (berita, pengumuman) atau `active` (layanan, staf: `active=true`) yang tampil di website. Draft dan konten kedaluwarsa hanya terlihat oleh admin yang login.
 
 ---
 
@@ -508,6 +544,10 @@ npm run build
 | `/news/:slug`         | Detail Berita          | Berita              |
 | `/kegiatan`           | Galeri Kegiatan        | Galeri              |
 | `/kontak`             | Kontak & Lokasi        | —                   |
+| `/admin/login`        | Login Admin             | Auth                |
+| `/admin`              | Dashboard Admin (dilindungi login) | Semua koleksi |
+
+Rute lama (`/news`, `/pengumuman`, `/information`, `/profile`, `/staff`, `/services`, `/marriage`, `/activities`, `/gallery`, `/contact`) tetap ada dan otomatis redirect ke URL utama di atas, supaya tautan lama tidak putus.
 
 ---
 
@@ -585,6 +625,16 @@ Sebelum deployment, beberapa bagian yang perlu diuji:
 * [ ] Kegiatan
 * [ ] Kontak
 * [ ] 404
+
+### Panel Admin
+
+* [ ] Login berhasil dengan akun yang terdaftar di `admins`
+* [ ] Login ditolak untuk akun yang tidak terdaftar di `admins`
+* [ ] `/admin` tanpa login redirect ke `/admin/login`
+* [ ] CRUD Berita, Pengumuman, Layanan, Staf, Galeri
+* [ ] Edit Profil (tidak membuat baris baru)
+* [ ] Upload gambar ke bucket `media`
+* [ ] Toggle status draft/published langsung berefek di halaman publik
 
 ### CMS
 
