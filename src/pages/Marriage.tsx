@@ -5,8 +5,16 @@ import { Accordion } from "../components/ui/Accordion";
 import { marriageSteps, documentChecklist, marriageFees } from "../data/marriage";
 import { faqData } from "../data/faq";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 export default function Marriage() {
+  usePageMeta({
+    title: "Layanan Pernikahan",
+    description:
+      "Alur, dokumen persyaratan, dan biaya resmi pendaftaran nikah di KUA Kecamatan Ngoro.",
+    path: "/layanan/pernikahan",
+  });
+
   const [checkedDocs, setCheckedDocs] = useState<Record<string, boolean>>({});
 
   const toggleDoc = (code: string) => {

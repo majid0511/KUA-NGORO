@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+
+Sitemap: https://kua-ngoro-ngoro.vercel.app/sitemap.xml

@@ -358,9 +358,7 @@ kua-ngoro-website/
 │
 ├── supabase/
 │   └── migrations/
-│       ├── 0001_init.sql               # Tabel, RLS dasar
-│       ├── 0002_hardening_storage.sql  # Bucket "media", hardening fungsi
-│       └── 0003_date_columns.sql       # Kolom tanggal text → date
+│       └── supabase-setup.sql          # Tabel, RLS, bucket Storage "media", tipe kolom tanggal
 │
 ├── .env.example
 ├── index.html
@@ -465,7 +463,7 @@ Jika Supabase tidak dikonfigurasi atau sedang gagal, website memakai data fallba
 ## Setup Supabase
 
 1. Buat project di supabase.com (dataset/region terdekat, tidak perlu paket berbayar untuk skala situs ini).
-2. **SQL Editor** → jalankan tiga file di `supabase/migrations/` berurutan: `0001_init.sql`, `0002_hardening_storage.sql`, `0003_date_columns.sql`. Ini membuat tabel, kebijakan RLS, bucket Storage `media`, dan mengunci tipe kolom tanggal.
+2. **SQL Editor** → jalankan `supabase/migrations/supabase-setup.sql`. Ini membuat tabel, kebijakan RLS, bucket Storage `media`, dan tipe kolom tanggal dalam satu file.
 3. **Authentication → Users → Add user**: buat akun admin (email + password, centang *Auto Confirm User*). Salin `User UID`-nya.
 4. Daftarkan sebagai admin di SQL Editor:
    ```sql

@@ -7,8 +7,16 @@ import type { Profil, Staf } from "../lib/cms/types";
 import { LoadingState, ErrorState } from "../components/ui/CmsState";
 import { profileData } from "../data/profile";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 export default function Profile() {
+  usePageMeta({
+    title: "Profil KUA",
+    description:
+      "Sejarah, visi misi, wilayah kerja, dan susunan staf Kantor Urusan Agama Kecamatan Ngoro, Kabupaten Jombang.",
+    path: "/profil",
+  });
+
   const [profil, setProfil] = useState<Profil | null>(null);
   const [stafList, setStafList] = useState<Staf[]>([]);
   const [loading, setLoading] = useState(true);

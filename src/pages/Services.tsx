@@ -5,18 +5,24 @@ import { getLayanan } from "../lib/cms";
 import type { Layanan } from "../lib/cms/types";
 import { LoadingState, EmptyState, ErrorState } from "../components/ui/CmsState";
 import { Modal } from "../components/ui/Modal";
+import { Accordion } from "../components/ui/Accordion";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 export default function Services() {
+  usePageMeta({
+    title: "Layanan",
+    description:
+      "Persyaratan dan prosedur resmi layanan pernikahan, wakaf, kemasjidan, dan bimbingan keluarga di KUA Kecamatan Ngoro.",
+    path: "/layanan",
+  });
+
   const [layananList, setLayananList] = useState<Layanan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
   const [selectedService, setSelectedService] = useState<Layanan | null>(null);
-
-  const categories = ["Semua", "Utama", "Bimbingan", "Kelembagaan"];
 
   useEffect(() => {
     async function loadData() {
@@ -34,14 +40,11 @@ export default function Services() {
     loadData();
   }, []);
 
-  const filteredServices = layananList.filter((svc) => {
-    const matchesSearch =
+  const filteredServices = layananList.filter(
+    (svc) =>
       svc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      svc.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "Semua";
-
-    return matchesSearch && matchesCategory;
-  });
+      svc.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="py-10 space-y-16">
@@ -65,24 +68,7 @@ export default function Services() {
 
       {/* Filter & Search Bar */}
       <section className="container-kua space-y-8">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white border border-stone-200 rounded-2xl shadow-sm">
-          {/* Category Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-2 sm:pb-0">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition shrink-0 ${
-                  selectedCategory === cat
-                    ? "bg-[#0f5132] text-white shadow-xs"
-                    : "bg-stone-100 text-stone-700 hover:bg-stone-200"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
+        <div className="flex items-center justify-end gap-4 p-4 bg-white border border-stone-200 rounded-2xl shadow-sm">
           {/* Search Box */}
           <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
@@ -183,6 +169,60 @@ export default function Services() {
           </div>
         )}
       </Modal>
+
+      {/* FAQ: Persyaratan & Prosedur per Layanan */}
+      {!loading && !error && layananList.length > 0 && (
+        <section className="container-kua">
+          <div className="max-w-3xl mb-8">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-stone-900 tracking-tight">
+              Pertanyaan Umum
+            </h2>
+            <p className="mt-2 text-sm sm:text-base text-stone-600">
+              Ringkasan syarat dan tahapan tiap layanan. Klik untuk membuka.
+            </p>
+          </div>
+
+          <Accordion
+            items={layananList.map((svc) => ({
+              id: svc.id,
+              title: `Apa syarat dan prosedur ${svc.title.toLowerCase()}?`,
+              content: (
+                <div className="space-y-4">
+                  {svc.estimated_time && (
+                    <p className="text-xs font-semibold text-[#0f5132]">
+                      ⏱ Estimasi waktu: {svc.estimated_time}
+                    </p>
+                  )}
+                  {svc.requirements?.length > 0 && (
+                    <div>
+                      <p className="font-bold text-stone-900 text-xs uppercase tracking-wider mb-2">
+                        Dokumen & Persyaratan
+                      </p>
+                      <ul className="space-y-1.5 list-disc list-inside">
+                        {svc.requirements.map((req, i) => (
+                          <li key={i}>{req}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {svc.procedure?.length > 0 && (
+                    <div>
+                      <p className="font-bold text-stone-900 text-xs uppercase tracking-wider mb-2">
+                        Tahapan Prosedur
+                      </p>
+                      <ol className="space-y-1.5 list-decimal list-inside">
+                        {svc.procedure.map((step, i) => (
+                          <li key={i}>{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              ),
+            }))}
+          />
+        </section>
+      )}
 
       <ContactCtaSection />
     </div>

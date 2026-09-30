@@ -80,8 +80,12 @@ export default function StafAdmin() {
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = await upload(file);
-    setForm(f => ({ ...f, photo: url }));
+    try {
+      const url = await upload(file);
+      setForm((f) => ({ ...f, photo: url }));
+    } catch (err) {
+      alert(`Gagal mengunggah gambar: ${(err as Error).message}`);
+    }
   }
 
   if (mode === 'form') {

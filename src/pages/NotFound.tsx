@@ -1,7 +1,15 @@
 import { Home, Search } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 export default function NotFound() {
+  usePageMeta({
+    title: "Halaman Tidak Ditemukan",
+    description: "Halaman yang dicari tidak tersedia di situs KUA Kecamatan Ngoro.",
+    path: "/404",
+    noindex: true,
+  });
+
   return (
     <div className="min-h-[70vh] flex items-center justify-center py-16 px-4">
       <div className="max-w-md w-full text-center space-y-6 bg-white border border-stone-200 p-8 sm:p-10 rounded-3xl shadow-sm">

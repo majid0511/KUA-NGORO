@@ -7,9 +7,17 @@ import type { Berita, Pengumuman } from "../lib/cms/types";
 import { LoadingState, EmptyState, ErrorState } from "../components/ui/CmsState";
 import { profileData } from "../data/profile";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
+import { usePageMeta } from "../hooks/usePageMeta";
 import { Modal } from "../components/ui/Modal";
 
 export default function Information() {
+  usePageMeta({
+    title: "Informasi & Berita",
+    description:
+      "Pengumuman resmi, berita kegiatan, dan artikel edukasi dari KUA Kecamatan Ngoro.",
+    path: "/informasi",
+  });
+
   const [beritaList, setBeritaList] = useState<Berita[]>([]);
   const [pengumumanList, setPengumumanList] = useState<Pengumuman[]>([]);
   const [loading, setLoading] = useState(true);

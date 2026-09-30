@@ -87,8 +87,12 @@ export default function BeritaAdmin() {
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = await upload(file);
-    setForm((f) => ({ ...f, featured_image: url }));
+    try {
+      const url = await upload(file);
+      setForm((f) => ({ ...f, featured_image: url }));
+    } catch (err) {
+      alert(`Gagal mengunggah gambar: ${(err as Error).message}`);
+    }
   }
 
   if (mode === 'form') {

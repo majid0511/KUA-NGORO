@@ -6,8 +6,16 @@ import type { Galeri } from "../lib/cms/types";
 import { LoadingState, EmptyState, ErrorState } from "../components/ui/CmsState";
 import { Modal } from "../components/ui/Modal";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 export default function Activities() {
+  usePageMeta({
+    title: "Galeri Kegiatan",
+    description:
+      "Dokumentasi kegiatan dan pelayanan Kantor Urusan Agama Kecamatan Ngoro.",
+    path: "/kegiatan",
+  });
+
   const [galeriList, setGaleriList] = useState<Galeri[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

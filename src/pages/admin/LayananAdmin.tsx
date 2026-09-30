@@ -9,6 +9,12 @@ import {
 
 type Mode = 'list' | 'form';
 
+// Harus sama dengan daftar yang dikenali ServiceCard.tsx — nama di luar ini
+// akan tampil sebagai ikon generik di halaman publik.
+const ICON_OPTIONS = [
+  'HeartHandshake', 'Building2', 'Landmark', 'ShieldCheck', 'BookOpen', 'Users',
+] as const;
+
 const EMPTY_FORM: Omit<Layanan, 'id'> = {
   title: '', slug: '', description: '',
   requirements: [], procedure: [],
@@ -115,9 +121,11 @@ export default function LayananAdmin() {
                 placeholder="Cth: 1 - 10 hari kerja"
                 onChange={(e) => setForm((f) => ({ ...f, estimated_time: e.target.value }))} />
             </Field>
-            <Field label="Ikon (Lucide)">
-              <input className={inputCls} value={form.icon}
-                onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))} />
+            <Field label="Ikon">
+              <select className={inputCls} value={form.icon}
+                onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}>
+                {ICON_OPTIONS.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
             </Field>
           </div>
           <Field label="Persyaratan (satu per baris)">

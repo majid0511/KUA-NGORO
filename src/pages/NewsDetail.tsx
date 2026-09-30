@@ -5,6 +5,7 @@ import { getBeritaBySlug } from "../lib/cms/berita";
 import type { Berita } from "../lib/cms/types";
 import { LoadingState, ErrorState, EmptyState } from "../components/ui/CmsState";
 import { Button } from "../components/ui/Button";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 export default function NewsDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -22,18 +23,15 @@ export default function NewsDetail() {
       if (res.error) setError(res.error);
       setBerita(res.data);
       setLoading(false);
-
-      // Dynamic SEO Title update
-      if (res.data) {
-        document.title = `${res.data.title} | KUA Kecamatan Ngoro`;
-      }
     }
     loadData();
-
-    return () => {
-      document.title = "KUA Kecamatan Ngoro | Kabupaten Jombang";
-    };
   }, [slug]);
+
+  usePageMeta({
+    title: berita?.title ?? "Berita & Pengumuman",
+    description: berita?.excerpt ?? "Berita dan pengumuman resmi KUA Kecamatan Ngoro.",
+    path: `/news/${slug ?? ""}`,
+  });
 
   const handleShare = () => {
     if (navigator.clipboard) {

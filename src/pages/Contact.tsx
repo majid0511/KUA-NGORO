@@ -2,8 +2,16 @@ import React, { useState } from "react";
 import { MapPin, Phone, Mail, Clock, MessageSquare, Send, CheckCircle2 } from "lucide-react";
 import { profileData } from "../data/profile";
 import { Button } from "../components/ui/Button";
+import { usePageMeta } from "../hooks/usePageMeta";
 
 export default function Contact() {
+  usePageMeta({
+    title: "Kontak",
+    description:
+      "Alamat, nomor telepon, WhatsApp, dan jam pelayanan Kantor Urusan Agama Kecamatan Ngoro.",
+    path: "/kontak",
+  });
+
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
