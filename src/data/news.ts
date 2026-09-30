@@ -11,4 +11,6 @@ export interface NewsItem {
   featured?: boolean;
 }
 
-export const newsData: NewsItem[] = [];
+export const newsData: NewsItem[] = [
+  
+];

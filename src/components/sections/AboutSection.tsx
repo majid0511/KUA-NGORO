@@ -4,7 +4,7 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { profileData } from "../../data/profile";
 import { SectionHeading } from "../ui/SectionHeading";
-import fotoNikah from "../../assets/fotoNikah.webp";
+import fotoNikah from "../../assets/fotonikah.webp";
 
 export const AboutSection: React.FC = () => {
   return (

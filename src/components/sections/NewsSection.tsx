@@ -1,12 +1,28 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { SectionHeading } from "../ui/SectionHeading";
 import { NewsCard } from "../cards/NewsCard";
-import { newsData } from "../../data/news";
+import { getBerita } from "../../lib/cms";
+import type { Berita } from "../../lib/cms/types";
+import { LoadingState, EmptyState } from "../ui/CmsState";
 
 export const NewsSection: React.FC = () => {
-  const latestNews = newsData.slice(0, 3);
+  const [news, setNews] = useState<Berita[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getBerita().then((res) => {
+      if (!cancelled && res.data) setNews(res.data);
+      if (!cancelled) setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const latestNews = news.slice(0, 3);
 
   return (
     <section className="py-16 sm:py-24 bg-stone-50/70 border-b border-stone-200/60">
@@ -28,21 +44,26 @@ export const NewsSection: React.FC = () => {
           </Link>
         </div>
 
-        {/* News Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-          {latestNews.map((item) => (
-            <NewsCard
-              key={item.id}
-              id={item.id}
-              title={item.title}
-              excerpt={item.excerpt}
-              category={item.category}
-              date={item.date}
-              author={item.author}
-              imageUrl={item.imageUrl}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <LoadingState message="Memuat informasi terbaru..." />
+        ) : latestNews.length === 0 ? (
+          <EmptyState message="Belum ada berita atau pengumuman yang tayang." />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+            {latestNews.map((item) => (
+              <NewsCard
+                key={item.id}
+                id={item.id}
+                title={item.title}
+                excerpt={item.excerpt}
+                category={item.category as "Pengumuman" | "Berita" | "Artikel"}
+                date={item.published_at}
+                author={item.author}
+                imageUrl={item.featured_image}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

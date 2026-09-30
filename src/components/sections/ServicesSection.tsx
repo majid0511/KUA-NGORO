@@ -1,11 +1,27 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { SectionHeading } from "../ui/SectionHeading";
 import { ServiceCard } from "../cards/ServiceCard";
-import { servicesData } from "../../data/services";
+import { getLayanan } from "../../lib/cms";
+import type { Layanan } from "../../lib/cms/types";
+import { LoadingState, EmptyState } from "../ui/CmsState";
 
 export const ServicesSection: React.FC = () => {
+  const [services, setServices] = useState<Layanan[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getLayanan().then((res) => {
+      if (!cancelled && res.data) setServices(res.data);
+      if (!cancelled) setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <section className="py-16 sm:py-24 bg-stone-50/70 border-b border-stone-200/60">
       <div className="container-kua">
@@ -26,20 +42,25 @@ export const ServicesSection: React.FC = () => {
           </Link>
         </div>
 
-        {/* 6 Core Service Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-          {servicesData.map((service) => (
-            <ServiceCard
-              key={service.id}
-              id={service.id}
-              number={service.number}
-              title={service.title}
-              description={service.shortDesc}
-              iconName={service.icon}
-              externalUrl={service.externalUrl}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <LoadingState message="Memuat layanan..." />
+        ) : services.length === 0 ? (
+          <EmptyState message="Belum ada layanan yang aktif." />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+            {services.map((service) => (
+              <ServiceCard
+                key={service.id}
+                id={service.slug}
+                number={String(service.order).padStart(2, "0")}
+                title={service.title}
+                description={service.description}
+                iconName={service.icon}
+                detailUrl={`/layanan#${service.slug}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

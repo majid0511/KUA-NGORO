@@ -2,7 +2,7 @@ import React from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { ArrowRight, Phone, ShieldCheck, MapPin, CheckCircle } from "lucide-react";
 import { motion, type Variants } from "framer-motion";
-import fotoDepan from "../../assets/fotoDepan.webp";
+import fotoDepan from "../../assets/fotodepan.webp";
 
 // Jam layanan mengikuti src/data/profile.ts (WIB). Hari libur nasional belum terdeteksi.
 const isServiceOpen = (now: Date = new Date()): boolean => {
