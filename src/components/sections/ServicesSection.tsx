@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { SectionHeading } from "../ui/SectionHeading";
+import { motion } from "framer-motion";
 import { ServiceCard } from "../cards/ServiceCard";
 import { getLayanan } from "../../lib/cms";
 import type { Layanan } from "../../lib/cms/types";
@@ -48,9 +49,15 @@ export const ServicesSection: React.FC = () => {
           <EmptyState message="Belum ada layanan yang aktif." />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-            {services.map((service) => (
-              <ServiceCard
+            {services.map((service, i) => (
+              <motion.div
                 key={service.id}
+                initial={{ opacity: 0, y: 32 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.1 }}
+              >
+              <ServiceCard
                 id={service.slug}
                 number={String(service.order).padStart(2, "0")}
                 title={service.title}
@@ -58,6 +65,7 @@ export const ServicesSection: React.FC = () => {
                 iconName={service.icon}
                 detailUrl={`/layanan#${service.slug}`}
               />
+              </motion.div>
             ))}
           </div>
         )}

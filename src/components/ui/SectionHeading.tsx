@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 
 interface SectionHeadingProps {
   eyebrow?: string;
@@ -18,7 +19,11 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
   children,
 }) => {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.4 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
       className={`mb-10 md:mb-14 ${
         centered ? "text-center max-w-3xl mx-auto" : "max-w-3xl"
       } ${className}`}
@@ -30,7 +35,7 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
         </div>
       )}
 
-      <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-stone-900 leading-tight">
+      <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-stone-900 leading-tight">
         {title}
       </h2>
 
@@ -41,6 +46,6 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
       )}
 
       {children && <div className="mt-4">{children}</div>}
-    </div>
+    </motion.div>
   );
 };

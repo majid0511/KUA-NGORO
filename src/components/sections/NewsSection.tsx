@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { SectionHeading } from "../ui/SectionHeading";
+import { motion } from "framer-motion";
 import { NewsCard } from "../cards/NewsCard";
 import { getBerita } from "../../lib/cms";
 import type { Berita } from "../../lib/cms/types";
@@ -50,9 +51,15 @@ export const NewsSection: React.FC = () => {
           <EmptyState message="Belum ada berita atau pengumuman yang tayang." />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-            {latestNews.map((item) => (
-              <NewsCard
+            {latestNews.map((item, i) => (
+              <motion.div
                 key={item.id}
+                initial={{ opacity: 0, y: 32 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.1 }}
+              >
+              <NewsCard
                 id={item.id}
                 title={item.title}
                 excerpt={item.excerpt}
@@ -61,6 +68,7 @@ export const NewsSection: React.FC = () => {
                 author={item.author}
                 imageUrl={item.featured_image}
               />
+              </motion.div>
             ))}
           </div>
         )}
