@@ -8,6 +8,7 @@ import { LoadingState, ErrorState } from "../components/ui/CmsState";
 import { profileData } from "../data/profile";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { getRoleCategory } from "../utils/roleCategory";
 
 export default function Profile() {
   usePageMeta({
@@ -217,7 +218,7 @@ export default function Profile() {
               key={staf.id}
               name={staf.name}
               position={staf.position}
-              roleCategory={staf.position.includes("Kepala") ? "Kepala" : staf.position.includes("Penghulu") ? "Penghulu" : "Staf"}
+              roleCategory={getRoleCategory(staf.position)}
               description={staf.bio}
               photoUrl={staf.photo}
             />
