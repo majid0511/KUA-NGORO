@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Newspaper, Bell, Landmark,
   User, Users, Image, LogOut, Menu, X, ExternalLink,
 } from 'lucide-react';
+import kuaLogo from '../../assets/kualogo.png';
 
 const NAV = [
   { to: '/admin',             icon: LayoutDashboard, label: 'Dashboard' },
@@ -32,9 +33,7 @@ export default function AdminLayout() {
     <aside className="flex flex-col h-full w-64 bg-white border-r border-slate-200">
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 h-16 border-b border-slate-200 shrink-0">
-        <div className="w-9 h-9 rounded-lg bg-[#0f5132] text-white flex items-center justify-center text-xs font-bold shrink-0">
-          KN
-        </div>
+        <img src={kuaLogo} alt="KUA Logo" className="w-10 h-10" />
         <div className="min-w-0">
           <p className="text-sm font-bold text-slate-900 leading-tight truncate">KUA Ngoro</p>
           <p className="text-[11px] text-slate-400 font-medium">Panel admin</p>

@@ -5,6 +5,7 @@ import { NavLinks } from "../navigation/NavLinks";
 import { MobileDrawer } from "../navigation/MobileDrawer";
 import { useScrollPosition } from "../../hooks/useScrollPosition";
 import { profileData } from "../../data/profile";
+import kuaLogo from "../../assets/kualogo.png";
 
 export const Navbar: React.FC = () => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -50,11 +51,10 @@ export const Navbar: React.FC = () => {
         <div className="container-kua flex items-center justify-between">
           {/* Logo Brand */}
           <Link to="/" className="flex items-center gap-3 group focus:outline-none">
-            <div className="w-10 h-10 rounded-xl bg-[#0f5132] text-white flex items-center justify-center font-bold text-lg shadow-sm group-hover:bg-[#073822] transition-colors shrink-0">
-              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-              </svg>
-            </div>
+            
+          <img src={kuaLogo} alt="KUA Logo" className="w-10 h-10" />
+              
+            
 
             <div className="flex flex-col">
               <span className="font-bold text-stone-900 text-base sm:text-lg leading-tight tracking-tight group-hover:text-[#0f5132] transition-colors">
