@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Berita } from '../../lib/cms/types';
 import {
-  AdminListPage, AdminLoading, AdminEmpty, AdminError,
-  ConfirmDelete, EditBtn, DeleteBtn, ToggleBtn,
-  Field, inputCls, textareaCls, FormActions, run,
+  PageHeader, Table, Th, Td, Tr, StatusPill, RowActions,
+  AdminLoading, AdminEmpty, AdminError, ConfirmDelete,
+  FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
 import { useImageUpload } from './useImageUpload';
 import { Image as ImageIcon } from 'lucide-react';
@@ -97,11 +97,8 @@ export default function BeritaAdmin() {
 
   if (mode === 'form') {
     return (
-      <div className="max-w-2xl space-y-6">
-        <h2 className="text-xl font-extrabold text-stone-900">
-          {editing ? 'Edit Berita' : 'Tambah Berita'}
-        </h2>
-        <form onSubmit={handleSave} className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
+      <FormCard title={editing ? 'Edit Berita' : 'Tambah Berita'}>
+        <form onSubmit={handleSave} className="space-y-5">
           <Field label="Judul" required>
             <input className={inputCls} required value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value,
@@ -158,33 +155,53 @@ export default function BeritaAdmin() {
           </Field>
           <FormActions loading={saving || uploading} onCancel={() => setMode('list')} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
         </form>
-      </div>
+      </FormCard>
     );
   }
 
   return (
-    <AdminListPage title="Berita" addLabel="Tulis Berita" onAdd={openAdd}>
+    <div className="max-w-5xl">
+      <PageHeader title="Berita" description="Berita dan artikel yang tampil di halaman Informasi." addLabel="Tulis Berita" onAdd={openAdd} />
       {loading ? <AdminLoading /> : error ? <AdminError message={error} /> : list.length === 0 ? (
         <AdminEmpty label="berita" />
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100">
-          {list.map((item) => (
-            <div key={item.id} className="flex items-start gap-4 p-4">
-              {item.featured_image && (
-                <img src={item.featured_image} alt="" className="w-16 h-12 rounded-lg object-cover shrink-0 bg-stone-100" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-stone-900 truncate">{item.title}</p>
-                <p className="text-xs text-stone-500 mt-0.5">{item.category} · {item.published_at}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <ToggleBtn active={item.status === 'published'} onClick={() => toggleStatus(item)} trueLabel="Published" falseLabel="Draft" />
-                <EditBtn onClick={() => openEdit(item)} />
-                <DeleteBtn onClick={() => setDeleteTarget(item)} />
-              </div>
-            </div>
-          ))}
-        </div>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Judul</Th>
+              <Th>Kategori</Th>
+              <Th>Tanggal</Th>
+              <Th>Status</Th>
+              <Th className="text-right">Aksi</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.map((item) => (
+              <Tr key={item.id}>
+                <Td>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {item.featured_image ? (
+                      <img src={item.featured_image} alt="" className="w-12 h-9 rounded-md object-cover shrink-0 bg-slate-100" />
+                    ) : (
+                      <div className="w-12 h-9 rounded-md bg-slate-100 shrink-0" />
+                    )}
+                    <span className="font-medium text-slate-900 truncate">{item.title}</span>
+                  </div>
+                </Td>
+                <Td className="text-slate-500">{item.category}</Td>
+                <Td className="text-slate-500 whitespace-nowrap">{item.published_at}</Td>
+                <Td>
+                  <StatusPill tone={item.status === 'published' ? 'success' : 'neutral'} onClick={() => toggleStatus(item)}>
+                    {item.status === 'published' ? 'Published' : 'Draft'}
+                  </StatusPill>
+                </Td>
+                <Td>
+                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleteTarget(item)} />
+                </Td>
+              </Tr>
+            ))}
+          </tbody>
+        </Table>
       )}
       <ConfirmDelete
         open={!!deleteTarget}
@@ -192,6 +209,6 @@ export default function BeritaAdmin() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
-    </AdminListPage>
+    </div>
   );
 }

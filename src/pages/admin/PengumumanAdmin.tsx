@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Pengumuman } from '../../lib/cms/types';
 import {
-  AdminListPage, AdminLoading, AdminEmpty, AdminError,
-  ConfirmDelete, EditBtn, DeleteBtn, ToggleBtn,
-  Field, inputCls, textareaCls, FormActions, run,
+  PageHeader, Table, Th, Td, Tr, StatusPill, RowActions,
+  AdminLoading, AdminEmpty, AdminError, ConfirmDelete,
+  FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
 
 type Mode = 'list' | 'form';
@@ -71,9 +71,8 @@ export default function PengumumanAdmin() {
 
   if (mode === 'form') {
     return (
-      <div className="max-w-2xl space-y-6">
-        <h2 className="text-xl font-extrabold text-stone-900">{editing ? 'Edit' : 'Tambah'} Pengumuman</h2>
-        <form onSubmit={handleSave} className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
+      <FormCard title={`${editing ? 'Edit' : 'Tambah'} Pengumuman`}>
+        <form onSubmit={handleSave} className="space-y-5">
           <Field label="Judul" required>
             <input className={inputCls} required value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
@@ -110,36 +109,53 @@ export default function PengumumanAdmin() {
           </div>
           <FormActions loading={saving} onCancel={() => setMode('list')} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
         </form>
-      </div>
+      </FormCard>
     );
   }
 
   return (
-    <AdminListPage title="Pengumuman" addLabel="Buat Pengumuman" onAdd={openAdd}>
+    <div className="max-w-5xl">
+      <PageHeader title="Pengumuman" description="Pengumuman resmi yang tampil di halaman Informasi." addLabel="Buat Pengumuman" onAdd={openAdd} />
       {loading ? <AdminLoading /> : error ? <AdminError message={error} /> : list.length === 0 ? (
         <AdminEmpty label="pengumuman" />
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100">
-          {list.map((item) => (
-            <div key={item.id} className="flex items-start gap-4 p-4">
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-stone-900 truncate">{item.title}</p>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  {item.priority === 'important' && <span className="text-amber-600 font-bold mr-1">⚠ Penting ·</span>}
+        <Table>
+          <thead>
+            <tr>
+              <Th>Judul</Th>
+              <Th>Prioritas</Th>
+              <Th>Berlaku</Th>
+              <Th>Status</Th>
+              <Th className="text-right">Aksi</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.map((item) => (
+              <Tr key={item.id}>
+                <Td><span className="font-medium text-slate-900">{item.title}</span></Td>
+                <Td>
+                  {item.priority === 'important'
+                    ? <StatusPill tone="warning">Penting</StatusPill>
+                    : <span className="text-slate-400 text-sm">Normal</span>}
+                </Td>
+                <Td className="text-slate-500 whitespace-nowrap">
                   {item.published_at}{item.expires_at ? ` – ${item.expires_at}` : ''}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <ToggleBtn active={item.status === 'published'} onClick={() => toggleStatus(item)} trueLabel="Published" falseLabel="Draft" />
-                <EditBtn onClick={() => openEdit(item)} />
-                <DeleteBtn onClick={() => setDeleteTarget(item)} />
-              </div>
-            </div>
-          ))}
-        </div>
+                </Td>
+                <Td>
+                  <StatusPill tone={item.status === 'published' ? 'success' : 'neutral'} onClick={() => toggleStatus(item)}>
+                    {item.status === 'published' ? 'Published' : 'Draft'}
+                  </StatusPill>
+                </Td>
+                <Td>
+                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleteTarget(item)} />
+                </Td>
+              </Tr>
+            ))}
+          </tbody>
+        </Table>
       )}
       <ConfirmDelete open={!!deleteTarget} label={deleteTarget?.title ?? ''}
         onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
-    </AdminListPage>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Profil } from '../../lib/cms/types';
-import { AdminLoading, AdminError, Field, inputCls, textareaCls, run } from './AdminUI';
+import { PageHeader, AdminLoading, AdminError, Field, inputCls, textareaCls, run } from './AdminUI';
 
 const EMPTY_PROFIL: Profil = {
   office_name: '', description: '', history: '', vision: '',
@@ -69,15 +69,12 @@ export default function ProfilAdmin() {
   if (error) return <AdminError message={error} />;
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="flex flex-col">
-        <h2 className="text-xl font-extrabold text-stone-900">Profil KUA</h2>
-        <p className="text-sm text-stone-500">Ubah informasi institusi, kontak, dan jam pelayanan (singleton).</p>
-      </div>
+    <div className="max-w-3xl">
+      <PageHeader title="Profil KUA" description="Informasi institusi, kontak, dan jam pelayanan (satu data untuk seluruh situs)." />
 
-      <form onSubmit={handleSave} className="bg-white border border-stone-200 rounded-2xl p-6 space-y-6 shadow-sm">
-        <div className="space-y-4 border-b border-stone-100 pb-5">
-          <h3 className="text-sm font-bold text-stone-800">1. Informasi Umum</h3>
+      <form onSubmit={handleSave} className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
+        <div className="space-y-4 border-b border-slate-100 pb-5">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Informasi umum</h3>
           <Field label="Nama Kantor" required>
             <input className={inputCls} required value={form.office_name}
               onChange={(e) => setForm(f => ({ ...f, office_name: e.target.value }))} />
@@ -92,8 +89,8 @@ export default function ProfilAdmin() {
           </Field>
         </div>
 
-        <div className="space-y-4 border-b border-stone-100 pb-5">
-          <h3 className="text-sm font-bold text-stone-800">2. Visi & Misi</h3>
+        <div className="space-y-4 border-b border-slate-100 pb-5">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Visi & misi</h3>
           <Field label="Visi">
             <textarea className={textareaCls} value={form.vision}
               onChange={(e) => setForm(f => ({ ...f, vision: e.target.value }))} />
@@ -104,8 +101,8 @@ export default function ProfilAdmin() {
           </Field>
         </div>
 
-        <div className="space-y-4 border-b border-stone-100 pb-5">
-          <h3 className="text-sm font-bold text-stone-800">3. Kontak & Alamat</h3>
+        <div className="space-y-4 border-b border-slate-100 pb-5">
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Kontak & alamat</h3>
           <Field label="Alamat Lengkap">
             <textarea className={textareaCls} value={form.address}
               onChange={(e) => setForm(f => ({ ...f, address: e.target.value }))} />
@@ -123,7 +120,7 @@ export default function ProfilAdmin() {
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-sm font-bold text-stone-800">4. Jam Pelayanan</h3>
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Jam pelayanan</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Field label="Senin - Kamis">
               <input className={inputCls} placeholder="07.30 - 16.00 WIB" value={form.office_hours.workDays}
@@ -140,11 +137,11 @@ export default function ProfilAdmin() {
           </div>
         </div>
 
-        <div className="pt-2 flex justify-end">
+        <div className="pt-2 flex justify-end border-t border-slate-100 pt-5">
           <button
             type="submit"
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-3 bg-[#0f5132] text-white text-sm font-bold rounded-xl hover:bg-[#073822] transition disabled:opacity-60"
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#0f5132] text-white text-sm font-semibold rounded-lg hover:bg-[#073822] transition disabled:opacity-60"
           >
             {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
           </button>

@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Galeri } from '../../lib/cms/types';
 import {
-  AdminListPage, AdminLoading, AdminEmpty, AdminError,
-  ConfirmDelete, EditBtn, DeleteBtn,
-  Field, inputCls, textareaCls, FormActions, run,
+  PageHeader, AdminLoading, AdminEmpty, AdminError,
+  ConfirmDelete, RowActions,
+  FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
 import { useImageUpload } from './useImageUpload';
 import { Image as ImageIcon } from 'lucide-react';
@@ -83,9 +83,8 @@ export default function GaleriAdmin() {
 
   if (mode === 'form') {
     return (
-      <div className="max-w-2xl space-y-6">
-        <h2 className="text-xl font-extrabold text-stone-900">{editing ? 'Edit' : 'Tambah'} Foto Galeri</h2>
-        <form onSubmit={handleSave} className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
+      <FormCard title={`${editing ? 'Edit' : 'Tambah'} Foto Galeri`}>
+        <form onSubmit={handleSave} className="space-y-5">
           <Field label="Judul" required>
             <input className={inputCls} required value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
@@ -122,28 +121,30 @@ export default function GaleriAdmin() {
           </Field>
           <FormActions loading={saving || uploading} onCancel={() => setMode('list')} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
         </form>
-      </div>
+      </FormCard>
     );
   }
 
   return (
-    <AdminListPage title="Galeri Kegiatan" addLabel="Tambah Foto" onAdd={openAdd}>
+    <div className="max-w-5xl">
+      <PageHeader title="Galeri Kegiatan" description="Foto dokumentasi yang tampil di halaman Kegiatan." addLabel="Tambah Foto" onAdd={openAdd} />
       {loading ? <AdminLoading /> : error ? <AdminError message={error} /> : list.length === 0 ? (
         <AdminEmpty label="foto galeri" />
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {list.map((item) => (
-            <div key={item.id} className="flex items-center gap-4 p-4">
-              {item.image && (
-                <img src={item.image} alt="" className="w-16 h-12 rounded-lg object-cover shrink-0 bg-stone-100" />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-stone-900 truncate">{item.title}</p>
-                <p className="text-xs text-stone-500 mt-0.5">{item.category} · {item.published_at}</p>
+            <div key={item.id} className="group bg-white rounded-xl border border-slate-200 overflow-hidden">
+              <div className="aspect-[4/3] bg-slate-100">
+                {item.image && (
+                  <img src={item.image} alt="" className="w-full h-full object-cover" />
+                )}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <EditBtn onClick={() => openEdit(item)} />
-                <DeleteBtn onClick={() => setDeleteTarget(item)} />
+              <div className="p-3">
+                <p className="text-sm font-medium text-slate-900 truncate">{item.title}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{item.category} · {item.published_at}</p>
+                <div className="mt-2 flex justify-end">
+                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleteTarget(item)} />
+                </div>
               </div>
             </div>
           ))}
@@ -155,6 +156,6 @@ export default function GaleriAdmin() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
-    </AdminListPage>
+    </div>
   );
 }

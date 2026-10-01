@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Staf } from '../../lib/cms/types';
 import {
-  AdminListPage, AdminLoading, AdminEmpty, AdminError,
-  ConfirmDelete, EditBtn, DeleteBtn, ToggleBtn,
-  Field, inputCls, textareaCls, FormActions, run,
+  PageHeader, Table, Th, Td, Tr, StatusPill, RowActions,
+  AdminLoading, AdminEmpty, AdminError, ConfirmDelete,
+  FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
 import { useImageUpload } from './useImageUpload';
 import { Image as ImageIcon, UserCircle } from 'lucide-react';
@@ -90,9 +90,8 @@ export default function StafAdmin() {
 
   if (mode === 'form') {
     return (
-      <div className="max-w-2xl space-y-6">
-        <h2 className="text-xl font-extrabold text-stone-900">{editing ? 'Edit' : 'Tambah'} Pegawai</h2>
-        <form onSubmit={handleSave} className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
+      <FormCard title={`${editing ? 'Edit' : 'Tambah'} Pegawai`}>
+        <form onSubmit={handleSave} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Nama Lengkap" required>
               <input className={inputCls} required value={form.name}
@@ -140,40 +139,58 @@ export default function StafAdmin() {
           </Field>
           <FormActions loading={saving || uploading} onCancel={() => setMode('list')} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
         </form>
-      </div>
+      </FormCard>
     );
   }
 
   return (
-    <AdminListPage title="Staf & Pegawai" addLabel="Tambah Pegawai" onAdd={openAdd}>
+    <div className="max-w-5xl">
+      <PageHeader title="Staf & Pegawai" description="Daftar pegawai yang tampil di halaman Profil." addLabel="Tambah Pegawai" onAdd={openAdd} />
       {loading ? <AdminLoading /> : error ? <AdminError message={error} /> : list.length === 0 ? (
         <AdminEmpty label="pegawai" />
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100">
-          {list.map((item) => (
-            <div key={item.id} className="flex items-center gap-4 p-4">
-              {item.photo ? (
-                <img src={item.photo} alt={item.name} className="w-12 h-12 rounded-full object-cover shrink-0 border border-stone-200" />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center shrink-0 border border-stone-200">
-                  <UserCircle className="text-stone-400" />
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-stone-900 truncate">{item.name}</p>
-                <p className="text-xs text-stone-500 mt-0.5">{item.position} · Urutan {item.order}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <ToggleBtn active={item.active} onClick={() => toggleStatus(item)} />
-                <EditBtn onClick={() => openEdit(item)} />
-                <DeleteBtn onClick={() => setDeleteTarget(item)} />
-              </div>
-            </div>
-          ))}
-        </div>
+        <Table>
+          <thead>
+            <tr>
+              <Th>Nama</Th>
+              <Th>Jabatan</Th>
+              <Th className="w-16">Urutan</Th>
+              <Th>Status</Th>
+              <Th className="text-right">Aksi</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.map((item) => (
+              <Tr key={item.id}>
+                <Td>
+                  <div className="flex items-center gap-3">
+                    {item.photo ? (
+                      <img src={item.photo} alt={item.name} className="w-9 h-9 rounded-full object-cover shrink-0 bg-slate-100" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                        <UserCircle size={18} className="text-slate-400" />
+                      </div>
+                    )}
+                    <span className="font-medium text-slate-900">{item.name}</span>
+                  </div>
+                </Td>
+                <Td className="text-slate-500">{item.position}</Td>
+                <Td className="text-slate-500">{item.order}</Td>
+                <Td>
+                  <StatusPill tone={item.active ? 'success' : 'neutral'} onClick={() => toggleStatus(item)}>
+                    {item.active ? 'Aktif' : 'Nonaktif'}
+                  </StatusPill>
+                </Td>
+                <Td>
+                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleteTarget(item)} />
+                </Td>
+              </Tr>
+            ))}
+          </tbody>
+        </Table>
       )}
       <ConfirmDelete open={!!deleteTarget} label={deleteTarget?.name ?? ''}
         onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
-    </AdminListPage>
+    </div>
   );
 }

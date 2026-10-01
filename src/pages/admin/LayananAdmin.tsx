@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Layanan } from '../../lib/cms/types';
 import {
-  AdminListPage, AdminLoading, AdminEmpty, AdminError,
-  ConfirmDelete, EditBtn, DeleteBtn, ToggleBtn,
-  Field, inputCls, textareaCls, FormActions, run,
+  PageHeader, Table, Th, Td, Tr, StatusPill, RowActions,
+  AdminLoading, AdminEmpty, AdminError, ConfirmDelete,
+  FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
 
 type Mode = 'list' | 'form';
@@ -97,9 +97,8 @@ export default function LayananAdmin() {
 
   if (mode === 'form') {
     return (
-      <div className="max-w-2xl space-y-6">
-        <h2 className="text-xl font-extrabold text-stone-900">{editing ? 'Edit' : 'Tambah'} Layanan</h2>
-        <form onSubmit={handleSave} className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5">
+      <FormCard title={`${editing ? 'Edit' : 'Tambah'} Layanan`}>
+        <form onSubmit={handleSave} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Nama Layanan" required>
               <input className={inputCls} required value={form.title}
@@ -151,36 +150,52 @@ export default function LayananAdmin() {
           </div>
           <FormActions loading={saving} onCancel={() => setMode('list')} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
         </form>
-      </div>
+      </FormCard>
     );
   }
 
   return (
-    <AdminListPage title="Layanan" addLabel="Tambah Layanan" onAdd={openAdd}>
+    <div className="max-w-5xl">
+      <PageHeader title="Layanan" description="Layanan yang tampil di Beranda dan halaman Layanan." addLabel="Tambah Layanan" onAdd={openAdd} />
       {loading ? <AdminLoading /> : error ? <AdminError message={error} /> : list.length === 0 ? (
         <AdminEmpty label="layanan" />
       ) : (
-        <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100">
-          {list.map((item) => (
-            <div key={item.id} className="flex items-center gap-4 p-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#0f5132] flex items-center justify-center shrink-0 font-bold">
-                {item.order}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm text-stone-900 truncate">{item.title}</p>
-                <p className="text-xs text-stone-500 truncate">{item.description}</p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <ToggleBtn active={item.status === 'active'} onClick={() => toggleStatus(item)} />
-                <EditBtn onClick={() => openEdit(item)} />
-                <DeleteBtn onClick={() => setDeleteTarget(item)} />
-              </div>
-            </div>
-          ))}
-        </div>
+        <Table>
+          <thead>
+            <tr>
+              <Th className="w-14">Urutan</Th>
+              <Th>Nama</Th>
+              <Th>Status</Th>
+              <Th className="text-right">Aksi</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {list.map((item) => (
+              <Tr key={item.id}>
+                <Td>
+                  <span className="inline-flex items-center justify-center w-7 h-7 rounded-md bg-slate-100 text-slate-600 text-xs font-bold">
+                    {item.order}
+                  </span>
+                </Td>
+                <Td>
+                  <p className="font-medium text-slate-900">{item.title}</p>
+                  <p className="text-xs text-slate-500 truncate max-w-md">{item.description}</p>
+                </Td>
+                <Td>
+                  <StatusPill tone={item.status === 'active' ? 'success' : 'neutral'} onClick={() => toggleStatus(item)}>
+                    {item.status === 'active' ? 'Aktif' : 'Nonaktif'}
+                  </StatusPill>
+                </Td>
+                <Td>
+                  <RowActions onEdit={() => openEdit(item)} onDelete={() => setDeleteTarget(item)} />
+                </Td>
+              </Tr>
+            ))}
+          </tbody>
+        </Table>
       )}
       <ConfirmDelete open={!!deleteTarget} label={deleteTarget?.title ?? ''}
         onConfirm={handleDelete} onCancel={() => setDeleteTarget(null)} />
-    </AdminListPage>
+    </div>
   );
 }

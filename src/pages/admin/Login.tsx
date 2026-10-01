@@ -45,8 +45,8 @@ export default function AdminLogin() {
 
   if (!supabase) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fbfbf9] px-4">
-        <p className="max-w-sm text-center text-sm text-stone-600">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <p className="max-w-sm text-center text-sm text-slate-600">
           Supabase belum dikonfigurasi. Isi <code>VITE_SUPABASE_URL</code> dan{' '}
           <code>VITE_SUPABASE_ANON_KEY</code> di file <code>.env</code>, lalu jalankan ulang.
         </p>
@@ -59,73 +59,92 @@ export default function AdminLogin() {
       {/* noindex for admin pages */}
       <meta name="robots" content="noindex,nofollow" />
 
-      <div className="min-h-screen flex items-center justify-center bg-[#fbfbf9] px-4">
-        <div className="w-full max-w-sm">
-          {/* Logo area */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-14 h-14 rounded-2xl bg-[#0f5132] flex items-center justify-center mb-4 shadow-md">
-              <Landmark className="w-7 h-7 text-white" />
+      <div className="min-h-screen grid lg:grid-cols-2 bg-slate-50">
+        {/* Brand panel (desktop only) */}
+        <div className="hidden lg:flex flex-col justify-between bg-[#0f5132] text-white p-10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+              <Landmark className="w-5 h-5" />
             </div>
-            <h1 className="text-xl font-extrabold text-stone-900">Panel Admin</h1>
-            <p className="text-sm text-stone-500 mt-1">KUA Kecamatan Ngoro</p>
+            <span className="font-bold">KUA Kecamatan Ngoro</span>
           </div>
+          <div>
+            <p className="text-2xl font-extrabold leading-snug max-w-sm">
+              Kelola informasi dan layanan publik KUA Ngoro dari satu tempat.
+            </p>
+            <p className="text-sm text-emerald-200 mt-3">
+              Berita, pengumuman, layanan, staf, dan galeri — semua tersinkron otomatis ke website.
+            </p>
+          </div>
+          <p className="text-xs text-emerald-300">Panel internal · Kabupaten Jombang</p>
+        </div>
 
-          {/* Form card */}
-          <form
-            onSubmit={handleSubmit}
-            className="bg-white rounded-2xl shadow-sm border border-stone-200 p-7 space-y-5"
-          >
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="text-xs font-bold text-stone-700 uppercase tracking-wide">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@kua-ngoro.id"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5132]/40 focus:border-[#0f5132] transition"
-              />
+        {/* Form panel */}
+        <div className="flex items-center justify-center px-4 py-12">
+          <div className="w-full max-w-sm">
+            <div className="lg:hidden flex flex-col items-center mb-8">
+              <div className="w-12 h-12 rounded-xl bg-[#0f5132] flex items-center justify-center mb-3">
+                <Landmark className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-lg font-bold text-slate-900">KUA Kecamatan Ngoro</h1>
             </div>
 
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="text-xs font-bold text-stone-700 uppercase tracking-wide">
-                Kata Sandi
-              </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-stone-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5132]/40 focus:border-[#0f5132] transition"
-              />
-            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-1">Masuk ke panel admin</h2>
+            <p className="text-sm text-slate-500 mb-6">Khusus akun yang terdaftar sebagai admin.</p>
 
-            {error && (
-              <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5">
-                {error}
-              </p>
-            )}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@kua-ngoro.id"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5132]/30 focus:border-[#0f5132] transition"
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-[#0f5132] hover:bg-[#073822] text-white text-sm font-bold py-2.5 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {loading ? 'Masuk...' : 'Masuk'}
-            </button>
-          </form>
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                  Kata sandi
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5132]/30 focus:border-[#0f5132] transition"
+                />
+              </div>
 
-          <p className="text-center text-xs text-stone-400 mt-6">
-            Hanya admin KUA yang dapat mengakses halaman ini.
-          </p>
+              {error && (
+                <p className="text-xs font-semibold text-red-700 bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 bg-[#0f5132] hover:bg-[#073822] text-white text-sm font-semibold py-2.5 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {loading ? 'Memproses...' : 'Masuk'}
+              </button>
+            </form>
+
+            <p className="text-center text-xs text-slate-400 mt-6">
+              Hanya admin KUA yang dapat mengakses halaman ini.
+            </p>
+          </div>
         </div>
       </div>
     </>
