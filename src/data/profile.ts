@@ -21,21 +21,8 @@ export interface StaffMember {
   photoUrl?: string;
 }
 
-export interface OrgNode {
-  id: string;
-  title: string;
-  name?: string;
-  nip?: string;
-  children?: OrgNode[];
-}
-
 export interface ProfileData {
   name: string;
-  shortName: string;
-  officialTitle: string;
-  district: string;
-  regency: string;
-  province: string;
   ministry: string;
   address: string;
   phone: string;
@@ -55,16 +42,10 @@ export interface ProfileData {
   duties: Duty[];
   villages: Village[];
   staff: StaffMember[];
-  orgChart: OrgNode;
 }
 
 export const profileData: ProfileData = {
   name: "KUA Kecamatan Ngoro",
-  shortName: "KUA Ngoro",
-  officialTitle: "Kantor Urusan Agama Kecamatan Ngoro",
-  district: "Kecamatan Ngoro",
-  regency: "Kabupaten Jombang",
-  province: "Jawa Timur",
   ministry: "Kementerian Agama Republik Indonesia",
   
   address: "Jl. Arjuno No.7, Pandean, Ngoro, Kec. Ngoro, Kabupaten Jombang, Jawa Timur 61473",
@@ -228,36 +209,4 @@ export const profileData: ProfileData = {
       photoUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=600&q=80"
     }
   ],
-
-  orgChart: {
-    id: "kepala",
-    title: "Kepala KUA Kecamatan Ngoro",
-    name: "Kepala KUA Ngoro", // TODO: Replace with verified KUA data
-    children: [
-      {
-        id: "penghulu",
-        title: "Jabatan Fungsional Penghulu",
-        name: "Penghulu KUA",
-        children: [
-          { id: "bimwin", title: "Pelayanan Nikah & Rujuk" }
-        ]
-      },
-      {
-        id: "penyuluh",
-        title: "Penyuluh Agama Islam",
-        name: "Tim Penyuluh",
-        children: [
-          { id: "majelis", title: "Pembinaan Kemasjidan & Majelis Taklim" }
-        ]
-      },
-      {
-        id: "admin",
-        title: "Tata Usaha / Administrasi",
-        name: "Staf Pelaksana",
-        children: [
-          { id: "simkah", title: "Operator SIMKAH & SIWAK" }
-        ]
-      }
-    ]
-  }
 };

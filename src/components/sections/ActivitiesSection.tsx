@@ -1,21 +1,38 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { SectionHeading } from "../ui/SectionHeading";
 import { ActivityCard } from "../cards/ActivityCard";
-import { activitiesData, type ActivityItem } from "../../data/activities";
+import { getGaleri } from "../../lib/cms";
+import type { Galeri } from "../../lib/cms/types";
 import { Modal } from "../ui/Modal";
+import { LoadingState, EmptyState } from "../ui/CmsState";
 
 export const ActivitiesSection: React.FC = () => {
-  const [selectedActivity, setSelectedActivity] = useState<ActivityItem | null>(null);
-  const featuredActivities = activitiesData.slice(0, 4);
+  const [items, setItems] = useState<Galeri[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Galeri | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getGaleri().then((res) => {
+      if (!cancelled && res.data) setItems(res.data);
+      if (!cancelled) setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const featured = items.slice(0, 4);
 
   return (
     <section className="py-16 sm:py-24 bg-white border-b border-stone-200/60">
       <div className="container-kua">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 md:mb-14 gap-6">
           <SectionHeading
-            eyebrow="DOKUMENTASI DOKUMEN"
+            eyebrow="DOKUMENTASI KEGIATAN"
             title="Kegiatan & Pembinaan KUA"
             description="Dokumentasi pelayanan pernikahan, bimbingan keagamaan, dan pembinaan masyarakat di Kecamatan Ngoro."
             className="mb-0"
@@ -30,50 +47,60 @@ export const ActivitiesSection: React.FC = () => {
           </Link>
         </div>
 
-        {/* Editorial Layout: Featured Image + Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredActivities.map((act) => (
-            <ActivityCard
-              key={act.id}
-              id={act.id}
-              title={act.title}
-              category={act.category}
-              date={act.date}
-              location={act.location}
-              description={act.description}
-              imageUrl={act.imageUrl}
-              onPreview={() => setSelectedActivity(act)}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <LoadingState message="Memuat dokumentasi kegiatan..." />
+        ) : featured.length === 0 ? (
+          <EmptyState message="Belum ada dokumentasi kegiatan yang ditambahkan." />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featured.map((item, i) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 32 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ duration: 0.5, ease: "easeOut", delay: i * 0.1 }}
+              >
+                <ActivityCard
+                  id={item.id}
+                  title={item.title}
+                  category={item.category}
+                  date={item.published_at}
+                  description={item.description}
+                  imageUrl={item.image}
+                  onPreview={() => setSelected(item)}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {/* Lightbox Detail Modal */}
         <Modal
-          isOpen={!!selectedActivity}
-          onClose={() => setSelectedActivity(null)}
-          title={selectedActivity?.title}
+          isOpen={!!selected}
+          onClose={() => setSelected(null)}
+          title={selected?.title}
           maxWidth="2xl"
         >
-          {selectedActivity && (
+          {selected && (
             <div className="space-y-4">
               <div className="rounded-2xl overflow-hidden aspect-[16/9] bg-stone-100">
                 <img
-                  src={selectedActivity.imageUrl}
-                  alt={selectedActivity.title}
+                  src={selected.image}
+                  alt={selected.title}
                   className="w-full h-full object-cover"
                 />
               </div>
 
               <div className="flex items-center justify-between text-xs text-stone-500 pt-2 border-t border-stone-100">
                 <span className="font-semibold text-[#0f5132]">
-                  Kategori: {selectedActivity.category}
+                  Kategori: {selected.category}
                 </span>
-                <span>Waktu: {selectedActivity.date}</span>
-                <span>Lokasi: {selectedActivity.location}</span>
+                <span>Tanggal: {selected.published_at}</span>
               </div>
 
               <p className="text-sm text-stone-700 leading-relaxed pt-2">
-                {selectedActivity.description}
+                {selected.description}
               </p>
             </div>
           )}
