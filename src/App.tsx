@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Navbar } from "./components/layout/Navbar";
 import { Footer } from "./components/layout/Footer";
 import { MobileStickyBar } from "./components/layout/MobileStickyBar";
@@ -12,6 +12,8 @@ import Activities from "./pages/Activities";
 import Contact from "./pages/Contact";
 import NewsDetail from "./pages/NewsDetail";
 import NotFound from "./pages/NotFound";
+import { MaintenanceScreen } from "./components/MaintenanceScreen";
+import { isMaintenanceMode } from "./lib/cms/profil";
 
 // Panel admin dimuat terpisah (tidak menambah bundle halaman publik)
 const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
@@ -26,8 +28,24 @@ function ScrollToTop() {
 
 export default function App() {
   const { pathname } = useLocation();
+  const [maintenance, setMaintenance] = useState<boolean | null>(null);
 
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+  // Panel admin selalu bisa diakses, termasuk saat mode maintenance aktif,
+  // supaya admin tetap bisa masuk dan mematikannya kembali.
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
+
+  useEffect(() => {
+    if (isAdminRoute) return;
+    let cancelled = false;
+    isMaintenanceMode().then((on) => {
+      if (!cancelled) setMaintenance(on);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAdminRoute]);
+
+  if (isAdminRoute) {
     return (
       <Suspense fallback={<div className="min-h-screen bg-[#fbfbf9]" />}>
         <Routes>
@@ -35,6 +53,16 @@ export default function App() {
         </Routes>
       </Suspense>
     );
+  }
+
+  // Sebelum status diketahui: tampilkan layar kosong sebentar, bukan
+  // langsung situs, supaya tidak "berkedip" menampilkan isi lalu ditutup.
+  if (maintenance === null) {
+    return <div className="min-h-screen bg-[#fbfbf9]" />;
+  }
+
+  if (maintenance) {
+    return <MaintenanceScreen />;
   }
 
   return (

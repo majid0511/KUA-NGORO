@@ -50,6 +50,7 @@ export interface Profil {
     fridayHours: string;
     weekend: string;
   };
+  maintenance_mode: boolean;
 }
 
 export interface Staf {

@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Profil } from '../../lib/cms/types';
 import { PageHeader, AdminLoading, AdminError, Field, inputCls, textareaCls, run } from './AdminUI';
+import { AlertTriangle } from 'lucide-react';
 
 const EMPTY_PROFIL: Profil = {
   office_name: '', description: '', history: '', vision: '',
   mission: [], address: '', phone: '', email: '',
-  office_hours: { workDays: '', fridayHours: '', weekend: '' }
+  office_hours: { workDays: '', fridayHours: '', weekend: '' },
+  maintenance_mode: false,
 };
 
 export default function ProfilAdmin() {
@@ -16,6 +18,7 @@ export default function ProfilAdmin() {
   const [profilId, setProfilId] = useState<string | null>(null);
   const [form, setForm]       = useState<Profil>(EMPTY_PROFIL);
   const [missionText, setMissionText] = useState('');
+  const [togglingMaintenance, setTogglingMaintenance] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -65,12 +68,54 @@ export default function ProfilAdmin() {
     alert('Profil berhasil disimpan');
   }
 
+  async function handleToggleMaintenance() {
+    if (!profilId) {
+      alert('Simpan profil terlebih dahulu sebelum mengaktifkan mode maintenance.');
+      return;
+    }
+    const next = !form.maintenance_mode;
+    setTogglingMaintenance(true);
+    const ok = await run(supabase!.from('profil').update({ maintenance_mode: next }).eq('id', profilId));
+    setTogglingMaintenance(false);
+    if (ok) setForm((f) => ({ ...f, maintenance_mode: next }));
+  }
+
   if (loading) return <AdminLoading />;
   if (error) return <AdminError message={error} />;
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl space-y-5">
       <PageHeader title="Profil KUA" description="Informasi institusi, kontak, dan jam pelayanan (satu data untuk seluruh situs)." />
+
+      {/* Mode maintenance: sakelar terpisah, berefek langsung ke seluruh situs publik */}
+      <div className={`rounded-xl border p-5 flex items-start gap-4 ${
+        form.maintenance_mode ? 'bg-amber-50 border-amber-300' : 'bg-white border-slate-200'
+      }`}>
+        <AlertTriangle className={`w-5 h-5 mt-0.5 shrink-0 ${form.maintenance_mode ? 'text-amber-600' : 'text-slate-300'}`} />
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-slate-900">Mode Maintenance</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Saat aktif, seluruh halaman publik menampilkan pesan &ldquo;Web dalam Maintenance&rdquo;.
+            Panel admin ini tetap bisa diakses seperti biasa.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={form.maintenance_mode}
+          disabled={togglingMaintenance}
+          onClick={handleToggleMaintenance}
+          className={`relative shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-60 ${
+            form.maintenance_mode ? 'bg-amber-500' : 'bg-slate-300'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+              form.maintenance_mode ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
 
       <form onSubmit={handleSave} className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
         <div className="space-y-4 border-b border-slate-100 pb-5">
