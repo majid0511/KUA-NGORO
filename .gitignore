@@ -29,4 +29,6 @@ dist-ssr
 .claude/settings.json
 .immpecabble/config.json
 PRODUCT.md
-immpecabble
+immpecabble.env
+.env.*
+!.env.example

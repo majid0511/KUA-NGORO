@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, Users, Eye, Activity, PieChart, AlertCircle, BarChart3, Monitor, Smartphone, Tablet } from 'lucide-react';
+import { RefreshCw, Users, Eye, Activity, UserPlus, AlertCircle, BarChart3, Monitor, Smartphone, Tablet, Share2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 interface Totals {
   users: number;
   views: number;
   sessions: number;
-  engagementRate: number;
+  newUsers: number;
 }
 
 interface DailyPoint {
@@ -13,11 +14,18 @@ interface DailyPoint {
   rawDate: string;
   users: number;
   views: number;
+  newUsers: number;
 }
 
 interface TopPage {
   path: string;
   views: number;
+  users: number;
+}
+
+interface TrafficSource {
+  channel: string;
+  sessions: number;
 }
 
 interface DeviceStat {
@@ -26,6 +34,7 @@ interface DeviceStat {
 }
 
 interface AnalyticsApiResponse {
+  success?: boolean;
   configured: boolean;
   message?: string;
   error?: string;
@@ -33,6 +42,7 @@ interface AnalyticsApiResponse {
   totals?: Totals;
   dailyData?: DailyPoint[];
   topPages?: TopPage[];
+  trafficSources?: TrafficSource[];
   devices?: DeviceStat[];
 }
 
@@ -54,7 +64,7 @@ function formatPathLabel(path: string): string {
 }
 
 export default function AnalyticsSection() {
-  const [days, setDays] = useState<7 | 30 | 90>(30);
+  const [days, setDays] = useState<7 | 30 | 90>(7); // Default 7 hari
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<AnalyticsApiResponse | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -63,10 +73,26 @@ export default function AnalyticsSection() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const res = await fetch(`/api/analytics?days=${selectedDays}`);
+      // Ambil Supabase Auth Session Token
+      let authHeader = '';
+      if (supabase) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session?.access_token) {
+          authHeader = `Bearer ${sessionData.session.access_token}`;
+        }
+      }
+
+      const res = await fetch(`/api/analytics?days=${selectedDays}`, {
+        headers: authHeader ? { Authorization: authHeader } : {},
+      });
+
       if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error('Sesi admin berakhir. Silakan login kembali.');
+        }
         throw new Error(`HTTP ${res.status}`);
       }
+
       const json: AnalyticsApiResponse = await res.json();
       if (json.error) {
         setErrorMsg(json.error);
@@ -89,11 +115,11 @@ export default function AnalyticsSection() {
     fetchAnalytics(days);
   };
 
-  // ── Render Error / Unconfigured / Empty / Loading ──
   const isUnconfigured = data && !data.configured;
   const totals = data?.totals;
   const dailyData = data?.dailyData || [];
   const topPages = data?.topPages || [];
+  const trafficSources = data?.trafficSources || [];
   const devices = data?.devices || [];
   const isEmptyData = totals && totals.users === 0 && totals.views === 0;
 
@@ -106,7 +132,7 @@ export default function AnalyticsSection() {
             <BarChart3 size={20} className="text-[#0f5132]" />
             <h2 className="text-base font-bold text-slate-900">Analytics Website</h2>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">Statistik kunjungan masyarakat ke portal KUA Ngoro.</p>
+          <p className="text-xs text-slate-500 mt-0.5">Statistik kunjungan masyarakat ke portal KUA Ngoro (GA4).</p>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -155,7 +181,7 @@ export default function AnalyticsSection() {
           <div className="flex-1">
             <p className="font-semibold">{errorMsg}</p>
             <p className="mt-1 text-amber-700">
-              Pastikan koneksi internet stabil dan kredensial GA4 di server telah dikonfigurasi.
+              Pastikan kredensial Google OAuth 2.0 di server telah dikonfigurasi dengan benar.
             </p>
           </div>
           <button
@@ -172,16 +198,17 @@ export default function AnalyticsSection() {
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-2">
           <div className="flex items-center gap-2 text-slate-800 font-semibold">
             <AlertCircle size={16} className="text-blue-600" />
-            <span>Google Analytics 4 Belum Dikonfigurasi</span>
+            <span>Google Analytics 4 OAuth 2.0 Belum Dikonfigurasi</span>
           </div>
           <p>
-            Data analytics tidak dapat ditampilkan karena kredensial Google Analytics belum diisi di environment server (Vercel).
+            Data analytics tidak dapat ditampilkan karena kredensial Google OAuth 2.0 belum diisi di environment server (Vercel).
           </p>
           <div className="p-3 bg-white border border-slate-200 rounded-lg text-[11px] font-mono text-slate-700 space-y-1">
             <p className="font-sans font-semibold text-slate-800">Environment variables yang diperlukan di Vercel:</p>
-            <p>• GA_PROPERTY_ID=9 angka Property ID GA4</p>
-            <p>• GOOGLE_CLIENT_EMAIL=email-service-account@gcp.iam.gserviceaccount.com</p>
-            <p>• GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."</p>
+            <p>• GA_PROPERTY_ID=557572449</p>
+            <p>• GOOGLE_CLIENT_ID=Client ID OAuth 2.0 GCP</p>
+            <p>• GOOGLE_CLIENT_SECRET=Client Secret OAuth 2.0 GCP</p>
+            <p>• GOOGLE_REFRESH_TOKEN=Refresh Token OAuth 2.0 GA4</p>
           </div>
         </div>
       )}
@@ -192,7 +219,7 @@ export default function AnalyticsSection() {
           {/* Empty state */}
           {isEmptyData && !loading && (
             <div className="p-6 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
-              <PieChart size={32} className="mx-auto text-slate-300 mb-2" />
+              <BarChart3 size={32} className="mx-auto text-slate-300 mb-2" />
               <p className="text-sm font-bold text-slate-800">Belum ada data analytics</p>
               <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
                 Data pengunjung akan muncul setelah website mulai menerima kunjungan publik pada periode {days} hari terakhir.
@@ -204,13 +231,24 @@ export default function AnalyticsSection() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="flex items-center justify-between text-slate-500 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Pengunjung</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">Active Users</span>
                 <Users size={16} className="text-[#0f5132]" />
               </div>
               <p className="text-2xl font-bold text-slate-900">
                 {loading ? '–' : totals?.users.toLocaleString('id-ID') ?? 0}
               </p>
-              <p className="text-[11px] text-slate-500 mt-1">Total pengguna unik</p>
+              <p className="text-[11px] text-slate-500 mt-1">Pengguna aktif ({days} hari)</p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div className="flex items-center justify-between text-slate-500 mb-2">
+                <span className="text-xs font-semibold uppercase tracking-wider">Sessions</span>
+                <Activity size={16} className="text-purple-600" />
+              </div>
+              <p className="text-2xl font-bold text-slate-900">
+                {loading ? '–' : totals?.sessions.toLocaleString('id-ID') ?? 0}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-1">Total sesi kunjungan</p>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
@@ -226,24 +264,13 @@ export default function AnalyticsSection() {
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="flex items-center justify-between text-slate-500 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Sessions</span>
-                <Activity size={16} className="text-purple-600" />
+                <span className="text-xs font-semibold uppercase tracking-wider">New Users</span>
+                <UserPlus size={16} className="text-emerald-600" />
               </div>
               <p className="text-2xl font-bold text-slate-900">
-                {loading ? '–' : totals?.sessions.toLocaleString('id-ID') ?? 0}
+                {loading ? '–' : totals?.newUsers.toLocaleString('id-ID') ?? 0}
               </p>
-              <p className="text-[11px] text-slate-500 mt-1">Sesi kunjungan</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
-              <div className="flex items-center justify-between text-slate-500 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Engagement</span>
-                <PieChart size={16} className="text-emerald-600" />
-              </div>
-              <p className="text-2xl font-bold text-slate-900">
-                {loading ? '–' : `${totals?.engagementRate ?? 0}%`}
-              </p>
-              <p className="text-[11px] text-slate-500 mt-1">Tingkat interaksi</p>
+              <p className="text-[11px] text-slate-500 mt-1">Pengunjung baru</p>
             </div>
           </div>
 
@@ -255,7 +282,7 @@ export default function AnalyticsSection() {
               </h3>
               <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#0f5132]" /> Pengunjung
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#0f5132]" /> Active Users
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Page Views
@@ -266,9 +293,9 @@ export default function AnalyticsSection() {
             <SvgTrendChart dailyData={dailyData} loading={loading} />
           </div>
 
-          {/* Bottom Grid: Top Pages & Devices */}
+          {/* Bottom Grid: Popular Pages, Traffic Sources & Devices */}
           <div className="grid lg:grid-cols-3 gap-5">
-            {/* Top Pages Table (2 Cols) */}
+            {/* Popular Pages (2 Cols) */}
             <div className="lg:col-span-2 p-4 bg-white border border-slate-200 rounded-xl">
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">
                 Halaman Terpopuler
@@ -283,6 +310,7 @@ export default function AnalyticsSection() {
                       <tr className="border-b border-slate-100 text-slate-400 font-semibold uppercase text-[10px]">
                         <th className="py-2 px-1">Halaman</th>
                         <th className="py-2 px-1 text-right">Views</th>
+                        <th className="py-2 px-1 text-right">Users</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -295,6 +323,9 @@ export default function AnalyticsSection() {
                           <td className="py-2.5 px-1 text-right font-bold text-slate-900">
                             {item.views.toLocaleString('id-ID')}
                           </td>
+                          <td className="py-2.5 px-1 text-right text-slate-600 font-medium">
+                            {item.users.toLocaleString('id-ID')}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -303,17 +334,24 @@ export default function AnalyticsSection() {
               )}
             </div>
 
-            {/* Device breakdown (1 Col) */}
-            <div className="p-4 bg-white border border-slate-200 rounded-xl flex flex-col justify-between">
-              <div>
+            {/* Traffic & Device Breakdown (1 Col) */}
+            <div className="space-y-5">
+              {/* Traffic Sources */}
+              <div className="p-4 bg-white border border-slate-200 rounded-xl">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                  <Share2 size={14} className="text-slate-500" />
+                  Sumber Traffic
+                </h3>
+                <TrafficBreakdown trafficSources={trafficSources} />
+              </div>
+
+              {/* Devices */}
+              <div className="p-4 bg-white border border-slate-200 rounded-xl">
                 <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3">
                   Perangkat Pengunjung
                 </h3>
                 <DeviceBreakdown devices={devices} />
               </div>
-              <p className="text-[10px] text-slate-400 mt-4">
-                * Sumber data langsung dari Google Analytics 4 API.
-              </p>
             </div>
           </div>
         </>
@@ -354,13 +392,11 @@ function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loadin
   const userPoints = dailyData.map((d, i) => `${getX(i)},${getY(d.users)}`).join(' ');
   const viewPoints = dailyData.map((d, i) => `${getX(i)},${getY(d.views)}`).join(' ');
 
-  // Sample dates for X axis labels
   const step = Math.max(1, Math.floor(dailyData.length / 6));
 
   return (
     <div className="w-full overflow-hidden">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
-        {/* Horizontal grid lines */}
         {[0, 0.5, 1].map((ratio, i) => {
           const y = height - padding - ratio * (height - padding * 2);
           const val = Math.round(ratio * maxVal);
@@ -374,20 +410,15 @@ function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loadin
           );
         })}
 
-        {/* Page Views Polyline (Blue) */}
         <polyline fill="none" stroke="#3b82f6" strokeWidth="2" points={viewPoints} opacity={0.75} />
-
-        {/* Users Polyline (Emerald) */}
         <polyline fill="none" stroke="#0f5132" strokeWidth="2.5" points={userPoints} />
 
-        {/* Data points */}
         {dailyData.map((d, i) => (
           <g key={i}>
             <circle cx={getX(i)} cy={getY(d.users)} r="3" fill="#0f5132" />
           </g>
         ))}
 
-        {/* X Axis Labels */}
         {dailyData.map((d, i) => {
           if (i % step !== 0 && i !== dailyData.length - 1) return null;
           return (
@@ -409,13 +440,46 @@ function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loadin
 }
 
 /**
+ * Breakdown Traffic Sources Component
+ */
+function TrafficBreakdown({ trafficSources }: { trafficSources: TrafficSource[] }) {
+  const total = trafficSources.reduce((acc, curr) => acc + curr.sessions, 0);
+
+  if (trafficSources.length === 0 || total === 0) {
+    return <p className="text-xs text-slate-400 py-2">Data sumber traffic belum tersedia.</p>;
+  }
+
+  return (
+    <div className="space-y-2.5">
+      {trafficSources.map((item, i) => {
+        const percent = Math.round((item.sessions / total) * 100);
+        return (
+          <div key={i} className="space-y-1">
+            <div className="flex items-center justify-between text-xs font-medium text-slate-700">
+              <span className="truncate max-w-[140px]">{item.channel}</span>
+              <span className="font-bold text-slate-900">{percent}% ({item.sessions})</span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-purple-600 rounded-full transition-all duration-500"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * Breakdown Device Component
  */
 function DeviceBreakdown({ devices }: { devices: DeviceStat[] }) {
   const total = devices.reduce((acc, curr) => acc + curr.users, 0);
 
   if (devices.length === 0 || total === 0) {
-    return <p className="text-xs text-slate-400 py-4">Data perangkat belum tersedia.</p>;
+    return <p className="text-xs text-slate-400 py-2">Data perangkat belum tersedia.</p>;
   }
 
   const getIcon = (cat: string) => {
@@ -443,7 +507,7 @@ function DeviceBreakdown({ devices }: { devices: DeviceStat[] }) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2.5">
       {devices.map((d, i) => {
         const Icon = getIcon(d.category);
         const percent = Math.round((d.users / total) * 100);
@@ -456,7 +520,7 @@ function DeviceBreakdown({ devices }: { devices: DeviceStat[] }) {
               </span>
               <span className="font-bold text-slate-900">{percent}% ({d.users})</span>
             </div>
-            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
               <div
                 className="h-full bg-[#0f5132] rounded-full transition-all duration-500"
                 style={{ width: `${percent}%` }}
