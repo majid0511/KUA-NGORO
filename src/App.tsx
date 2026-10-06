@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import { MaintenanceScreen } from "./components/MaintenanceScreen";
 import { isMaintenanceMode } from "./lib/cms/profil";
 import { initGA, useGaTracker } from "./lib/analyticsTracker";
+import { Analytics } from "@vercel/analytics/react";
 
 // Inisialisasi GA4 jika VITE_GA_MEASUREMENT_ID dikonfigurasi
 initGA();
@@ -109,6 +110,7 @@ export default function App() {
       </main>
       <Footer />
       <MobileStickyBar />
+      <Analytics />
     </div>
   );
 }
