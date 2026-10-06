@@ -32,3 +32,6 @@ PRODUCT.md
 immpecabble.env
 .env.*
 !.env.example
+.env
+.env.*
+!.env.example
