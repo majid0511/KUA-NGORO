@@ -31,9 +31,20 @@ export async function getProfil(): Promise<CmsResponse<Profil>> {
       .maybeSingle();
 
     if (error) throw new Error(error.message);
-    // If no profil row exists, return the fallback shape so the page renders meaningfully.
-    // This is the singleton case — treat missing row as "empty" data.
-    return (data ?? null) as Profil;
+    if (!data) return fallbackProfil;
+
+    return {
+      office_name:  data.office_name || fallbackProfil.office_name,
+      description:  data.description || fallbackProfil.description,
+      history:      data.history || fallbackProfil.history,
+      vision:       data.vision || fallbackProfil.vision,
+      mission:      (Array.isArray(data.mission) && data.mission.length > 0) ? data.mission : fallbackProfil.mission,
+      address:      data.address || fallbackProfil.address,
+      phone:        data.phone || fallbackProfil.phone,
+      email:        data.email || fallbackProfil.email,
+      office_hours: data.office_hours || fallbackProfil.office_hours,
+      maintenance_mode: Boolean(data.maintenance_mode),
+    } as Profil;
   }, fallbackProfil);
 }
 

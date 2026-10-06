@@ -1,9 +1,28 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { MapPin, Phone, Mail, Clock, ExternalLink, Navigation } from "lucide-react";
 import { profileData } from "../../data/profile";
 import { Button } from "../ui/Button";
+import { getProfil } from "../../lib/cms";
+import type { Profil } from "../../lib/cms/types";
 
 export const LocationSection: React.FC = () => {
+  const [profil, setProfil] = useState<Profil | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getProfil().then((res) => {
+      if (!cancelled && res.data) setProfil(res.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const address = profil?.address || profileData.address;
+  const phone = profil?.phone || profileData.phone;
+  const email = profil?.email || profileData.email;
+  const officeHours = profil?.office_hours || profileData.officeHours;
+
   return (
     <section className="py-16 sm:py-24 bg-white border-b border-stone-200/60">
       <div className="container-kua">
@@ -55,7 +74,7 @@ export const LocationSection: React.FC = () => {
                   <div>
                     <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Alamat Resmi</span>
                     <p className="font-semibold text-stone-800 leading-snug mt-0.5">
-                      {profileData.address}
+                      {address}
                     </p>
                   </div>
                 </div>
@@ -67,7 +86,7 @@ export const LocationSection: React.FC = () => {
                   <div>
                     <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Telepon / WhatsApp</span>
                     <p className="font-semibold text-stone-800 font-mono mt-0.5">
-                      {profileData.phone}
+                      {phone}
                     </p>
                   </div>
                 </div>
@@ -79,7 +98,7 @@ export const LocationSection: React.FC = () => {
                   <div>
                     <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Email Resmi</span>
                     <p className="font-semibold text-stone-800 font-mono text-xs mt-0.5">
-                      {profileData.email}
+                      {email}
                     </p>
                   </div>
                 </div>
@@ -90,9 +109,9 @@ export const LocationSection: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Jam Operasional Pelayanan</span>
-                    <p className="font-semibold text-stone-800 mt-0.5">{profileData.officeHours.workDays}</p>
-                    <p className="font-semibold text-stone-800">{profileData.officeHours.fridayHours}</p>
-                    <p className="text-xs text-stone-500 mt-0.5">{profileData.officeHours.weekend}</p>
+                    <p className="font-semibold text-stone-800 mt-0.5">{officeHours.workDays}</p>
+                    <p className="font-semibold text-stone-800">{officeHours.fridayHours}</p>
+                    <p className="text-xs text-stone-500 mt-0.5">{officeHours.weekend}</p>
                   </div>
                 </div>
               </div>

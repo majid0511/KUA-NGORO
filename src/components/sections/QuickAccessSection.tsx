@@ -1,14 +1,35 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { MapPin, Phone, MessageSquare, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { profileData } from "../../data/profile";
+import { getProfil } from "../../lib/cms";
+import type { Profil } from "../../lib/cms/types";
 
 export const QuickAccessSection: React.FC = () => {
+  const [profil, setProfil] = useState<Profil | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getProfil().then((res) => {
+      if (!cancelled && res.data) setProfil(res.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const address = profil?.address || profileData.address;
+  const phone = profil?.phone || profileData.phone;
+  const workDaysHours = profil?.office_hours?.workDays || profileData.officeHours.workDays;
+  const fridayHours = profil?.office_hours?.fridayHours || profileData.officeHours.fridayHours;
+  const rawPhoneNum = phone.replace(/[^0-9]/g, "");
+  const whatsappNum = rawPhoneNum || profileData.whatsapp;
+
   const quickItems = [
     {
       id: "lokasi",
       title: "Lokasi KUA",
-      subtitle: profileData.address,
+      subtitle: address,
       actionText: "Buka Peta Google Maps",
       href: profileData.mapsUrl,
       external: true,
@@ -18,9 +39,9 @@ export const QuickAccessSection: React.FC = () => {
     {
       id: "telepon",
       title: "Nomor Telepon",
-      subtitle: profileData.phone,
+      subtitle: phone,
       actionText: "Hubungi Langsung",
-      href: `tel:${profileData.phone}`,
+      href: `tel:${phone}`,
       external: false,
       icon: <Phone className="w-6 h-6 text-[#0f5132]" />,
       bgColor: "bg-emerald-50",
@@ -28,9 +49,9 @@ export const QuickAccessSection: React.FC = () => {
     {
       id: "whatsapp",
       title: "WhatsApp Resmi",
-      subtitle: `0851-3322-5303 (Konsultasi)`,
+      subtitle: `${phone} (Konsultasi)`,
       actionText: "Kirim Pesan Chat",
-      href: `https://wa.me/${profileData.whatsapp}`,
+      href: `https://wa.me/${whatsappNum}`,
       external: true,
       icon: <MessageSquare className="w-6 h-6 text-[#0f5132]" />,
       bgColor: "bg-emerald-50",
@@ -38,8 +59,8 @@ export const QuickAccessSection: React.FC = () => {
     {
       id: "jam-pelayanan",
       title: "Jam Pelayanan",
-      subtitle: "Senin-Kamis 07.30-16.00 WIB",
-      actionText: "Jumat 07.30-16.30 WIB",
+      subtitle: `Senin-Kamis ${workDaysHours}`,
+      actionText: `Jumat ${fridayHours}`,
       href: "/kontak",
       external: false,
       icon: <Clock className="w-6 h-6 text-[#0f5132]" />,

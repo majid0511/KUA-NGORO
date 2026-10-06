@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { NavLinks } from "./NavLinks";
 import { Button } from "../ui/Button";
 import { profileData } from "../../data/profile";
+import kualogo from "../../assets/kualogo.png";
 
 interface MobileDrawerProps {
   isOpen: boolean;
@@ -47,8 +48,12 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
               {/* Header */}
               <div className="flex items-center justify-between p-5 border-b border-stone-200 bg-emerald-950 text-white">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-700 flex items-center justify-center font-bold text-white text-base">
-                    KUA
+                  <div className="w-10 h-10 shrink-0 rounded-lg bg-white flex items-center justify-center overflow-hidden">
+                    <img
+                    src={kualogo}
+                    alt="Logo KUA Kecamatan Ngoro"
+                    className="w-full h-full object-contain p-1"
+                    />
                   </div>
                   <div>
                     <span className="font-bold text-sm block leading-tight">
@@ -100,12 +105,6 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
                 <Phone className="w-5 h-5 shrink-0 text-stone-600" />
                 <span>Telepon: {profileData.phone}</span>
               </a>
-
-              <div className="pt-2">
-                <Button to="/kontak" onClick={onClose} className="w-full justify-center">
-                  Hubungi KUA
-                </Button>
-              </div>
             </div>
           </motion.div>
         </div>

@@ -3,11 +3,18 @@ import { supabase } from '../../lib/supabase';
 import type { Profil } from '../../lib/cms/types';
 import { PageHeader, AdminLoading, AdminError, Field, inputCls, textareaCls, run } from './AdminUI';
 import { AlertTriangle } from 'lucide-react';
+import { profileData } from '../../data/profile';
 
-const EMPTY_PROFIL: Profil = {
-  office_name: '', description: '', history: '', vision: '',
-  mission: [], address: '', phone: '', email: '',
-  office_hours: { workDays: '', fridayHours: '', weekend: '' },
+const DEFAULT_PROFIL: Profil = {
+  office_name:  profileData.name,
+  description:  profileData.aboutFull,
+  history:      profileData.history,
+  vision:       profileData.vision,
+  mission:      profileData.missions,
+  address:      profileData.address,
+  phone:        profileData.phone,
+  email:        profileData.email,
+  office_hours: profileData.officeHours,
   maintenance_mode: false,
 };
 
@@ -16,8 +23,8 @@ export default function ProfilAdmin() {
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState<string | null>(null);
   const [profilId, setProfilId] = useState<string | null>(null);
-  const [form, setForm]       = useState<Profil>(EMPTY_PROFIL);
-  const [missionText, setMissionText] = useState('');
+  const [form, setForm]       = useState<Profil>(DEFAULT_PROFIL);
+  const [missionText, setMissionText] = useState(profileData.missions.join('\n'));
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
 
   async function load() {
@@ -27,8 +34,20 @@ export default function ProfilAdmin() {
       setError(error.message);
     } else if (data) {
       setProfilId(data.id as string);
-      setForm(data as Profil);
-      setMissionText((data.mission as string[]).join('\n'));
+      setForm({
+        office_name:  data.office_name || DEFAULT_PROFIL.office_name,
+        description:  data.description || DEFAULT_PROFIL.description,
+        history:      data.history || DEFAULT_PROFIL.history,
+        vision:       data.vision || DEFAULT_PROFIL.vision,
+        mission:      (Array.isArray(data.mission) && data.mission.length > 0) ? data.mission : DEFAULT_PROFIL.mission,
+        address:      data.address || DEFAULT_PROFIL.address,
+        phone:        data.phone || DEFAULT_PROFIL.phone,
+        email:        data.email || DEFAULT_PROFIL.email,
+        office_hours: data.office_hours || DEFAULT_PROFIL.office_hours,
+        maintenance_mode: Boolean(data.maintenance_mode),
+      });
+      const currentMissions = (Array.isArray(data.mission) && data.mission.length > 0) ? data.mission : DEFAULT_PROFIL.mission;
+      setMissionText(currentMissions.join('\n'));
     }
     setLoading(false);
   }

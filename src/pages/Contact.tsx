@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MapPin, Phone, Mail, Clock, MessageSquare, Send, CheckCircle2 } from "lucide-react";
 import { profileData } from "../data/profile";
 import { Button } from "../components/ui/Button";
 import { usePageMeta } from "../hooks/usePageMeta";
+import { getProfil } from "../lib/cms";
+import type { Profil } from "../lib/cms/types";
 
 export default function Contact() {
   usePageMeta({
@@ -11,6 +13,25 @@ export default function Contact() {
       "Alamat, nomor telepon, WhatsApp, dan jam pelayanan Kantor Urusan Agama Kecamatan Ngoro.",
     path: "/kontak",
   });
+
+  const [profil, setProfil] = useState<Profil | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getProfil().then((res) => {
+      if (!cancelled && res.data) setProfil(res.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const address = profil?.address || profileData.address;
+  const phone = profil?.phone || profileData.phone;
+  const email = profil?.email || profileData.email;
+  const officeHours = profil?.office_hours || profileData.officeHours;
+  const rawPhone = phone.replace(/[^0-9]/g, "");
+  const whatsappNum = rawPhone || profileData.whatsapp;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -29,7 +50,7 @@ export default function Contact() {
 
   const handleWhatsAppSend = () => {
     const text = `Halo KUA Ngoro,%0ANama: ${encodeURIComponent(formData.name)}%0ATelepon: ${encodeURIComponent(formData.phone)}%0ATopik: ${encodeURIComponent(formData.topic)}%0APesan: ${encodeURIComponent(formData.message)}`;
-    window.open(`https://wa.me/${profileData.whatsapp}?text=${text}`, "_blank");
+    window.open(`https://wa.me/${whatsappNum}?text=${text}`, "_blank");
   };
 
   return (
@@ -70,7 +91,7 @@ export default function Contact() {
                   <div>
                     <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Alamat Kantor</span>
                     <p className="font-semibold text-stone-800 leading-snug mt-0.5">
-                      {profileData.address}
+                      {address}
                     </p>
                   </div>
                 </div>
@@ -82,7 +103,7 @@ export default function Contact() {
                   <div>
                     <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Nomor Telepon</span>
                     <p className="font-semibold text-stone-800 font-mono mt-0.5">
-                      {profileData.phone}
+                      {phone}
                     </p>
                   </div>
                 </div>
@@ -94,12 +115,12 @@ export default function Contact() {
                   <div>
                     <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">WhatsApp Konsultasi</span>
                     <a
-                      href={`https://wa.me/${profileData.whatsapp}`}
+                      href={`https://wa.me/${whatsappNum}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-bold text-[#0f5132] font-mono hover:underline block mt-0.5"
                     >
-                      {profileData.phone} (Klik untuk Chat)
+                      {phone} (Klik untuk Chat)
                     </a>
                   </div>
                 </div>
@@ -111,7 +132,7 @@ export default function Contact() {
                   <div>
                     <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Email Resmi</span>
                     <p className="font-semibold text-stone-800 font-mono text-xs mt-0.5">
-                      {profileData.email}
+                      {email}
                     </p>
                   </div>
                 </div>
@@ -123,9 +144,9 @@ export default function Contact() {
                   <Clock className="w-4 h-4 text-emerald-700" />
                   Jam Pelayanan Kantor
                 </span>
-                <p className="text-xs text-stone-700 font-semibold">{profileData.officeHours.workDays}</p>
-                <p className="text-xs text-stone-700 font-semibold">{profileData.officeHours.fridayHours}</p>
-                <p className="text-xs text-stone-400">{profileData.officeHours.weekend}</p>
+                <p className="text-xs text-stone-700 font-semibold">{officeHours.workDays}</p>
+                <p className="text-xs text-stone-700 font-semibold">{officeHours.fridayHours}</p>
+                <p className="text-xs text-stone-400">{officeHours.weekend}</p>
               </div>
             </div>
           </div>
