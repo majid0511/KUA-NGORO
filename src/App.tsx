@@ -14,6 +14,7 @@ import NewsDetail from "./pages/NewsDetail";
 import NotFound from "./pages/NotFound";
 import { MaintenanceScreen } from "./components/MaintenanceScreen";
 import { isMaintenanceMode } from "./lib/cms/profil";
+import { PrayerTimesBar } from "./components/PrayerTimesBar";
 import { initGA, useGaTracker } from "./lib/analyticsTracker";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -77,6 +78,7 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-[#fbfbf9] text-stone-900 font-sans relative">
       <ScrollToTop />
       <Navbar />
+      <PrayerTimesBar />
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
