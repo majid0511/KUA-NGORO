@@ -14,6 +14,10 @@ import NewsDetail from "./pages/NewsDetail";
 import NotFound from "./pages/NotFound";
 import { MaintenanceScreen } from "./components/MaintenanceScreen";
 import { isMaintenanceMode } from "./lib/cms/profil";
+import { initGA, useGaTracker } from "./lib/analyticsTracker";
+
+// Inisialisasi GA4 jika VITE_GA_MEASUREMENT_ID dikonfigurasi
+initGA();
 
 // Panel admin dimuat terpisah (tidak menambah bundle halaman publik)
 const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
@@ -29,6 +33,9 @@ function ScrollToTop() {
 export default function App() {
   const { pathname } = useLocation();
   const [maintenance, setMaintenance] = useState<boolean | null>(null);
+
+  // Track page view GA4 untuk rute publik
+  useGaTracker();
 
   // Panel admin selalu bisa diakses, termasuk saat mode maintenance aktif,
   // supaya admin tetap bisa masuk dan mematikannya kembali.

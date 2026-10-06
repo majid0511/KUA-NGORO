@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Newspaper, Bell, Landmark, User, Users, Image, ArrowRight } from 'lucide-react';
+import AnalyticsSection from './AnalyticsSection';
 
 interface CountState {
   berita:     number;
@@ -45,7 +46,7 @@ export default function AdminDashboard() {
     <div className="max-w-5xl space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Ringkasan konten website KUA Kecamatan Ngoro.</p>
+        <p className="text-sm text-slate-500 mt-0.5">Ringkasan konten dan statistik website KUA Kecamatan Ngoro.</p>
       </div>
 
       {/* Stats row */}
@@ -64,6 +65,9 @@ export default function AdminDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Analytics Section */}
+      <AnalyticsSection />
 
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Quick links */}
