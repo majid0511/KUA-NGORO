@@ -72,7 +72,13 @@ async function verifyAdminUser(req: VercelRequest): Promise<boolean> {
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Lampirkan token admin sebagai Authorization header, supaya query
+    // di bawah berjalan sebagai user itu sendiri (role "authenticated",
+    // auth.uid() terisi) -- bukan sebagai anon, yang memang diblokir RLS
+    // dari membaca tabel admins ("admins_manage" policy pakai is_admin()).
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
     if (error || !user) {
