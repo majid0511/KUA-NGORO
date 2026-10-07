@@ -14,13 +14,8 @@ interface MobileDrawerProps {
 function toWaNumber(phone: string): string {
   const digits = phone.replace(/\D/g, "");
 
-  if (digits.startsWith("08")) {
-    return "62" + digits.slice(1);
-  }
-
-  if (digits.startsWith("628")) {
-    return digits;
-  }
+  if (digits.startsWith("08")) return "62" + digits.slice(1);
+  if (digits.startsWith("628")) return digits;
 
   return digits;
 }
@@ -36,15 +31,15 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
   // Ambil data profil terbaru dari CMS
   useEffect(() => {
-  getProfil().then((response) => {
-    const profil = response.data;
+    getProfil().then((response) => {
+      const profil = response.data;
 
-    if (profil?.phone) {
-      setPhone(profil.phone);
-      setWaNumber(toWaNumber(profil.phone));
-    }
-  });
-}, []);
+      if (profil?.phone) {
+        setPhone(profil.phone);
+        setWaNumber(toWaNumber(profil.phone));
+      }
+    });
+  }, []);
 
   // Kunci scroll halaman ketika drawer terbuka
   useEffect(() => {
@@ -98,7 +93,6 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                     <span className="block text-sm font-bold leading-tight">
                       KUA Ngoro
                     </span>
-
                     <span className="block text-[11px] text-emerald-200">
                       Kabupaten Jombang
                     </span>
@@ -118,10 +112,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
               {/* Navigation */}
               <div className="p-4">
-                <NavLinks
-                  vertical
-                  onItemClick={onClose}
-                />
+                <NavLinks vertical onItemClick={onClose} />
               </div>
             </div>
 
@@ -140,7 +131,6 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                 className="flex items-center gap-3 rounded-xl bg-emerald-50 p-3 text-sm font-semibold text-[#0f5132] transition hover:bg-emerald-100"
               >
                 <MessageSquare className="h-5 w-5 shrink-0 text-emerald-700" />
-
                 <span>Konsultasi WhatsApp</span>
               </a>
 
@@ -151,7 +141,6 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                 className="flex items-center gap-3 rounded-xl bg-stone-100 p-3 text-sm font-semibold text-stone-800 transition hover:bg-stone-200"
               >
                 <Phone className="h-5 w-5 shrink-0 text-stone-600" />
-
                 <span>Telepon: {phone}</span>
               </a>
             </div>
