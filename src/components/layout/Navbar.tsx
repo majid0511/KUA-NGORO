@@ -23,14 +23,16 @@ export const Navbar: React.FC = () => {
   const [waNumber, setWaNumber] = useState(profileData.whatsapp);
   const [phone, setPhone] = useState(profileData.phone);
 
-  useEffect(() => {
-    getProfil().then((profil) => {
-      if (profil.phone) {
-        setPhone(profil.phone);
-        setWaNumber(toWaNumber(profil.phone));
-      }
-    });
-  }, []);
+ useEffect(() => {
+  getProfil().then((response) => {
+    const profil = response.data;
+
+    if (profil?.phone) {
+      setPhone(profil.phone);
+      setWaNumber(toWaNumber(profil.phone));
+    }
+  });
+}, []);
 
   return (
     <>
