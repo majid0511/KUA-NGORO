@@ -34,4 +34,5 @@ immpecabble.env
 !.env.example
 .env
 .env.*
-!.env.example
+.env.example
+testing.md
