@@ -59,8 +59,12 @@ export async function getTodayPrayerTimes(): Promise<PrayerTimes | null> {
   }
 }
 
-/** Nama sholat yang sedang berlangsung sekarang (null jika belum Subuh / sudah lewat Isya tengah malam). */
-export function getCurrentPrayerName(times: PrayerTimes): keyof PrayerTimes | null {
+/**
+ * Nama sholat BERIKUTNYA yang belum terjadi hari ini (bukan yang baru lewat).
+ * null jika sudah lewat Isya -- tidak ada lagi waktu sholat untuk disorot
+ * hingga Subuh besok (jadwalnya beda tanggal, di luar cakupan data hari ini).
+ */
+export function getNextPrayerName(times: PrayerTimes): keyof PrayerTimes | null {
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const toMinutes = (hhmm: string) => {
@@ -69,9 +73,8 @@ export function getCurrentPrayerName(times: PrayerTimes): keyof PrayerTimes | nu
   };
 
   const order: (keyof PrayerTimes)[] = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
-  let current: keyof PrayerTimes | null = null;
   for (const name of order) {
-    if (nowMinutes >= toMinutes(times[name])) current = name;
+    if (toMinutes(times[name]) > nowMinutes) return name;
   }
-  return current;
+  return null;
 }
