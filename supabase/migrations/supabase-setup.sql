@@ -1,6 +1,15 @@
 -- ============================================================
--- KUA Ngoro – Supabase Initial Migration
--- Run via: supabase db push  OR  Supabase Dashboard → SQL Editor
+-- KUA Ngoro – Supabase Setup (satu file, gabungan seluruh migrasi)
+-- Jalankan sekali via Supabase Dashboard -> SQL Editor -> Run,
+-- atau `supabase db push`. Aman dijalankan ulang (idempotent) --
+-- semua statement pakai "if not exists" / "or replace" / "drop ... if
+-- exists" sebelum setiap "create trigger"/"create policy".
+--
+-- Kalau sebelumnya kamu sudah pernah menjalankan versi terpisahnya
+-- (0001/0002/0003, atau supabase-setup.sql versi lama + migrasi
+-- maintenance_mode secara terpisah), TIDAK perlu menjalankan file
+-- ini lagi -- isinya sama persis, cuma digabung jadi satu file
+-- untuk kerapian repo.
 -- ============================================================
 
 -- ─── Extensions ──────────────────────────────────────────────
@@ -47,6 +56,7 @@ create table if not exists public.profil (
   updated_at  timestamptz not null default now()
 );
 
+drop trigger if exists profil_updated_at on public.profil;
 create trigger profil_updated_at
   before update on public.profil
   for each row execute function public.set_updated_at();
@@ -68,6 +78,7 @@ create table if not exists public.berita (
   updated_at     timestamptz not null default now()
 );
 
+drop trigger if exists berita_updated_at on public.berita;
 create trigger berita_updated_at
   before update on public.berita
   for each row execute function public.set_updated_at();
@@ -87,6 +98,7 @@ create table if not exists public.pengumuman (
   updated_at   timestamptz not null default now()
 );
 
+drop trigger if exists pengumuman_updated_at on public.pengumuman;
 create trigger pengumuman_updated_at
   before update on public.pengumuman
   for each row execute function public.set_updated_at();
@@ -108,6 +120,7 @@ create table if not exists public.layanan (
   updated_at     timestamptz not null default now()
 );
 
+drop trigger if exists layanan_updated_at on public.layanan;
 create trigger layanan_updated_at
   before update on public.layanan
   for each row execute function public.set_updated_at();
@@ -125,6 +138,7 @@ create table if not exists public.staf (
   updated_at timestamptz not null default now()
 );
 
+drop trigger if exists staf_updated_at on public.staf;
 create trigger staf_updated_at
   before update on public.staf
   for each row execute function public.set_updated_at();
@@ -142,6 +156,7 @@ create table if not exists public.galeri (
   updated_at   timestamptz not null default now()
 );
 
+drop trigger if exists galeri_updated_at on public.galeri;
 create trigger galeri_updated_at
   before update on public.galeri
   for each row execute function public.set_updated_at();
@@ -159,35 +174,44 @@ alter table public.staf       enable row level security;
 alter table public.galeri     enable row level security;
 
 -- ── admins: only admins can manage, no anon read ────────────
+drop policy if exists "admins_manage" on public.admins;
 create policy "admins_manage" on public.admins
   for all using (public.is_admin());
 
 -- ── profil: anyone reads, only admin writes ──────────────────
+drop policy if exists "profil_read" on public.profil;
 create policy "profil_read"  on public.profil for select using (true);
+drop policy if exists "profil_write" on public.profil;
 create policy "profil_write" on public.profil for all    using (public.is_admin());
 
 -- ── berita: anon reads published only ────────────────────────
+drop policy if exists "berita_read" on public.berita;
 create policy "berita_read"  on public.berita for select using (status = 'published');
+drop policy if exists "berita_write" on public.berita;
 create policy "berita_write" on public.berita for all    using (public.is_admin());
 
 -- ── pengumuman: anon reads published & not expired ───────────
-create policy "pengumuman_read" on public.pengumuman
-  for select using (
-    status = 'published' and
-    (expires_at is null or expires_at >= to_char(now(), 'YYYY-MM-DD'))
-  );
+-- (policy "pengumuman_read" didefinisikan sekali di bagian akhir file,
+-- setelah expires_at/published_at dikonversi ke tipe date)
+drop policy if exists "pengumuman_write" on public.pengumuman;
 create policy "pengumuman_write" on public.pengumuman for all using (public.is_admin());
 
 -- ── layanan: anon reads active only ─────────────────────────
+drop policy if exists "layanan_read" on public.layanan;
 create policy "layanan_read"  on public.layanan for select using (status = 'active');
+drop policy if exists "layanan_write" on public.layanan;
 create policy "layanan_write" on public.layanan for all    using (public.is_admin());
 
 -- ── staf: anon reads active only ────────────────────────────
+drop policy if exists "staf_read" on public.staf;
 create policy "staf_read"  on public.staf for select using (active = true);
+drop policy if exists "staf_write" on public.staf;
 create policy "staf_write" on public.staf for all    using (public.is_admin());
 
 -- ── galeri: anyone reads ─────────────────────────────────────
+drop policy if exists "galeri_read" on public.galeri;
 create policy "galeri_read"  on public.galeri for select using (true);
+drop policy if exists "galeri_write" on public.galeri;
 create policy "galeri_write" on public.galeri for all    using (public.is_admin());
 
 -- ═══════════════════════════════════════════════════════════
@@ -310,3 +334,13 @@ create policy "pengumuman_read" on public.pengumuman
     status = 'published'
     and (expires_at is null or expires_at >= (now() at time zone 'Asia/Jakarta')::date)
   );
+
+-- ============================================================
+-- KUA Ngoro – Migration 0002: mode maintenance
+-- Jalankan SETELAH supabase-setup.sql. Aman dijalankan ulang.
+-- Menambah sakelar di tabel profil untuk menonaktifkan sementara
+-- halaman publik (kecuali /admin) dan menampilkan pesan maintenance.
+-- ============================================================
+
+alter table public.profil
+  add column if not exists maintenance_mode boolean not null default false;
