@@ -55,8 +55,10 @@ async function verifyAdminUser(req: VercelRequest): Promise<boolean> {
   const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    // Jika Supabase env belum dikonfigurasi, lewati verifikasi (fallback dev)
-    return true;
+    // Supabase belum dikonfigurasi di server -> tolak, bukan izinkan.
+    // Endpoint admin-only tidak boleh fail-open saat verifikasi tidak bisa dijalankan.
+    console.error('verifyAdminUser: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY tidak terbaca di server');
+    return false;
   }
 
   const authHeader = req.headers.authorization;

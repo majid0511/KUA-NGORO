@@ -1,0 +1,15 @@
+diff --git a/api/analytics.ts b/api/analytics.ts
+index 7b9f2d2..af52580 100644
+--- a/api/analytics.ts
++++ b/api/analytics.ts
+@@ -56,6 +56,8 @@ async function verifyAdminUser(req: VercelRequest): Promise<boolean> {
+ 
+   if (!supabaseUrl || !supabaseAnonKey) {
+-    // Jika Supabase env belum dikonfigurasi, lewati verifikasi (fallback dev)
+-    return true;
++    // Supabase belum dikonfigurasi di server -> tolak, bukan izinkan.
++    // Endpoint admin-only tidak boleh fail-open saat verifikasi tidak bisa dijalankan.
++    console.error('verifyAdminUser: VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY tidak terbaca di server');
++    return false;
+   }
+ 

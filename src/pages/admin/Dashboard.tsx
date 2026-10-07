@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Newspaper, Bell, Landmark, User, Users, Image, ArrowRight } from 'lucide-react';
-// import AnalyticsSection from './AnalyticsSection';
+import AnalyticsSection from './AnalyticsSection';
 
 interface CountState {
   berita:     number;
@@ -67,7 +67,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Analytics Section */}
-      {/* <AnalyticsSection /> */}
+      <AnalyticsSection />
 
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Quick links */}

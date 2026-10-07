@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { X, Phone, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NavLinks } from "./NavLinks";
-import { Button } from "../ui/Button";
 import { profileData } from "../../data/profile";
 import kualogo from "../../assets/kualogo.png";
 
