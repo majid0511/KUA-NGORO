@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Phone, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { NavLinks } from "./NavLinks";
 import { profileData } from "../../data/profile";
+import { getProfil } from "../../lib/cms/profil";
 import kualogo from "../../assets/kualogo.png";
 
 interface MobileDrawerProps {
@@ -10,7 +11,26 @@ interface MobileDrawerProps {
   onClose: () => void;
 }
 
+function toWaNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("08")) return "62" + digits.slice(1);
+  if (digits.startsWith("628")) return digits;
+  return digits;
+}
+
 export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) => {
+  const [waNumber, setWaNumber] = useState(profileData.whatsapp);
+  const [phone, setPhone] = useState(profileData.phone);
+
+  useEffect(() => {
+    getProfil().then((profil) => {
+      if (profil.phone) {
+        setPhone(profil.phone);
+        setWaNumber(toWaNumber(profil.phone));
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -86,7 +106,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
               </div>
 
               <a
-                href={`https://wa.me/${profileData.whatsapp}`}
+                href={`https://wa.me/${waNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={onClose}
@@ -97,12 +117,12 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({ isOpen, onClose }) =
               </a>
 
               <a
-                href={`tel:${profileData.phone}`}
+                href={`tel:${phone}`}
                 onClick={onClose}
                 className="flex items-center gap-3 p-3 rounded-xl bg-stone-100 text-stone-800 font-semibold text-sm hover:bg-stone-200 transition"
               >
                 <Phone className="w-5 h-5 shrink-0 text-stone-600" />
-                <span>Telepon: {profileData.phone}</span>
+                <span>Telepon: {phone}</span>
               </a>
             </div>
           </motion.div>

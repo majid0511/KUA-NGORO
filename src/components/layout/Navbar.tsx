@@ -1,16 +1,36 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, Phone, MessageSquare } from "lucide-react";
 import { NavLinks } from "../navigation/NavLinks";
 import { MobileDrawer } from "../navigation/MobileDrawer";
 import { useScrollPosition } from "../../hooks/useScrollPosition";
 import { profileData } from "../../data/profile";
+import { getProfil } from "../../lib/cms/profil";
 import kuaLogo from "../../assets/kualogo.png";
+
+function toWaNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("08")) return "62" + digits.slice(1);
+  if (digits.startsWith("628")) return digits;
+  return digits;
+}
 
 export const Navbar: React.FC = () => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const scrollPosition = useScrollPosition();
   const isScrolled = scrollPosition > 20;
+
+  const [waNumber, setWaNumber] = useState(profileData.whatsapp);
+  const [phone, setPhone] = useState(profileData.phone);
+
+  useEffect(() => {
+    getProfil().then((profil) => {
+      if (profil.phone) {
+        setPhone(profil.phone);
+        setWaNumber(toWaNumber(profil.phone));
+      }
+    });
+  }, []);
 
   return (
     <>
@@ -26,13 +46,13 @@ export const Navbar: React.FC = () => {
 
           <div className="hidden sm:flex items-center gap-4 text-emerald-200 text-xs">
             <a
-              href={`https://wa.me/${profileData.whatsapp}`}
+              href={`https://wa.me/${waNumber}`}
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-white transition flex items-center gap-1"
             >
               <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-              <span>WhatsApp: {profileData.phone}</span>
+              <span>WhatsApp: {phone}</span>
             </a>
             <span>•</span>
             <span className="text-emerald-300">Jam Kerja: 07.30 - 16.00 WIB</span>
