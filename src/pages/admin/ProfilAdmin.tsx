@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import type { Profil } from '../../lib/cms/types';
 import { PageHeader, AdminLoading, AdminError, Field, inputCls, textareaCls, run } from './AdminUI';
 import { AlertTriangle } from 'lucide-react';
+import { showToast } from './toast';
 import { profileData } from '../../data/profile';
 
 const DEFAULT_PROFIL: Profil = {
@@ -73,23 +74,23 @@ export default function ProfilAdmin() {
     if (profilId) {
       const ok = await run(supabase!.from('profil').update(payload).eq('id', profilId));
       setSaving(false);
-      if (ok) alert('Profil berhasil disimpan');
+      if (ok) showToast('success', 'Profil berhasil disimpan');
       return;
     }
     const { data, error: insertError } = await supabase!
       .from('profil').insert(payload).select('id').single();
     setSaving(false);
     if (insertError) {
-      alert(`Gagal menyimpan perubahan: ${insertError.message}`);
+      showToast('error', `Gagal menyimpan perubahan: ${insertError.message}`);
       return;
     }
     setProfilId(data.id as string);
-    alert('Profil berhasil disimpan');
+    showToast('success', 'Profil berhasil disimpan');
   }
 
   async function handleToggleMaintenance() {
     if (!profilId) {
-      alert('Simpan profil terlebih dahulu sebelum mengaktifkan mode maintenance.');
+      showToast('error', 'Simpan profil terlebih dahulu sebelum mengaktifkan mode maintenance.');
       return;
     }
     const next = !form.maintenance_mode;

@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Newspaper, Bell, Landmark,
   User, Users, Image, LogOut, Menu, X, ExternalLink,
 } from 'lucide-react';
+import { ToastContainer } from './ToastContainer';
 import kuaLogo from '../../assets/kualogo.png';
 
 const NAV = [
@@ -88,6 +89,7 @@ export default function AdminLayout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
+      <ToastContainer />
       {/* Desktop sidebar */}
       <div className="hidden lg:flex shrink-0">
         <Sidebar />

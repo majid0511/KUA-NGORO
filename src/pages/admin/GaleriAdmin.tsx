@@ -7,6 +7,7 @@ import {
   FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
 import { useImageUpload } from './useImageUpload';
+import { showToast } from './toast';
 import { Image as ImageIcon } from 'lucide-react';
 
 type Mode = 'list' | 'form';
@@ -77,7 +78,7 @@ export default function GaleriAdmin() {
       const url = await upload(file);
       setForm((f) => ({ ...f, image: url }));
     } catch (err) {
-      alert(`Gagal mengunggah gambar: ${(err as Error).message}`);
+      showToast('error', `Gagal mengunggah gambar: ${(err as Error).message}`);
     }
   }
 

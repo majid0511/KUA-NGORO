@@ -7,6 +7,7 @@ import {
   FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
 import { useImageUpload } from './useImageUpload';
+import { showToast } from './toast';
 import { Image as ImageIcon, UserCircle } from 'lucide-react';
 
 type Mode = 'list' | 'form';
@@ -84,7 +85,7 @@ export default function StafAdmin() {
       const url = await upload(file);
       setForm((f) => ({ ...f, photo: url }));
     } catch (err) {
-      alert(`Gagal mengunggah gambar: ${(err as Error).message}`);
+      showToast('error', `Gagal mengunggah gambar: ${(err as Error).message}`);
     }
   }
 

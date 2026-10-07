@@ -1,16 +1,19 @@
 import React from 'react';
 import { Loader2, Inbox, AlertCircle, Trash2, Pencil, Plus } from 'lucide-react';
+import { showToast } from './toast';
 
 // ── Mutation helper: tampilkan error Supabase (mis. RLS/duplikat slug) ──
 
 export async function run(
   op: PromiseLike<{ error: { message: string } | null }>,
+  successMessage?: string,
 ): Promise<boolean> {
   const { error } = await op;
   if (error) {
-    alert(`Gagal menyimpan perubahan: ${error.message}`);
+    showToast('error', `Gagal menyimpan perubahan: ${error.message}`);
     return false;
   }
+  if (successMessage) showToast('success', successMessage);
   return true;
 }
 
