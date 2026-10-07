@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink, ArrowUp, GraduationCap, ShieldCheck } from "lucide-react";
 import { profileData } from "../../data/profile";
+import kualogo from "../../assets/kualogo.png";
 
 export const Footer: React.FC = () => {
   const scrollToTop = () => {
@@ -17,11 +18,13 @@ export const Footer: React.FC = () => {
           {/* 1. Brand KUA Ngoro */}
           <div className="lg:col-span-4 space-y-4 text-left">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
-                <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                </svg>
-              </div>
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
+              <img
+                src={kualogo}
+                alt="Logo KUA Kecamatan Ngoro"
+                className="w-full h-full object-contain p-1"
+              />
+            </div>
               <div>
                 <h3 className="font-bold text-base sm:text-lg leading-tight text-white">
                   KUA Kecamatan Ngoro
