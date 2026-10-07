@@ -1,6 +1,11 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ExternalLink, ArrowUp, GraduationCap, ShieldCheck } from "lucide-react";
+import {
+  ExternalLink,
+  ArrowUp,
+  GraduationCap,
+  ShieldCheck,
+} from "lucide-react";
 import { profileData } from "../../data/profile";
 import kualogo from "../../assets/kualogo.png";
 
@@ -10,69 +15,87 @@ export const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="bg-[#042918] text-white pt-12 sm:pt-16 pb-24 sm:pb-8 border-t border-emerald-900/80">
+    <footer className="border-t border-emerald-900/80 bg-[#042918] pb-24 pt-12 text-white sm:pb-8 sm:pt-16">
       <div className="container-kua">
         {/* Main Footer Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 md:gap-10 pb-10 sm:pb-12 border-b border-emerald-900/60">
-          
+        <div className="grid grid-cols-1 gap-8 border-b border-emerald-900/60 pb-10 md:grid-cols-2 md:gap-10 sm:pb-12 lg:grid-cols-12">
           {/* 1. Brand KUA Ngoro */}
-          <div className="lg:col-span-4 space-y-4 text-left">
+          <div className="space-y-4 text-left lg:col-span-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0 overflow-hidden">
-              <img
-                src={kualogo}
-                alt="Logo KUA Kecamatan Ngoro"
-                className="w-full h-full object-contain p-1"
-              />
-            </div>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
+                <img
+                  src={kualogo}
+                  alt="Logo KUA Kecamatan Ngoro"
+                  className="h-full w-full object-contain p-1"
+                />
+              </div>
+
               <div>
-                <h3 className="font-bold text-base sm:text-lg leading-tight text-white">
+                <h3 className="text-base font-bold leading-tight text-white sm:text-lg">
                   KUA Kecamatan Ngoro
                 </h3>
-                <p className="text-xs text-emerald-300 font-medium">
+                <p className="text-xs font-medium text-emerald-300">
                   {profileData.ministry}
                 </p>
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-emerald-100/80 leading-relaxed">
-              Kantor Urusan Agama (KUA) Kecamatan Ngoro bertugas memberikan pelayanan pencatatan nikah & rujuk, bimbingan keluarga sakinah, pelayanan wakaf, pembinaan kemasjidan, serta bimbingan keagamaan bagi masyarakat Kabupaten Jombang.
+            <p className="text-xs leading-relaxed text-emerald-100/80 sm:text-sm">
+              Kantor Urusan Agama (KUA) Kecamatan Ngoro bertugas memberikan
+              pelayanan pencatatan nikah & rujuk, bimbingan keluarga sakinah,
+              pelayanan wakaf, pembinaan kemasjidan, serta bimbingan keagamaan
+              bagi masyarakat Kabupaten Jombang.
             </p>
 
-            <div className="pt-1 flex items-center gap-2 text-xs font-medium text-emerald-300/90">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <div className="flex items-center gap-2 pt-1 text-xs font-medium text-emerald-300/90">
+              <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-400" />
               <span>Portal Publik Resmi • Kabupaten Jombang</span>
             </div>
           </div>
 
           {/* 2. Quick Links */}
-          <div className="lg:col-span-2 space-y-3">
-            <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-emerald-300">
+          <div className="space-y-3 lg:col-span-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300 sm:text-sm">
               Quick Links
             </h4>
-            <ul className="space-y-2 text-xs sm:text-sm text-emerald-100/90">
+            <ul className="space-y-2 text-xs text-emerald-100/90 sm:text-sm">
               <li>
-                <Link to="/" className="inline-block py-1 hover:text-white transition-colors hover:underline">
+                <Link
+                  to="/"
+                  className="inline-block py-1 transition-colors hover:text-white hover:underline"
+                >
                   Beranda
                 </Link>
               </li>
               <li>
-                <Link to="/profil" className="inline-block py-1 hover:text-white transition-colors hover:underline">
+                <Link
+                  to="/profil"
+                  className="inline-block py-1 transition-colors hover:text-white hover:underline"
+                >
                   Profil
                 </Link>
               </li>
               <li>
-                <Link to="/layanan" className="inline-block py-1 hover:text-white transition-colors hover:underline">
+                <Link
+                  to="/layanan"
+                  className="inline-block py-1 transition-colors hover:text-white hover:underline"
+                >
                   Layanan
                 </Link>
               </li>
               <li>
-                <Link to="/informasi" className="inline-block py-1 hover:text-white transition-colors hover:underline">
+                <Link
+                  to="/informasi"
+                  className="inline-block py-1 transition-colors hover:text-white hover:underline"
+                >
                   Informasi
                 </Link>
               </li>
               <li>
-                <Link to="/kontak" className="inline-block py-1 hover:text-white transition-colors hover:underline">
+                <Link
+                  to="/kontak"
+                  className="inline-block py-1 transition-colors hover:text-white hover:underline"
+                >
                   Kontak
                 </Link>
               </li>
@@ -80,20 +103,20 @@ export const Footer: React.FC = () => {
           </div>
 
           {/* 3. Institution */}
-          <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-emerald-300">
+          <div className="space-y-3 lg:col-span-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300 sm:text-sm">
               Institution
             </h4>
-            <ul className="space-y-2.5 text-xs sm:text-sm text-emerald-100/90">
+            <ul className="space-y-2.5 text-xs text-emerald-100/90 sm:text-sm">
               <li>
                 <a
                   href="https://kemenag.go.id/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-start gap-1.5 py-0.5 hover:text-white transition-colors group leading-snug"
+                  className="group inline-flex items-start gap-1.5 py-0.5 leading-snug transition-colors hover:text-white"
                 >
                   <span>Kementerian Agama</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0 mt-0.5" />
+                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
               </li>
               <li>
@@ -101,10 +124,10 @@ export const Footer: React.FC = () => {
                   href="https://jatim.kemenag.go.id/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-start gap-1.5 py-0.5 hover:text-white transition-colors group leading-snug"
+                  className="group inline-flex items-start gap-1.5 py-0.5 leading-snug transition-colors hover:text-white"
                 >
                   <span>Kantor Wilayah Kementerian Agama Provinsi Jawa Timur</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0 mt-0.5" />
+                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
               </li>
               <li>
@@ -112,61 +135,63 @@ export const Footer: React.FC = () => {
                   href="https://jombang.kemenag.go.id"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-start gap-1.5 py-0.5 hover:text-white transition-colors group leading-snug"
+                  className="group inline-flex items-start gap-1.5 py-0.5 leading-snug transition-colors hover:text-white"
                 >
                   <span>Kantor Kementerian Agama Kabupaten Jombang</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-emerald-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform shrink-0 mt-0.5" />
+                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
               </li>
             </ul>
           </div>
 
           {/* 4. Developer Credit Box (Subtle Internship Signature) */}
-          <div className="lg:col-span-3 space-y-3">
-            <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-emerald-400" />
+          <div className="space-y-3 lg:col-span-3">
+            <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-300 sm:text-sm">
+              <GraduationCap className="h-4 w-4 text-emerald-400" />
               <span>Developer Credit</span>
             </h4>
 
-            <div className="p-4 rounded-2xl bg-emerald-900/40 border border-emerald-800/80 space-y-2 text-xs">
-              <p className="text-emerald-200/80 leading-relaxed">
+            <div className="space-y-2 rounded-2xl border border-emerald-800/80 bg-emerald-900/40 p-4 text-xs">
+              <p className="leading-relaxed text-emerald-200/80">
                 Website developed as an internship project by
               </p>
+
               <div className="space-y-0.5">
-                <p className="font-bold text-white text-xs sm:text-sm leading-snug">
+                <p className="text-xs font-bold leading-snug text-white sm:text-sm">
                   Mahasiswa Program Studi Hukum Keluarga (Syariah) est. 2024
                 </p>
-                <p className="font-semibold text-emerald-300 text-xs">
+                <p className="text-xs font-semibold text-emerald-300">
                   IAI At-Tahdzib Jombang
                 </p>
               </div>
 
               <div className="pt-2">
-                <span className="inline-block px-2.5 py-1 rounded-md bg-emerald-800/60 text-emerald-200 font-mono text-[11px] font-semibold border border-emerald-700/50">
+                <span className="inline-block rounded-md border border-emerald-700/50 bg-emerald-800/60 px-2.5 py-1 font-mono text-[11px] font-semibold text-emerald-200">
                   Internship Project • 2026
                 </span>
               </div>
             </div>
           </div>
-
         </div>
 
         {/* 5. Copyright Bottom Bar */}
-        <div className="pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-emerald-200/80">
-          <p className="text-center sm:text-left font-medium">
+        <div className="flex flex-col items-center justify-between gap-4 pt-6 text-xs text-emerald-200/80 sm:flex-row sm:pt-8">
+          <p className="text-center font-medium sm:text-left">
             © 2026 KUA Kecamatan Ngoro. All rights reserved.
           </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-center sm:text-right">
-            <span className="text-emerald-400/80 text-xs font-semibold">
+          <div className="flex flex-wrap items-center justify-center gap-3 text-center sm:gap-4 sm:text-right">
+            <span className="text-xs font-semibold text-emerald-400/80">
               KUA Ngoro Website • Internship Project • 2026
             </span>
+
             <button
+              type="button"
               onClick={scrollToTop}
-              className="p-2 rounded-lg bg-emerald-900/80 text-emerald-200 hover:text-white hover:bg-emerald-800 transition-colors border border-emerald-700/50"
+              className="rounded-lg border border-emerald-700/50 bg-emerald-900/80 p-2 text-emerald-200 transition-colors hover:bg-emerald-800 hover:text-white"
               aria-label="Kembali ke atas"
             >
-              <ArrowUp className="w-4 h-4" />
+              <ArrowUp className="h-4 w-4" />
             </button>
           </div>
         </div>
