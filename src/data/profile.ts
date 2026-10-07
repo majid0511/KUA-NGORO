@@ -122,21 +122,20 @@ export const profileData: ProfileData = {
 
   // 13 Desa di Kecamatan Ngoro, Kabupaten Jombang
   villages: [
-    { id: "1", name: "Ngoro", code: "35.17.03.2001" },
-    { id: "2", name: "Pulorejo", code: "35.17.03.2002" },
-    { id: "3", name: "Japanan", code: "35.17.03.2003" },
-    { id: "4", name: "Badang", code: "35.17.03.2004" },
-    { id: "5", name: "Banyuarang", code: "35.17.03.2005" },
-    { id: "6", name: "Gajah", code: "35.17.03.2006" },
-    { id: "7", name: "Genukwatu", code: "35.17.03.2007" },
-    { id: "8", name: "Jarak", code: "35.17.03.2008" },
-    { id: "9", name: "Kauman", code: "35.17.03.2009" },
-    { id: "10", name: "Kertorejo", code: "35.17.03.2010" },
-    { id: "11", name: "Kesamben", code: "35.17.03.2011" },
-    { id: "12", name: "Rejosopinggir", code: "35.17.03.2012" },
-    { id: "13", name: "Sidowarek", code: "35.17.03.2013" }
+    { id: "1", name: "Badang", code: "35.17.03.2006" },
+    { id: "2", name: "Banyuarang", code: "35.17.03.2008" },
+    { id: "3", name: "Gajah", code: "35.17.03.2010" },
+    { id: "4", name: "Genukwatu", code: "35.17.03.2002" },
+    { id: "5", name: "Jombok", code: "35.17.03.2001" },
+    { id: "6", name: "Kauman", code: "35.17.03.2004" },
+    { id: "7", name: "Kertorejo", code: "35.17.03.2012" },
+    { id: "8", name: "Kesamben", code: "35.17.03.2011" },
+    { id: "9", name: "Ngoro", code: "35.17.03.2005" },
+    { id: "10", name: "Pulorejo", code: "35.17.03.2007" },
+    { id: "11", name: "Rejoagung", code: "35.17.03.2003" },
+    { id: "12", name: "Sidowarek", code: "35.17.03.2009" },
+    { id: "13", name: "Sugihwaras", code: "35.17.03.2013" },
   ],
-
   staff: [
     {
       id: "staf-1",
