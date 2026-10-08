@@ -57,6 +57,7 @@ export interface Staf {
   id: string;
   name: string;
   position: string;
+  nip?: string | null;
   photo?: string;
   bio?: string;
   order: number;

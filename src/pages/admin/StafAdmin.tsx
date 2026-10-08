@@ -13,7 +13,7 @@ import { Image as ImageIcon, UserCircle } from 'lucide-react';
 type Mode = 'list' | 'form';
 
 const EMPTY_FORM: Omit<Staf, 'id'> = {
-  name: '', position: '', photo: '', bio: '', order: 0, active: true,
+  name: '', position: '', nip: '', photo: '', bio: '', order: 0, active: true,
 };
 
 export default function StafAdmin() {
@@ -55,10 +55,11 @@ export default function StafAdmin() {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSaving(true);
+    const payload = { ...form, nip: form.nip?.trim() || null };
     const ok = await run(
       editing
-        ? supabase!.from('staf').update(form).eq('id', editing.id)
-        : supabase!.from('staf').insert(form),
+        ? supabase!.from('staf').update(payload).eq('id', editing.id)
+        : supabase!.from('staf').insert(payload),
     );
     setSaving(false);
     if (!ok) return;
@@ -103,6 +104,17 @@ export default function StafAdmin() {
                 onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))} />
             </Field>
           </div>
+          <Field label="NIP (opsional)">
+            <input
+              className={inputCls}
+              inputMode="numeric"
+              maxLength={18}
+              placeholder="18 digit angka, kosongkan jika tidak ingin ditampilkan"
+              value={form.nip ?? ''}
+              onChange={(e) => setForm((f) => ({ ...f, nip: e.target.value.replace(/\D/g, '') }))}
+            />
+            <p className="text-xs text-slate-400 mt-1">Ditampilkan publik di halaman Profil jika diisi.</p>
+          </Field>
           <Field label="Deskripsi / Bio Singkat">
             <textarea className={textareaCls} value={form.bio ?? ''}
               onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} />

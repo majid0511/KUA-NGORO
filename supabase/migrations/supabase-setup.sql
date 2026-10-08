@@ -344,3 +344,7 @@ create policy "pengumuman_read" on public.pengumuman
 
 alter table public.profil
   add column if not exists maintenance_mode boolean not null default false;
+
+-- ─── NIP pegawai (opsional, tampil di halaman Profil jika diisi) ──
+alter table public.staf
+  add column if not exists nip text;

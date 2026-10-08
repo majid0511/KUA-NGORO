@@ -218,6 +218,7 @@ export default function Profile() {
               key={staf.id}
               name={staf.name}
               position={staf.position}
+              nip={staf.nip ?? undefined}
               roleCategory={getRoleCategory(staf.position)}
               description={staf.bio}
               photoUrl={staf.photo}

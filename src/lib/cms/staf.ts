@@ -8,6 +8,7 @@ const fallbackStafList: Staf[] = profileData.staff.map((s, idx) => ({
   id:       s.id,
   name:     s.name,
   position: s.position,
+  nip:      s.nip,
   photo:    s.photoUrl,
   bio:      s.description,
   order:    idx + 1,
@@ -23,7 +24,7 @@ export async function getStaf(): Promise<CmsResponse<Staf[]>> {
   return queryWithFallback(async () => {
     const { data, error } = await supabase!
       .from('staf')
-      .select('id,name,position,photo,bio,order,active')
+      .select('id,name,position,nip,photo,bio,order,active')
       .eq('active', true)
       .order('order', { ascending: true });
 

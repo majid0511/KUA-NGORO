@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "gold";
+  variant?: "primary" | "secondary" | "outline" | "ghost";
   size?: "sm" | "md" | "lg";
   to?: string;
   href?: string;
@@ -39,7 +39,6 @@ export const Button: React.FC<ButtonProps> = ({
       "bg-[#0f5132] text-white hover:bg-[#073822] active:bg-[#042918] shadow-sm hover:shadow",
     secondary:
       "bg-emerald-100 text-[#0f5132] hover:bg-emerald-200 active:bg-emerald-300 font-semibold",
-    gold: "bg-amber-600 text-white hover:bg-amber-700 active:bg-amber-800 shadow-sm",
     outline:
       "border border-stone-300 bg-white text-stone-800 hover:bg-stone-50 hover:border-stone-400 active:bg-stone-100",
     ghost:
