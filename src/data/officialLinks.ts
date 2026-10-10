@@ -1,3 +1,9 @@
+/**
+ * Satu tautan resmi. "verified" = true berarti alamatnya sudah dipastikan benar (ditampilkan sebagai tanda terverifikasi).
+ * "icon" harus berupa nama ikon yang dikenali komponen OfficialLinkCard.
+ */
+// DATA TAUTAN RESMI: daftar situs/aplikasi resmi terkait KUA (Kemenag RI, SIMKAH, dll) yang ditampilkan di Beranda.
+// Diedit langsung di file ini.
 export interface OfficialLinkItem {
   id: string;
   name: string;
@@ -8,6 +14,9 @@ export interface OfficialLinkItem {
   verified: boolean;
 }
 
+/**
+ * Daftar semua tautan resmi.
+ */
 export const officialLinksData: OfficialLinkItem[] = [
   {
     id: "kemenag-ri",

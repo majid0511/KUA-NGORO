@@ -1,7 +1,11 @@
+// KARTU TAUTAN RESMI: kartu kecil yang membuka situs resmi (Kemenag, SIMKAH, dll) di tab baru.
 import React from "react";
 import { ExternalLink, CheckCircle2, Landmark, Building, MapPin, HeartHandshake, FileCheck, Building2, BookOpen } from "lucide-react";
 import { motion } from "framer-motion";
 
+/**
+ * Data satu tautan: nama, deskripsi, alamat (url), kategori, nama ikon, dan penanda terverifikasi.
+ */
 interface OfficialLinkCardProps {
   name: string;
   description: string;
@@ -11,6 +15,10 @@ interface OfficialLinkCardProps {
   verified?: boolean;
 }
 
+/**
+ * Memilih ikon sesuai nama (teks) dari data; nama yang tidak dikenali memakai ikon Landmark sebagai cadangan.
+ * Jika menambah ikon baru, tambahkan juga di sini.
+ */
 const getIcon = (iconName: string) => {
   switch (iconName) {
     case "Landmark":
@@ -32,6 +40,9 @@ const getIcon = (iconName: string) => {
   }
 };
 
+/**
+ * Kartu tautan. target="_blank" + rel="noopener noreferrer" = buka di tab baru dengan aman.
+ */
 export const OfficialLinkCard: React.FC<OfficialLinkCardProps> = ({
   name,
   description,
@@ -53,6 +64,7 @@ export const OfficialLinkCard: React.FC<OfficialLinkCardProps> = ({
           <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center group-hover:scale-105 transition-transform">
             {getIcon(icon)}
           </div>
+          {/* Tanda "Resmi Kemenag" hanya muncul jika tautan sudah terverifikasi */}
           {verified && (
             <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
               <CheckCircle2 className="w-3.5 h-3.5" />

@@ -1,3 +1,5 @@
+// KELOLA GALERI KEGIATAN (alamat: /admin/galeri): tambah, ubah, hapus foto dokumentasi kegiatan.
+// Tidak ada status draft: semua foto di tabel langsung tampil di situs (Beranda menampilkan 4 terbaru, halaman Kegiatan menampilkan semua).
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Galeri } from '../../lib/cms/types';
@@ -10,26 +12,42 @@ import { useImageUpload } from './useImageUpload';
 import { showToast } from './toast';
 import { Image as ImageIcon } from 'lucide-react';
 
+// Tampilan halaman: daftar atau form tambah/edit
 type Mode = 'list' | 'form';
 
+// Pilihan kategori foto; harus sama dengan tombol filter di halaman Kegiatan
 const CATEGORIES = ['Kegiatan', 'Pelayanan', 'Acara', 'Lainnya'];
 
+// Isi awal form "Tambah Foto": kosong, kategori Kegiatan, tanggal hari ini
 const EMPTY_FORM: Omit<Galeri, 'id'> = {
   title: '', image: '', description: '', category: 'Kegiatan',
   published_at: new Date().toISOString().slice(0, 10),
 };
 
+/**
+ * Halaman kelola galeri. Daftar ditampilkan sebagai grid foto (bukan tabel) karena kontennya visual.
+ */
 export default function GaleriAdmin() {
+  // Tampilan aktif (daftar / form)
   const [mode, setMode]         = useState<Mode>('list');
+  // Seluruh foto galeri dari database, terbaru di atas
   const [list, setList]         = useState<Galeri[]>([]);
+  // True selama daftar dimuat
   const [loading, setLoading]   = useState(true);
+  // True saat form sedang disimpan (tombol dinonaktifkan)
   const [saving, setSaving]     = useState(false);
+  // Pesan error saat memuat daftar (null = tidak ada)
   const [error, setError]       = useState<string | null>(null);
+  // Data yang sedang diedit (null = mode tambah baru)
   const [editing, setEditing]   = useState<Galeri | null>(null);
+  // Isi form yang sedang diketik
   const [form, setForm]         = useState<Omit<Galeri, 'id'>>(EMPTY_FORM);
+  // Data yang menunggu konfirmasi hapus (null = dialog tertutup)
   const [deleteTarget, setDeleteTarget] = useState<Galeri | null>(null);
+  // Fungsi & status unggah foto ke Supabase Storage
   const { uploading, upload }   = useImageUpload();
 
+  // Ambil semua data dari tabel "galeri" di Supabase
   async function load() {
     setLoading(true);
     const { data, error } = await supabase!
@@ -39,9 +57,12 @@ export default function GaleriAdmin() {
     setLoading(false);
   }
 
+  // Muat daftar saat halaman pertama dibuka
   useEffect(() => { load(); }, []);
 
+  // Buka form kosong untuk foto baru
   function openAdd() { setEditing(null); setForm({ ...EMPTY_FORM }); setMode('form'); }
+  // Buka form berisi data foto yang dipilih
   function openEdit(item: Galeri) {
     setEditing(item);
     setForm({
@@ -51,6 +72,9 @@ export default function GaleriAdmin() {
     setMode('form');
   }
 
+  /**
+   * Simpan form: UPDATE jika sedang mengedit, INSERT jika baru. Judul wajib.
+   */
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim()) return;
@@ -65,12 +89,14 @@ export default function GaleriAdmin() {
     setMode('list'); load();
   }
 
+  // Hapus foto yang sudah dikonfirmasi, lalu muat ulang daftar
   async function handleDelete() {
     if (!deleteTarget) return;
     if (!(await run(supabase!.from('galeri').delete().eq('id', deleteTarget.id)))) return;
     setDeleteTarget(null); load();
   }
 
+  // Saat admin memilih foto: unggah ke Storage lalu simpan alamat publiknya ke form; gagal -> toast error
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -82,6 +108,7 @@ export default function GaleriAdmin() {
     }
   }
 
+  // TAMPILAN FORM tambah/edit
   if (mode === 'form') {
     return (
       <FormCard title={`${editing ? 'Edit' : 'Tambah'} Foto Galeri`}>
@@ -106,6 +133,7 @@ export default function GaleriAdmin() {
             <textarea className={textareaCls} value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
           </Field>
+          {/* Gambar wajib: unggah file atau tempel alamat gambar */}
           <Field label="Gambar" required>
             <div className="space-y-2">
               {form.image && (
@@ -128,6 +156,7 @@ export default function GaleriAdmin() {
 
   return (
     <div className="max-w-5xl">
+      {/* TAMPILAN DAFTAR: grid kartu foto dengan tombol edit & hapus */}
       <PageHeader title="Galeri Kegiatan" description="Foto dokumentasi yang tampil di halaman Kegiatan." addLabel="Tambah Foto" onAdd={openAdd} />
       {loading ? <AdminLoading /> : error ? <AdminError message={error} /> : list.length === 0 ? (
         <AdminEmpty label="foto galeri" />

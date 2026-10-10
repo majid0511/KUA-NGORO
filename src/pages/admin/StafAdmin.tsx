@@ -1,3 +1,5 @@
+// KELOLA STAF/PEGAWAI (alamat: /admin/staf): daftar, tambah, ubah, hapus pegawai + alihkan Aktif <-> Nonaktif.
+// Pegawai aktif tampil di halaman Profil; NIP bersifat opsional (tampil publik jika diisi).
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Staf } from '../../lib/cms/types';
@@ -10,23 +12,38 @@ import { useImageUpload } from './useImageUpload';
 import { showToast } from './toast';
 import { Image as ImageIcon, UserCircle } from 'lucide-react';
 
+// Tampilan halaman: daftar atau form tambah/edit
 type Mode = 'list' | 'form';
 
+// Isi awal form "Tambah Pegawai": kosong, status aktif
 const EMPTY_FORM: Omit<Staf, 'id'> = {
   name: '', position: '', nip: '', photo: '', bio: '', order: 0, active: true,
 };
 
+/**
+ * Halaman kelola pegawai.
+ */
 export default function StafAdmin() {
+  // Tampilan aktif (daftar / form)
   const [mode, setMode]         = useState<Mode>('list');
+  // Seluruh pegawai dari database (termasuk yang nonaktif)
   const [list, setList]         = useState<Staf[]>([]);
+  // True selama daftar dimuat
   const [loading, setLoading]   = useState(true);
+  // True saat form sedang disimpan (tombol dinonaktifkan)
   const [saving, setSaving]     = useState(false);
+  // Pesan error saat memuat daftar (null = tidak ada)
   const [error, setError]       = useState<string | null>(null);
+  // Data yang sedang diedit (null = mode tambah baru)
   const [editing, setEditing]   = useState<Staf | null>(null);
+  // Isi form yang sedang diketik
   const [form, setForm]         = useState<Omit<Staf, 'id'>>(EMPTY_FORM);
+  // Data yang menunggu konfirmasi hapus (null = dialog tertutup)
   const [deleteTarget, setDeleteTarget] = useState<Staf | null>(null);
+  // Fungsi & status unggah foto ke Supabase Storage
   const { uploading, upload }   = useImageUpload();
 
+  // Ambil semua data dari tabel "staf" di Supabase
   async function load() {
     setLoading(true);
     const { data, error } = await supabase!
@@ -36,14 +53,17 @@ export default function StafAdmin() {
     setLoading(false);
   }
 
+  // Muat daftar saat halaman pertama dibuka
   useEffect(() => { load(); }, []);
 
+  // Buka form kosong; nomor urut otomatis diisi urutan berikutnya
   function openAdd() {
     setEditing(null);
     setForm({ ...EMPTY_FORM, order: list.length + 1 });
     setMode('form');
   }
 
+  // Buka form berisi data pegawai yang dipilih (id dibuang karena tidak ikut diubah)
   function openEdit(item: Staf) {
     setEditing(item);
     const { id: _, ...rest } = item;
@@ -51,6 +71,10 @@ export default function StafAdmin() {
     setMode('form');
   }
 
+  /**
+   * Simpan form: UPDATE jika sedang mengedit, INSERT jika baru. Nama wajib.
+   * NIP yang dikosongkan disimpan sebagai null.
+   */
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) return;
@@ -66,12 +90,14 @@ export default function StafAdmin() {
     setMode('list'); load();
   }
 
+  // Hapus data yang sudah dikonfirmasi, lalu muat ulang daftar
   async function handleDelete() {
     if (!deleteTarget) return;
     if (!(await run(supabase!.from('staf').delete().eq('id', deleteTarget.id)))) return;
     setDeleteTarget(null); load();
   }
 
+  // Balik status aktif <-> nonaktif (pegawai nonaktif tidak tampil di situs)
   async function toggleStatus(item: Staf) {
     if (!(await run(supabase!.from('staf')
       .update({ active: !item.active })
@@ -79,6 +105,7 @@ export default function StafAdmin() {
     load();
   }
   
+  // Saat admin memilih foto: unggah ke Storage lalu simpan alamat publiknya ke form; gagal -> toast error
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -90,6 +117,7 @@ export default function StafAdmin() {
     }
   }
 
+  // TAMPILAN FORM tambah/edit
   if (mode === 'form') {
     return (
       <FormCard title={`${editing ? 'Edit' : 'Tambah'} Pegawai`}>
@@ -104,6 +132,7 @@ export default function StafAdmin() {
                 onChange={(e) => setForm((f) => ({ ...f, position: e.target.value }))} />
             </Field>
           </div>
+          {/* NIP: hanya angka, maksimal 18 digit; ditampilkan publik di halaman Profil jika diisi */}
           <Field label="NIP (opsional)">
             <input
               className={inputCls}
@@ -132,6 +161,7 @@ export default function StafAdmin() {
               </select>
             </Field>
           </div>
+          {/* Foto: unggah file atau tempel alamat gambar */}
           <Field label="Foto Pegawai">
             <div className="space-y-3">
               {form.photo ? (
@@ -158,6 +188,7 @@ export default function StafAdmin() {
 
   return (
     <div className="max-w-5xl">
+      {/* TAMPILAN DAFTAR: tabel pegawai berurutan menurut nomor urut, dengan status aktif/nonaktif */}
       <PageHeader title="Staf & Pegawai" description="Daftar pegawai yang tampil di halaman Profil." addLabel="Tambah Pegawai" onAdd={openAdd} />
       {loading ? <AdminLoading /> : error ? <AdminError message={error} /> : list.length === 0 ? (
         <AdminEmpty label="pegawai" />

@@ -3,7 +3,8 @@ import { queryWithFallback } from './client';
 import type { Staf, CmsResponse } from './types';
 import { profileData } from '../../data/profile';
 
-// ── Fallback ──────────────────────────────────────────────────
+// ── Data cadangan ─────────────────────────────────────────────
+// Daftar staf lokal (src/data/profile.ts) diubah ke bentuk Staf; urutan mengikuti urutan array.
 const fallbackStafList: Staf[] = profileData.staff.map((s, idx) => ({
   id:       s.id,
   name:     s.name,
@@ -15,10 +16,10 @@ const fallbackStafList: Staf[] = profileData.staff.map((s, idx) => ({
   active:   true,
 }));
 
-// ── Fetcher ───────────────────────────────────────────────────
+// ── Pengambil data ────────────────────────────────────────────
 
 /**
- * Returns all active staf ordered by order asc.
+ * Mengambil semua pegawai yang aktif (active = true), urut berdasarkan kolom "order".
  */
 export async function getStaf(): Promise<CmsResponse<Staf[]>> {
   return queryWithFallback(async () => {

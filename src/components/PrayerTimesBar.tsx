@@ -1,14 +1,23 @@
+// STRIP JADWAL SHOLAT: pita hijau tipis di bawah navbar yang menampilkan waktu sholat hari ini untuk wilayah Jombang.
+// Sholat BERIKUTNYA disorot. Di HP hanya menampilkan sholat berikutnya; di layar lebar menampilkan kelima waktu.
 import React, { useEffect, useState } from "react";
 import { getTodayPrayerTimes, getNextPrayerName, type PrayerTimes } from "../lib/prayerTimes";
 
+// Urutan lima waktu sholat yang ditampilkan
 const ORDER: (keyof PrayerTimes)[] = ["Subuh", "Dzuhur", "Ashar", "Maghrib", "Isya"];
 
+/**
+ * Mengambil jadwal hari ini lewat getTodayPrayerTimes(), lalu memperbarui sorotan "sholat berikutnya" tiap menit.
+ */
 export const PrayerTimesBar: React.FC = () => {
+  // Jadwal sholat hari ini (null = belum dimuat atau gagal dimuat)
   const [times, setTimes] = useState<PrayerTimes | null>(null);
+  // Nama sholat berikutnya yang belum masuk waktunya (null = semua sudah lewat)
   const [next, setNext] = useState<keyof PrayerTimes | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    // Muat jadwal sekali saat komponen tampil; flag "cancelled" mencegah update state jika komponen sudah ditutup
     getTodayPrayerTimes().then((t) => {
       if (!cancelled && t) setTimes(t);
     });
@@ -19,6 +28,7 @@ export const PrayerTimesBar: React.FC = () => {
 
   useEffect(() => {
     if (!times) return;
+    // Hitung sholat berikutnya sekarang, lalu hitung ulang setiap 60 detik agar sorotan ikut berpindah
     setNext(getNextPrayerName(times));
     const id = setInterval(() => setNext(getNextPrayerName(times)), 60_000);
     return () => clearInterval(id);

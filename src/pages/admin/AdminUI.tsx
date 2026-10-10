@@ -1,9 +1,17 @@
+// KOMPONEN BERSAMA PANEL ADMIN: potongan tampilan & fungsi yang dipakai ulang oleh semua halaman kelola
+// (Berita, Pengumuman, Layanan, Profil, Staf, Galeri) agar tampilannya seragam.
 import React from 'react';
 import { Loader2, Inbox, AlertCircle, Trash2, Pencil, Plus } from 'lucide-react';
 import { showToast } from './toast';
 
-// ── Mutation helper: tampilkan error Supabase (mis. RLS/duplikat slug) ──
+// ── Pembantu simpan/ubah/hapus: tampilkan notifikasi error Supabase (mis. ditolak RLS atau slug kembar) ──
 
+/**
+ * Menjalankan satu operasi tulis ke Supabase (simpan/ubah/hapus) dan menangani hasilnya.
+ * - Jika gagal : tampilkan toast merah berisi pesan error, kembalikan false.
+ * - Jika sukses: tampilkan toast hijau (hanya jika successMessage diberikan), kembalikan true.
+ * Pemanggil cukup memeriksa true/false untuk menentukan langkah berikutnya.
+ */
 export async function run(
   op: PromiseLike<{ error: { message: string } | null }>,
   successMessage?: string,
@@ -17,8 +25,11 @@ export async function run(
   return true;
 }
 
-// ── Page header: judul + deskripsi + tombol tambah ───────────
+// ── Kepala halaman: judul + deskripsi + tombol tambah ────────
 
+/**
+ * Kepala halaman: judul, deskripsi singkat, dan (opsional) tombol "tambah" di kanan.
+ */
 export function PageHeader({
   title,
   description,
@@ -49,8 +60,11 @@ export function PageHeader({
   );
 }
 
-// ── Table primitives ──────────────────────────────────────────
+// ── Komponen tabel (dipakai halaman daftar Berita, Pengumuman, Layanan, Staf) ──
 
+/**
+ * Pembungkus tabel: kartu putih berbingkai; bisa digeser mendatar jika sempit.
+ */
 export function Table({ children }: { children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -61,6 +75,9 @@ export function Table({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Sel judul kolom tabel.
+ */
 export function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <th
@@ -71,22 +88,32 @@ export function Th({ children, className = '' }: { children: React.ReactNode; cl
   );
 }
 
+/**
+ * Sel isi tabel.
+ */
 export function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <td className={`px-4 py-3 align-middle ${className}`}>{children}</td>;
 }
 
+/**
+ * Baris tabel; berubah warna halus saat disorot kursor.
+ */
 export function Tr({ children }: { children: React.ReactNode }) {
   return <tr className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70 transition-colors">{children}</tr>;
 }
 
-// ── Status pill ────────────────────────────────────────────────
+// ── Lencana status (Published/Draft/Aktif/dst.) ───────────────
 
+// Warna lencana menurut nada: success (hijau), neutral (abu), warning (kuning)
 const PILL_TONE = {
   success: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
   neutral: 'bg-slate-100 text-slate-600 ring-1 ring-slate-200',
   warning: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
 } as const;
 
+/**
+ * Lencana status. Jika diberi onClick, lencana menjadi tombol (dipakai untuk mengubah Draft <-> Published dengan sekali klik).
+ */
 export function StatusPill({
   tone,
   children,
@@ -107,8 +134,11 @@ export function StatusPill({
   return <span className={classes}>{children}</span>;
 }
 
-// ── Row actions ────────────────────────────────────────────────
+// ── Tombol aksi di tiap baris (edit & hapus) ───────────────────
 
+/**
+ * Dua tombol kecil di akhir baris: ikon pensil (edit) dan tempat sampah (hapus).
+ */
 export function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
   return (
     <div className="flex items-center justify-end gap-1">
@@ -130,8 +160,11 @@ export function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete:
   );
 }
 
-// ── Loading / Empty / Error states (dipakai di dalam Table atau mandiri) ──
+// ── Tampilan memuat / kosong / error ──────────────────────────
 
+/**
+ * Tampilan "sedang memuat data" (ikon berputar).
+ */
 export function AdminLoading({ message = 'Memuat data...' }: { message?: string }) {
   return (
     <div className="py-16 flex flex-col items-center gap-3 text-slate-400">
@@ -141,6 +174,9 @@ export function AdminLoading({ message = 'Memuat data...' }: { message?: string 
   );
 }
 
+/**
+ * Tampilan "belum ada data" untuk daftar yang kosong; label = nama jenis datanya.
+ */
 export function AdminEmpty({ label }: { label: string }) {
   return (
     <div className="py-16 flex flex-col items-center gap-3 text-slate-400">
@@ -150,6 +186,9 @@ export function AdminEmpty({ label }: { label: string }) {
   );
 }
 
+/**
+ * Kotak merah berisi pesan kesalahan.
+ */
 export function AdminError({ message }: { message: string }) {
   return (
     <div className="py-10 flex flex-col items-center gap-3 text-red-700 bg-red-50 border border-red-200 rounded-xl">
@@ -159,8 +198,11 @@ export function AdminError({ message }: { message: string }) {
   );
 }
 
-// ── Confirm delete dialog ─────────────────────────────────────
+// ── Dialog konfirmasi hapus ───────────────────────────────────
 
+/**
+ * open = dialog tampil/tidak, label = nama data yang akan dihapus, onConfirm/onCancel = tombol Hapus/Batal.
+ */
 interface ConfirmDeleteProps {
   open: boolean;
   label: string;
@@ -168,6 +210,9 @@ interface ConfirmDeleteProps {
   onCancel: () => void;
 }
 
+/**
+ * Dialog konfirmasi sebelum data dihapus permanen, agar tidak terhapus karena salah klik.
+ */
 export function ConfirmDelete({ open, label, onConfirm, onCancel }: ConfirmDeleteProps) {
   if (!open) return null;
   return (
@@ -203,8 +248,11 @@ export function ConfirmDelete({ open, label, onConfirm, onCancel }: ConfirmDelet
   );
 }
 
-// ── Form card + field helpers ─────────────────────────────────
+// ── Kartu form + komponen kolom isian ─────────────────────────
 
+/**
+ * Pembungkus halaman form tambah/edit: judul + kartu putih berisi isian.
+ */
 export function FormCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="max-w-2xl">
@@ -214,6 +262,9 @@ export function FormCard({ title, children }: { title: string; children: React.R
   );
 }
 
+/**
+ * Satu kolom isian form: label di atas (dengan tanda * jika wajib) + kontrol isian (children).
+ */
 export function Field({
   label,
   required,
@@ -234,11 +285,16 @@ export function Field({
   );
 }
 
+// Kelas gaya standar untuk kotak isian satu baris
 export const inputCls =
   'w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0f5132]/30 focus:border-[#0f5132] transition bg-white';
 
+// Kelas gaya standar untuk kotak isian banyak baris (turunan inputCls)
 export const textareaCls = `${inputCls} resize-y min-h-[100px]`;
 
+/**
+ * Tombol di bawah form: "Batal" dan tombol simpan (menampilkan ikon berputar & nonaktif saat loading).
+ */
 export function FormActions({
   loading,
   onCancel,

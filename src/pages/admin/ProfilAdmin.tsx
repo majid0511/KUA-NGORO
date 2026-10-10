@@ -1,3 +1,6 @@
+// KELOLA PROFIL KUA (alamat: /admin/profil): satu formulir untuk mengubah data kantor (nama, sejarah, visi-misi, alamat, telepon,
+// email, jam pelayanan). Data ini dipakai di banyak bagian situs publik. Di bagian atas ada sakelar MODE MAINTENANCE.
+// Tabel "profil" hanya boleh berisi SATU baris (singleton), jadi halaman ini mengedit baris yang ada, bukan menambah baru.
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Profil } from '../../lib/cms/types';
@@ -6,6 +9,7 @@ import { AlertTriangle } from 'lucide-react';
 import { showToast } from './toast';
 import { profileData } from '../../data/profile';
 
+// Nilai awal form jika database belum punya data profil; diambil dari data lokal (data/profile.ts)
 const DEFAULT_PROFIL: Profil = {
   office_name:  profileData.name,
   description:  profileData.aboutFull,
@@ -19,15 +23,26 @@ const DEFAULT_PROFIL: Profil = {
   maintenance_mode: false,
 };
 
+/**
+ * Halaman edit profil + sakelar maintenance.
+ */
 export default function ProfilAdmin() {
+  // True selama profil dimuat
   const [loading, setLoading] = useState(true);
+  // True saat form profil sedang disimpan
   const [saving, setSaving]   = useState(false);
+  // Pesan error saat memuat profil (null = tidak ada)
   const [error, setError]     = useState<string | null>(null);
+  // id baris profil di database (null = belum pernah disimpan, simpan pertama akan INSERT)
   const [profilId, setProfilId] = useState<string | null>(null);
+  // Isi form profil yang sedang diketik
   const [form, setForm]       = useState<Profil>(DEFAULT_PROFIL);
+  // Isi kolom "Misi" sebagai teks, satu misi per baris; diubah jadi daftar saat disimpan
   const [missionText, setMissionText] = useState(profileData.missions.join('\n'));
+  // True saat sakelar maintenance sedang menyimpan (sakelar dinonaktifkan sebentar)
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
 
+  // Ambil baris profil dari database. Kolom yang kosong diisi nilai bawaan dari data lokal agar form tidak kosong melompong.
   async function load() {
     setLoading(true);
     const { data, error } = await supabase!.from('profil').select('*').maybeSingle();
@@ -53,8 +68,14 @@ export default function ProfilAdmin() {
     setLoading(false);
   }
 
+  // Muat profil saat halaman pertama dibuka
   useEffect(() => { load(); }, []);
 
+  /**
+   * Simpan form profil. Misi dipecah per baris (baris kosong dibuang).
+   * Jika baris profil sudah ada -> UPDATE; jika belum -> INSERT lalu simpan id-nya.
+   * (Status maintenance TIDAK ikut disimpan di sini; sakelar punya penyimpanan sendiri.)
+   */
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -88,6 +109,11 @@ export default function ProfilAdmin() {
     showToast('success', 'Profil berhasil disimpan');
   }
 
+  /**
+   * Menyalakan/mematikan MODE MAINTENANCE secara langsung (tanpa menunggu tombol Simpan).
+   * Saat aktif, seluruh halaman publik berganti jadi pesan "Web dalam Maintenance"; panel admin tetap bisa dibuka.
+   * Tidak bisa dipakai sebelum profil pertama kali disimpan (butuh id baris).
+   */
   async function handleToggleMaintenance() {
     if (!profilId) {
       showToast('error', 'Simpan profil terlebih dahulu sebelum mengaktifkan mode maintenance.');
@@ -100,6 +126,7 @@ export default function ProfilAdmin() {
     if (ok) setForm((f) => ({ ...f, maintenance_mode: next }));
   }
 
+  // Selama memuat atau jika error, tampilkan status tersebut menggantikan form
   if (loading) return <AdminLoading />;
   if (error) return <AdminError message={error} />;
 
@@ -138,6 +165,7 @@ export default function ProfilAdmin() {
       </div>
 
       <form onSubmit={handleSave} className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
+{/* Bagian 1: nama kantor, deskripsi, sejarah */}
         <div className="space-y-4 border-b border-slate-100 pb-5">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Informasi umum</h3>
           <Field label="Nama Kantor" required>
@@ -153,6 +181,7 @@ export default function ProfilAdmin() {
               onChange={(e) => setForm(f => ({ ...f, history: e.target.value }))} />
           </Field>
         </div>
+{/* Bagian 2: visi dan daftar misi */}
 
         <div className="space-y-4 border-b border-slate-100 pb-5">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Visi & misi</h3>
@@ -165,6 +194,7 @@ export default function ProfilAdmin() {
               onChange={(e) => setMissionText(e.target.value)} />
           </Field>
         </div>
+{/* Bagian 3: alamat, telepon, email */}
 
         <div className="space-y-4 border-b border-slate-100 pb-5">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Kontak & alamat</h3>
@@ -183,6 +213,7 @@ export default function ProfilAdmin() {
             </Field>
           </div>
         </div>
+{/* Bagian 4: jam pelayanan Senin-Kamis, Jumat, Sabtu-Minggu */}
 
         <div className="space-y-4">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Jam pelayanan</h3>

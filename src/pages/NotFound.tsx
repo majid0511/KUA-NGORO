@@ -1,7 +1,12 @@
+// HALAMAN 404: tampil jika pengunjung membuka alamat yang tidak ada di situs (rute "*" di App.tsx).
+// Diberi tanda noindex agar tidak ikut tercatat mesin pencari.
 import { Home, Search } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { usePageMeta } from "../hooks/usePageMeta";
 
+/**
+ * Halaman "Halaman Tidak Ditemukan" dengan dua tombol: kembali ke Beranda atau cari layanan.
+ */
 export default function NotFound() {
   usePageMeta({
     title: "Halaman Tidak Ditemukan",

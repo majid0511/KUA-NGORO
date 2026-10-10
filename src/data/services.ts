@@ -1,3 +1,9 @@
+/**
+ * Satu layanan: ringkasan singkat (shortDesc), penjelasan lengkap (fullDesc), nama ikon, persyaratan, dan langkah prosedur.
+ */
+// DATA CADANGAN LAYANAN KUA (nikah, wakaf, dll).
+// Dipakai hanya bila Supabase tidak dikonfigurasi / gagal diakses; saat normal, layanan diambil dari tabel "layanan"
+// (diisi lewat panel admin). Diubah ke bentuk Layanan di src/lib/cms/layanan.ts.
 export interface ServiceItem {
   id: string;
   title: string;
@@ -8,6 +14,9 @@ export interface ServiceItem {
   procedure: string[];
 }
 
+/**
+ * Daftar semua layanan cadangan; urutan array = urutan tampil.
+ */
 export const servicesData: ServiceItem[] = [
   {
     id: "pernikahan",

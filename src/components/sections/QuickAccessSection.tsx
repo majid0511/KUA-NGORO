@@ -1,3 +1,5 @@
+// BAGIAN AKSES CEPAT di Beranda (kotak putih yang menimpa bagian bawah hero): empat pintasan—Lokasi, Telepon, WhatsApp, dan Jam Pelayanan.
+// Datanya diambil dari profil di Supabase; jika kosong, memakai data lokal.
 import React, { useEffect, useState } from "react";
 import { MapPin, Phone, MessageSquare, Clock } from "lucide-react";
 import { motion } from "framer-motion";
@@ -5,7 +7,11 @@ import { profileData } from "../../data/profile";
 import { getProfil } from "../../lib/cms";
 import type { Profil } from "../../lib/cms/types";
 
+/**
+ * Komponen empat kartu pintasan kontak.
+ */
 export const QuickAccessSection: React.FC = () => {
+  // Profil dari database (null selama belum dimuat atau gagal)
   const [profil, setProfil] = useState<Profil | null>(null);
 
   useEffect(() => {
@@ -18,13 +24,16 @@ export const QuickAccessSection: React.FC = () => {
     };
   }, []);
 
+  // Nilai dari database jika terisi, jika tidak pakai data lokal
   const address = profil?.address || profileData.address;
   const phone = profil?.phone || profileData.phone;
   const workDaysHours = profil?.office_hours?.workDays || profileData.officeHours.workDays;
   const fridayHours = profil?.office_hours?.fridayHours || profileData.officeHours.fridayHours;
+  // Nomor telepon hanya angka, dipakai untuk tautan WhatsApp (wa.me)
   const rawPhoneNum = phone.replace(/[^0-9]/g, "");
   const whatsappNum = rawPhoneNum || profileData.whatsapp;
 
+  // Definisi empat kartu: judul, isi, teks tombol, tujuan tautan (external = buka di tab baru), dan ikon
   const quickItems = [
     {
       id: "lokasi",
@@ -72,6 +81,7 @@ export const QuickAccessSection: React.FC = () => {
     <section className="relative z-20 -mt-8 sm:-mt-12 container-kua">
       <div className="bg-white rounded-2xl border border-stone-200/90 shadow-xl p-4 sm:p-6 lg:p-7">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-stone-100">
+          {/* Tiap pintasan dirender sebagai tautan; baris pertama tidak diberi jarak atas tambahan */}
           {quickItems.map((item, idx) => (
             <motion.a
               key={item.id}

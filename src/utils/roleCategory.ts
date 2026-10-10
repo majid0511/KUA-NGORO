@@ -1,8 +1,14 @@
+// Daftar kategori lencana pegawai yang tersedia
 export type RoleCategory = "Kepala" | "Penghulu" | "Penyuluh" | "Pelaksana" | "Staf";
 
 /**
- * Menentukan kategori badge dari teks jabatan.
- * Aman untuk null/undefined dan tidak peka huruf besar/kecil.
+ * Menentukan kategori lencana (badge) pegawai dari teks jabatannya, mis.:
+ *   "Kepala KUA ..."           -> Kepala
+ *   "Penghulu Ahli Pertama"    -> Penghulu
+ *   "Penyuluh Agama Islam ..." -> Penyuluh
+ *   "Pengolah Data ..."        -> Pelaksana
+ *   jabatan lain / kosong      -> Staf
+ * Aman untuk nilai kosong (null/undefined) dan tidak membedakan huruf besar/kecil.
  */
 export function getRoleCategory(position?: string | null): RoleCategory {
   const p = (position ?? "").trim().toLowerCase();

@@ -1,3 +1,5 @@
+// FOOTER (bagian bawah situs publik): profil singkat KUA, tautan cepat, tautan instansi induk, kredit pengembang, dan hak cipta.
+// Ditampilkan di semua halaman publik (dipasang sekali di App.tsx).
 import React from "react";
 import { Link } from "react-router-dom";
 import {
@@ -9,7 +11,11 @@ import {
 import { profileData } from "../../data/profile";
 import kualogo from "../../assets/kualogo.png";
 
+/**
+ * Komponen footer, terdiri dari 4 kolom informasi + baris hak cipta di paling bawah.
+ */
 export const Footer: React.FC = () => {
+  // Menggulung halaman ke paling atas dengan halus (dipakai tombol panah di pojok kanan bawah footer)
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -17,9 +23,9 @@ export const Footer: React.FC = () => {
   return (
     <footer className="border-t border-emerald-900/80 bg-[#042918] pb-24 pt-12 text-white sm:pb-8 sm:pt-16">
       <div className="container-kua">
-        {/* Main Footer Grid */}
+        {/* Grid utama footer: 4 kolom (1 kolom di HP, 2 di tablet, 12 bagian di layar lebar) */}
         <div className="grid grid-cols-1 gap-8 border-b border-emerald-900/60 pb-10 md:grid-cols-2 md:gap-10 sm:pb-12 lg:grid-cols-12">
-          {/* 1. Brand KUA Ngoro */}
+          {/* Kolom 1: logo, nama, dan deskripsi singkat KUA Ngoro */}
           <div className="space-y-4 text-left lg:col-span-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm">
@@ -53,7 +59,7 @@ export const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* 2. Quick Links */}
+          {/* Kolom 2: tautan cepat ke halaman utama situs */}
           <div className="space-y-3 lg:col-span-2">
             <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300 sm:text-sm">
               Quick Links
@@ -102,7 +108,7 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* 3. Institution */}
+          {/* Kolom 3: tautan ke situs resmi instansi induk (Kemenag pusat, provinsi, kabupaten); dibuka di tab baru */}
           <div className="space-y-3 lg:col-span-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300 sm:text-sm">
               Institution
@@ -144,7 +150,7 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* 4. Developer Credit Box (Subtle Internship Signature) */}
+          {/* Kolom 4: kredit pengembang (proyek magang mahasiswa IAI At-Tahdzib) */}
           <div className="space-y-3 lg:col-span-3">
             <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-300 sm:text-sm">
               <GraduationCap className="h-4 w-4 text-emerald-400" />
@@ -174,7 +180,7 @@ export const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* 5. Copyright Bottom Bar */}
+        {/* Baris paling bawah: hak cipta + tombol kembali ke atas */}
         <div className="flex flex-col items-center justify-between gap-4 pt-6 text-xs text-emerald-200/80 sm:flex-row sm:pt-8">
           <p className="text-center font-medium sm:text-left">
             © 2026 KUA Kecamatan Ngoro. All rights reserved.

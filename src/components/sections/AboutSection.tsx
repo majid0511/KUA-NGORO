@@ -1,3 +1,5 @@
+// BAGIAN "TENTANG KUA" di Beranda: foto kegiatan di kiri, ringkasan profil + tiga poin layanan unggulan di kanan,
+// serta tombol menuju halaman Profil lengkap. Teks ringkasan diambil dari data profil (profileData.aboutShort).
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
@@ -6,12 +8,15 @@ import { profileData } from "../../data/profile";
 import { SectionHeading } from "../ui/SectionHeading";
 import fotoNikah from "../../assets/fotoNikah.webp";
 
+/**
+ * Komponen bagian Tentang KUA. Kedua kolom muncul dengan animasi geser saat discroll ke layar (sekali saja).
+ */
 export const AboutSection: React.FC = () => {
   return (
     <section className="py-16 sm:py-24 bg-white border-b border-stone-200/60">
       <div className="container-kua">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
-          {/* Left Column Image */}
+          {/* Kolom kiri: foto + keterangan di atas foto */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -38,7 +43,7 @@ export const AboutSection: React.FC = () => {
               </div>
             </div>
 
-            {/* Accent badge */}
+            {/* Lencana aksen "PPAIW & SIMKAH" di pojok kanan bawah foto (disembunyikan di HP) */}
             <div className="hidden sm:flex absolute -bottom-6 -right-6 bg-[#0f5132] text-white p-5 rounded-2xl shadow-xl max-w-xs flex-col space-y-1">
               <span className="text-2xl font-extrabold text-amber-400">PPAIW & SIMKAH</span>
               <span className="text-xs font-medium text-emerald-100">
@@ -47,7 +52,7 @@ export const AboutSection: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* Right Column Content */}
+          {/* Kolom kanan: judul, ringkasan, poin layanan, dan tombol */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}

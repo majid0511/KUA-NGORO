@@ -3,7 +3,8 @@ import { queryWithFallback } from './client';
 import type { Pengumuman, CmsResponse } from './types';
 import { newsData } from '../../data/news';
 
-// ── Fallback ──────────────────────────────────────────────────
+// ── Data cadangan ─────────────────────────────────────────────
+// Diambil dari berita lokal yang berkategori "Pengumuman"; dipakai jika Supabase tidak tersedia.
 const fallbackPengumumanList: Pengumuman[] = newsData
   .filter((item) => item.category === 'Pengumuman')
   .map((item) => ({
@@ -16,16 +17,17 @@ const fallbackPengumumanList: Pengumuman[] = newsData
     status:       'published' as const,
   }));
 
-// Client-side expiry filter (applied to both CMS and fallback data)
+// Membuang pengumuman yang sudah kedaluwarsa (expires_at lebih lama dari hari ini).
+// Berlaku untuk data dari database maupun data cadangan.
 function filterExpired(list: Pengumuman[]): Pengumuman[] {
   const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD, zona waktu perangkat
   return list.filter((p) => !p.expires_at || p.expires_at >= today);
 }
 
-// ── Fetcher ───────────────────────────────────────────────────
+// ── Pengambil data ────────────────────────────────────────────
 
 /**
- * Returns published & non-expired pengumuman ordered by published_at desc.
+ * Mengambil pengumuman yang berstatus "published" dan belum kedaluwarsa, terbaru di atas.
  */
 export async function getPengumuman(): Promise<CmsResponse<Pengumuman[]>> {
   const response = await queryWithFallback(async () => {
@@ -39,7 +41,7 @@ export async function getPengumuman(): Promise<CmsResponse<Pengumuman[]>> {
     return (data ?? []) as Pengumuman[];
   }, fallbackPengumumanList);
 
-  // Apply client-side expiry filter regardless of data source
+  // Filter kedaluwarsa dijalankan di sini agar berlaku untuk kedua sumber data
   if (response.data) {
     response.data = filterExpired(response.data);
   }

@@ -1,11 +1,17 @@
+// BAGIAN AJAKAN MENGHUBUNGI (call-to-action): pita hijau berisi ajakan "Butuh Informasi Lebih Lanjut?"
+// dengan tombol ke halaman Kontak dan tombol chat WhatsApp. Dipasang di bagian bawah banyak halaman.
 import React from "react";
 import { Link } from "react-router-dom";
 import { Phone, MessageSquare } from "lucide-react";
 import { profileData } from "../../data/profile";
 
+/**
+ * Komponen ajakan menghubungi KUA. Nomor WhatsApp diambil dari data profil lokal.
+ */
 export const ContactCtaSection: React.FC = () => {
   return (
     <section className="py-16 sm:py-20 bg-gradient-to-r from-[#042918] via-[#0f5132] to-[#042918] text-white relative overflow-hidden">
+      {/* Hiasan: kilau cahaya halus di pojok kanan atas */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_50%)]" />
 
       <div className="container-kua relative z-10 text-center max-w-3xl mx-auto space-y-6">

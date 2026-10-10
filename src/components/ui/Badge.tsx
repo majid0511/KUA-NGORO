@@ -1,5 +1,9 @@
+// KOMPONEN LENCANA (badge): label kecil berwarna, mis. kategori berita "Pengumuman" atau jabatan pegawai.
 import React from "react";
 
+/**
+ * variant = warna (hijau/emas/abu/biru), size = ukuran (sm/md), className = kelas tambahan.
+ */
 interface BadgeProps {
   children: React.ReactNode;
   variant?: "green" | "gold" | "gray" | "blue";
@@ -7,12 +11,16 @@ interface BadgeProps {
   className?: string;
 }
 
+/**
+ * Menampilkan teks (children) di dalam kotak kecil berwarna sesuai variant.
+ */
 export const Badge: React.FC<BadgeProps> = ({
   children,
   variant = "green",
   size = "sm",
   className = "",
 }) => {
+  // Pasangan warna latar, teks, dan garis tepi untuk tiap variant
   const variantStyles = {
     green: "bg-emerald-100 text-[#0f5132] border-emerald-200",
     gold: "bg-amber-100 text-amber-800 border-amber-200",
@@ -20,6 +28,7 @@ export const Badge: React.FC<BadgeProps> = ({
     blue: "bg-sky-100 text-sky-800 border-sky-200",
   };
 
+  // Ukuran padding & huruf untuk tiap size
   const sizeStyles = {
     sm: "px-2.5 py-0.5 text-xs font-medium",
     md: "px-3 py-1 text-sm font-medium",

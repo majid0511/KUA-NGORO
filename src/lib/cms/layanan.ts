@@ -3,7 +3,8 @@ import { queryWithFallback } from './client';
 import type { Layanan, CmsResponse } from './types';
 import { servicesData } from '../../data/services';
 
-// ── Fallback ──────────────────────────────────────────────────
+// ── Data cadangan ─────────────────────────────────────────────
+// Mengubah data layanan lokal (src/data/services.ts) ke bentuk Layanan; urutan mengikuti urutan array.
 const fallbackLayananList: Layanan[] = servicesData.map((svc, idx) => ({
   id:             svc.id,
   title:          svc.title,
@@ -17,10 +18,10 @@ const fallbackLayananList: Layanan[] = servicesData.map((svc, idx) => ({
   order:          idx + 1,
 }));
 
-// ── Fetchers ──────────────────────────────────────────────────
+// ── Pengambil data ────────────────────────────────────────────
 
 /**
- * Returns all active layanan ordered by order asc.
+ * Mengambil semua layanan yang aktif, urut berdasarkan kolom "order" (kecil ke besar).
  */
 export async function getLayanan(): Promise<CmsResponse<Layanan[]>> {
   return queryWithFallback(async () => {
@@ -36,7 +37,8 @@ export async function getLayanan(): Promise<CmsResponse<Layanan[]>> {
 }
 
 /**
- * Returns a single active layanan by slug or id.
+ * Mengambil satu layanan aktif berdasarkan slug (alamat singkat) atau id.
+ * Data cadangan dicari lebih dulu agar bisa dipakai jika database gagal.
  */
 export async function getLayananBySlug(slug: string): Promise<CmsResponse<Layanan | null>> {
   const localMatch =

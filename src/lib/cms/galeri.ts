@@ -3,7 +3,8 @@ import { queryWithFallback } from './client';
 import type { Galeri, CmsResponse } from './types';
 import { activitiesData } from '../../data/activities';
 
-// ── Fallback ──────────────────────────────────────────────────
+// ── Data cadangan ─────────────────────────────────────────────
+// Dipakai hanya jika Supabase belum dikonfigurasi / gagal diakses. Diubah ke bentuk Galeri.
 const fallbackGaleriList: Galeri[] = activitiesData.map((act) => ({
   id:           act.id,
   title:        act.title,
@@ -13,10 +14,10 @@ const fallbackGaleriList: Galeri[] = activitiesData.map((act) => ({
   published_at: act.date,
 }));
 
-// ── Fetcher ───────────────────────────────────────────────────
+// ── Pengambil data ────────────────────────────────────────────
 
 /**
- * Returns all galeri items ordered by published_at desc.
+ * Mengambil semua foto galeri, terbaru di atas (urut published_at menurun).
  */
 export async function getGaleri(): Promise<CmsResponse<Galeri[]>> {
   return queryWithFallback(async () => {

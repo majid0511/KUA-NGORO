@@ -1,3 +1,5 @@
+// HALAMAN KONTAK (alamat: /kontak): alamat, telepon, WhatsApp, email, jam pelayanan, formulir pesan, dan peta lokasi.
+// Data kontak diambil dari profil di Supabase; jika kosong, memakai data lokal.
 import React, { useEffect, useState } from "react";
 import { MapPin, Phone, Mail, Clock, MessageSquare, Send, CheckCircle2 } from "lucide-react";
 import { profileData } from "../data/profile";
@@ -6,6 +8,9 @@ import { usePageMeta } from "../hooks/usePageMeta";
 import { getProfil } from "../lib/cms";
 import type { Profil } from "../lib/cms/types";
 
+/**
+ * Halaman kontak.
+ */
 export default function Contact() {
   usePageMeta({
     title: "Kontak",
@@ -14,6 +19,7 @@ export default function Contact() {
     path: "/kontak",
   });
 
+  // Profil dari database (null selama belum dimuat atau gagal)
   const [profil, setProfil] = useState<Profil | null>(null);
 
   useEffect(() => {
@@ -26,13 +32,16 @@ export default function Contact() {
     };
   }, []);
 
+  // Setiap data: pakai nilai dari database jika terisi, jika tidak pakai data lokal (profileData)
   const address = profil?.address || profileData.address;
   const phone = profil?.phone || profileData.phone;
   const email = profil?.email || profileData.email;
   const officeHours = profil?.office_hours || profileData.officeHours;
+  // Nomor telepon hanya angka, dipakai untuk tautan WhatsApp (wa.me)
   const rawPhone = phone.replace(/[^0-9]/g, "");
   const whatsappNum = rawPhone || profileData.whatsapp;
 
+  // Isi formulir yang sedang diketik pengunjung
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -40,14 +49,24 @@ export default function Contact() {
     message: "",
   });
 
+  // True setelah tombol "Kirim Pesan" ditekan -> formulir diganti layar konfirmasi
   const [submitted, setSubmitted] = useState(false);
 
+  /**
+   * CATATAN PENTING: formulir ini TIDAK menyimpan atau mengirim pesan ke server mana pun.
+   * "Kirim Pesan" hanya memvalidasi nama & pesan terisi lalu menampilkan layar konfirmasi.
+   * Pesan baru benar-benar terkirim ketika pengunjung menekan "Lanjutkan ke WhatsApp" (handleWhatsAppSend).
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.message) return;
     setSubmitted(true);
   };
 
+  /**
+   * Membuka WhatsApp (tab baru) ke nomor KUA dengan isi pesan yang sudah terisi otomatis dari formulir
+   * (nama, telepon, topik, pesan). encodeURIComponent memastikan karakter khusus aman di dalam alamat URL.
+   */
   const handleWhatsAppSend = () => {
     const text = `Halo KUA Ngoro,%0ANama: ${encodeURIComponent(formData.name)}%0ATelepon: ${encodeURIComponent(formData.phone)}%0ATopik: ${encodeURIComponent(formData.topic)}%0APesan: ${encodeURIComponent(formData.message)}`;
     window.open(`https://wa.me/${whatsappNum}?text=${text}`, "_blank");
@@ -55,7 +74,7 @@ export default function Contact() {
 
   return (
     <div className="py-10 space-y-16">
-      {/* Page Header */}
+      {/* Kepala halaman */}
       <section className="bg-gradient-to-b from-emerald-50 to-white py-12 border-b border-stone-200/60">
         <div className="container-kua">
           <div className="max-w-3xl">
@@ -73,10 +92,10 @@ export default function Contact() {
         </div>
       </section>
 
-      {/* Main Contact Grid */}
+      {/* Grid utama: informasi kontak (kiri) + formulir (kanan) */}
       <section className="container-kua">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Contact Details (5 cols) */}
+          {/* Kolom kiri: kartu informasi kontak resmi */}
           <div className="lg:col-span-5 space-y-6">
             <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
               <h3 className="text-xl font-bold text-stone-900 pb-4 border-b border-stone-100">
@@ -138,7 +157,7 @@ export default function Contact() {
                 </div>
               </div>
 
-              {/* Office Hours */}
+              {/* Jam pelayanan kantor */}
               <div className="pt-4 border-t border-stone-100 space-y-2">
                 <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-emerald-700" />
@@ -151,7 +170,7 @@ export default function Contact() {
             </div>
           </div>
 
-          {/* Contact Inquiry Form (7 cols) */}
+          {/* Kolom kanan: formulir pesan & konsultasi */}
           <div className="lg:col-span-7 bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm">
             <h3 className="text-xl font-bold text-stone-900 mb-2">
               Formulir Pesan & Konsultasi Online
@@ -160,6 +179,7 @@ export default function Contact() {
               Kirimkan pertanyaan Anda mengenai pelayanan KUA. Tim kami akan merespons pertanyaan Anda.
             </p>
 
+            {/* Jika sudah "terkirim": tampilkan konfirmasi + tombol lanjut ke WhatsApp; jika belum: tampilkan formulir */}
             {submitted ? (
               <div className="p-8 text-center bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
                 <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto">
@@ -258,7 +278,7 @@ export default function Contact() {
         </div>
       </section>
 
-      {/* Google Maps Frame */}
+      {/* Peta Google Maps lokasi kantor (iframe tertanam) */}
       <section className="container-kua">
         <div className="rounded-3xl overflow-hidden border border-stone-200 shadow-md aspect-[16/9] sm:aspect-[21/9]">
           <iframe

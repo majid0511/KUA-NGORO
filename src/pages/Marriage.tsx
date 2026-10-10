@@ -1,3 +1,5 @@
+// HALAMAN LAYANAN PERNIKAHAN (alamat: /layanan/pernikahan): panduan lengkap untuk calon pengantin—transparansi biaya nikah,
+// checklist dokumen interaktif, alur 5 tahap, banner SIMKAH Online, dan FAQ. Seluruh data dari data/marriage.ts & data/faq.ts.
 import { useState } from "react";
 import { Heart, ShieldCheck, CheckCircle2, ExternalLink, DollarSign } from "lucide-react";
 import { SectionHeading } from "../components/ui/SectionHeading";
@@ -7,6 +9,9 @@ import { faqData } from "../data/faq";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 import { usePageMeta } from "../hooks/usePageMeta";
 
+/**
+ * Halaman panduan pernikahan.
+ */
 export default function Marriage() {
   usePageMeta({
     title: "Layanan Pernikahan",
@@ -15,17 +20,20 @@ export default function Marriage() {
     path: "/layanan/pernikahan",
   });
 
+  // Dokumen mana saja yang sudah dicentang pengunjung, mis. { N1: true }. Hanya di memori browser, tidak disimpan.
   const [checkedDocs, setCheckedDocs] = useState<Record<string, boolean>>({});
 
+  // Centang / hapus centang satu dokumen berdasarkan kodenya
   const toggleDoc = (code: string) => {
     setCheckedDocs((prev) => ({ ...prev, [code]: !prev[code] }));
   };
 
+  // Ambil kelompok FAQ "pernikahan" saja dari seluruh data FAQ (kosong jika tidak ada)
   const marriageFaqItems = faqData.find((f) => f.id === "pernikahan")?.items || [];
 
   return (
     <div className="py-10 space-y-16">
-      {/* Page Header */}
+      {/* Kepala halaman */}
       <section className="bg-gradient-to-b from-amber-50/80 via-emerald-50/40 to-white py-12 border-b border-stone-200/60">
         <div className="container-kua">
           <div className="max-w-3xl">
@@ -43,7 +51,7 @@ export default function Marriage() {
         </div>
       </section>
 
-      {/* Transparansi Biaya Nikah Box */}
+      {/* Bagian 1: Transparansi biaya nikah (dua kartu) */}
       <section className="container-kua">
         <SectionHeading
           eyebrow="REGULASI PP NO 59/2018"
@@ -52,7 +60,7 @@ export default function Marriage() {
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Card 1: Rp 0 di KUA */}
+          {/* Kartu 1: nikah di Balai KUA = gratis */}
           <div className="bg-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-lg border border-emerald-800 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -80,7 +88,7 @@ export default function Marriage() {
             </div>
           </div>
 
-          {/* Card 2: Rp 600.000 Bedol */}
+          {/* Kartu 2: nikah di luar KUA ("bedol") = biaya resmi PNBP */}
           <div className="bg-white border-2 border-amber-200 p-6 sm:p-8 rounded-3xl shadow-sm flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -110,7 +118,7 @@ export default function Marriage() {
         </div>
       </section>
 
-      {/* Checklist Dokumen Interaktif */}
+      {/* Bagian 2: Checklist dokumen yang bisa dicentang pengunjung */}
       <section className="bg-stone-50/80 py-16 border-y border-stone-200/60">
         <div className="container-kua">
           <SectionHeading
@@ -172,7 +180,7 @@ export default function Marriage() {
         </div>
       </section>
 
-      {/* Alur 5 Tahap Nikah */}
+      {/* Bagian 3: Alur 5 tahap pendaftaran nikah */}
       <section className="container-kua">
         <SectionHeading
           eyebrow="TAHAPAN LENGKAP"
@@ -216,7 +224,7 @@ export default function Marriage() {
         </div>
       </section>
 
-      {/* SIMKAH Online Banner */}
+      {/* Bagian 4: Banner ajakan mendaftar lewat SIMKAH Online */}
       <section className="container-kua">
         <div className="bg-gradient-to-r from-emerald-900 to-[#0f5132] text-white p-8 sm:p-10 rounded-3xl shadow-xl flex flex-col lg:flex-row items-center justify-between gap-8">
           <div className="space-y-3 text-center lg:text-left max-w-2xl">
@@ -243,7 +251,7 @@ export default function Marriage() {
         </div>
       </section>
 
-      {/* FAQ Pernikahan */}
+      {/* Bagian 5: FAQ pernikahan (akordeon) */}
       <section className="container-kua">
         <SectionHeading
           eyebrow="TANYA JAWAB"

@@ -1,6 +1,11 @@
+// LAYAR MAINTENANCE: ditampilkan menggantikan seluruh situs publik ketika admin mengaktifkan "Mode Maintenance"
+// di panel admin (menu Profil KUA). Berisi pesan "Web dalam Maintenance" dan tombol WhatsApp untuk keperluan mendesak.
 import { Wrench } from "lucide-react";
 import { profileData } from "../data/profile";
 
+/**
+ * Halaman pesan pemeliharaan situs (tidak memakai navbar/footer).
+ */
 export function MaintenanceScreen() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#fbfbf9] px-4">

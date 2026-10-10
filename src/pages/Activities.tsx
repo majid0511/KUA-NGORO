@@ -1,3 +1,5 @@
+// HALAMAN GALERI KEGIATAN (alamat: /kegiatan): semua foto dokumentasi dari tabel "galeri" di Supabase,
+// dengan filter kategori (Kegiatan, Pelayanan, Acara, Lainnya) dan tampilan foto besar dalam modal.
 import { useState, useEffect } from "react";
 import { Camera } from "lucide-react";
 import { ActivityCard } from "../components/cards/ActivityCard";
@@ -8,6 +10,9 @@ import { Modal } from "../components/ui/Modal";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 import { usePageMeta } from "../hooks/usePageMeta";
 
+/**
+ * Halaman galeri. Alur: muat data -> tampilkan loading/error/grid -> klik foto membuka modal.
+ */
 export default function Activities() {
   usePageMeta({
     title: "Galeri Kegiatan",
@@ -16,16 +21,23 @@ export default function Activities() {
     path: "/kegiatan",
   });
 
+  // Semua foto galeri yang dimuat
   const [galeriList, setGaleriList] = useState<Galeri[]>([]);
+  // True selama data sedang dimuat
   const [loading, setLoading] = useState(true);
+  // Pesan kesalahan jika galeri gagal dimuat (null = tidak ada masalah)
   const [error, setError] = useState<string | null>(null);
 
+  // Kategori filter yang sedang dipilih ("Semua" = tanpa filter)
   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
+  // Foto yang sedang dibuka di modal (null = modal tertutup)
   const [selectedActivity, setSelectedActivity] = useState<Galeri | null>(null);
 
+  // Daftar tombol filter; nilainya harus sama dengan pilihan kategori di form admin galeri
   const categories = ["Semua", "Kegiatan", "Pelayanan", "Acara", "Lainnya"];
 
   useEffect(() => {
+    // Memuat galeri dari Supabase (atau data cadangan); error ditangkap agar halaman tidak rusak
     async function loadData() {
       setLoading(true);
       setError(null);
@@ -41,13 +53,14 @@ export default function Activities() {
     loadData();
   }, []);
 
+  // Foto yang lolos filter kategori yang dipilih
   const filteredActivities = galeriList.filter(
     (act) => selectedCategory === "Semua" || act.category === selectedCategory
   );
 
   return (
     <div className="py-10 space-y-16">
-      {/* Page Header */}
+      {/* Kepala halaman: judul & penjelasan singkat */}
       <section className="bg-gradient-to-b from-emerald-50 to-white py-12 border-b border-stone-200/60">
         <div className="container-kua">
           <div className="max-w-3xl">
@@ -65,7 +78,7 @@ export default function Activities() {
         </div>
       </section>
 
-      {/* Category Filter Pills */}
+      {/* Tombol filter kategori + daftar foto */}
       <section className="container-kua space-y-8">
         <div className="flex items-center gap-2 overflow-x-auto pb-2">
           {categories.map((cat) => (
@@ -83,7 +96,7 @@ export default function Activities() {
           ))}
         </div>
 
-        {/* CMS Loading / Error / Content */}
+        {/* Status data: sedang memuat / gagal / siap ditampilkan */}
         {loading && <LoadingState message="Memuat galeri kegiatan KUA..." />}
         {error && <ErrorState message={error} />}
 
@@ -114,7 +127,7 @@ export default function Activities() {
         )}
       </section>
 
-      {/* Lightbox Preview Modal */}
+      {/* Modal pratinjau foto besar saat sebuah kartu diklik */}
       <Modal
         isOpen={!!selectedActivity}
         onClose={() => setSelectedActivity(null)}

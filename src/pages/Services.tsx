@@ -1,3 +1,5 @@
+// HALAMAN LAYANAN (alamat: /layanan): daftar semua layanan KUA dari Supabase dengan kotak pencarian.
+// Mengklik kartu membuka detail (persyaratan & prosedur) dalam modal; di bagian bawah ada FAQ berbentuk akordeon.
 import { useState, useEffect } from "react";
 import { Landmark, Search, CheckCircle } from "lucide-react";
 import { ServiceCard } from "../components/cards/ServiceCard";
@@ -9,6 +11,9 @@ import { Accordion } from "../components/ui/Accordion";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 import { usePageMeta } from "../hooks/usePageMeta";
 
+/**
+ * Halaman layanan. Alur: muat data -> cari/saring -> tampilkan kartu -> klik untuk detail.
+ */
 export default function Services() {
   usePageMeta({
     title: "Layanan",
@@ -17,14 +22,20 @@ export default function Services() {
     path: "/layanan",
   });
 
+  // Semua layanan aktif yang dimuat
   const [layananList, setLayananList] = useState<Layanan[]>([]);
+  // True selama data sedang dimuat
   const [loading, setLoading] = useState(true);
+  // Pesan kesalahan jika gagal memuat (null = tidak ada masalah)
   const [error, setError] = useState<string | null>(null);
 
+  // Teks yang diketik di kotak pencarian
   const [searchQuery, setSearchQuery] = useState("");
+  // Layanan yang sedang dibuka di modal (null = modal tertutup)
   const [selectedService, setSelectedService] = useState<Layanan | null>(null);
 
   useEffect(() => {
+    // Muat layanan dari Supabase (atau data cadangan); error ditangkap agar halaman tidak rusak
     async function loadData() {
       setLoading(true);
       setError(null);
@@ -40,6 +51,7 @@ export default function Services() {
     loadData();
   }, []);
 
+  // Layanan yang judul atau deskripsinya mengandung teks pencarian (tidak membedakan huruf besar/kecil)
   const filteredServices = layananList.filter(
     (svc) =>
       svc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -48,7 +60,7 @@ export default function Services() {
 
   return (
     <div className="py-10 space-y-16">
-      {/* Page Header */}
+      {/* Kepala halaman */}
       <section className="bg-gradient-to-b from-emerald-50 to-white py-12 border-b border-stone-200/60">
         <div className="container-kua">
           <div className="max-w-3xl">
@@ -66,10 +78,10 @@ export default function Services() {
         </div>
       </section>
 
-      {/* Filter & Search Bar */}
+      {/* Kotak pencarian + daftar kartu layanan */}
       <section className="container-kua space-y-8">
         <div className="flex items-center justify-end gap-4 p-4 bg-white border border-stone-200 rounded-2xl shadow-sm">
-          {/* Search Box */}
+          {/* Kotak pencarian layanan */}
           <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
@@ -82,7 +94,7 @@ export default function Services() {
           </div>
         </div>
 
-        {/* CMS Loading / Error / Content */}
+        {/* Status data: sedang memuat / gagal / siap ditampilkan */}
         {loading && <LoadingState message="Memuat daftar layanan KUA..." />}
         {error && <ErrorState message={error} />}
 
@@ -112,7 +124,7 @@ export default function Services() {
         )}
       </section>
 
-      {/* Detail Modal for Selected Service */}
+      {/* Modal detail layanan: deskripsi, estimasi waktu, persyaratan, dan prosedur */}
       <Modal
         isOpen={!!selectedService}
         onClose={() => setSelectedService(null)}
@@ -131,7 +143,7 @@ export default function Services() {
               </div>
             )}
 
-            {/* Persyaratan */}
+            {/* Daftar dokumen & persyaratan (hanya jika ada) */}
             {selectedService.requirements && selectedService.requirements.length > 0 && (
               <div className="space-y-3">
                 <h4 className="font-bold text-stone-900 text-sm uppercase tracking-wider text-[#0f5132]">
@@ -148,7 +160,7 @@ export default function Services() {
               </div>
             )}
 
-            {/* Prosedur Tahapan */}
+            {/* Daftar tahapan prosedur bernomor (hanya jika ada) */}
             {selectedService.procedure && selectedService.procedure.length > 0 && (
               <div className="space-y-3 pt-2">
                 <h4 className="font-bold text-stone-900 text-sm uppercase tracking-wider text-[#0f5132]">
@@ -170,7 +182,7 @@ export default function Services() {
         )}
       </Modal>
 
-      {/* FAQ: Persyaratan & Prosedur per Layanan */}
+      {/* FAQ akordeon: satu pertanyaan per layanan, jawabannya persyaratan & prosedur layanan itu */}
       {!loading && !error && layananList.length > 0 && (
         <section className="container-kua">
           <div className="max-w-3xl mb-8">

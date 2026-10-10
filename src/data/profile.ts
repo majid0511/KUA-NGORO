@@ -1,3 +1,9 @@
+/**
+ * Satu tugas/fungsi KUA beserta nama ikonnya.
+ */
+// DATA PROFIL KANTOR (cadangan lokal): nama, alamat, kontak, jam layanan, visi-misi, tugas, 13 desa wilayah kerja, dan pegawai.
+// Dipakai bila Supabase tidak dikonfigurasi / gagal diakses, dan sebagai pengisi bagian yang masih kosong di database.
+// Ketika Supabase aktif, isi profil & staf diambil dari tabel "profil" dan "staf" (diedit lewat panel admin).
 export interface Duty {
   id: string;
   title: string;
@@ -5,12 +11,18 @@ export interface Duty {
   iconName: string;
 }
 
+/**
+ * Satu desa dalam wilayah kerja KUA Ngoro (kode opsional).
+ */
 export interface Village {
   id: string;
   name: string;
   code?: string;
 }
 
+/**
+ * Satu pegawai KUA. NIP & foto opsional; roleCategory menentukan lencana yang tampil di kartu pegawai.
+ */
 export interface StaffMember {
   id: string;
   name: string;
@@ -21,6 +33,9 @@ export interface StaffMember {
   photoUrl?: string;
 }
 
+/**
+ * Bentuk lengkap data profil kantor.
+ */
 export interface ProfileData {
   name: string;
   ministry: string;
@@ -44,6 +59,9 @@ export interface ProfileData {
   staff: StaffMember[];
 }
 
+/**
+ * Isi data profil kantor. Jika ada informasi yang berubah (alamat, nomor, jam layanan), ubah di sini atau lewat panel admin.
+ */
 export const profileData: ProfileData = {
   name: "KUA Kecamatan Ngoro",
   ministry: "Kementerian Agama Republik Indonesia",
@@ -53,12 +71,14 @@ export const profileData: ProfileData = {
   whatsapp: "6285133225303",
   email: "kua.ngoro.jombang@kemenag.go.id", // TODO: Replace with verified KUA email if changed
   
+  // Jam pelayanan: dipakai untuk teks di situs dan perhitungan lencana "Pelayanan Buka/Tutup".
   officeHours: {
     workDays: "Senin - Kamis: 07.30 - 16.00 WIB",
     fridayHours: "Jumat: 07.30 - 16.30 WIB",
     weekend: "Sabtu - Minggu & Hari Libur Nasional: Tutup",
   },
 
+  // Tautan Google Maps lokasi kantor
   mapsUrl: "https://www.google.com/maps/place/KUA+Kecamatan+Ngoro/@-7.6925264,112.2692273,17z/data=!3m1!4b1!4m6!3m5!1s0x2e7868772497aa05:0x2fe556b013739c7f!8m2!3d-7.6925264!4d112.2718022",
 
   aboutShort: "KUA Kecamatan Ngoro adalah unit pelaksana teknis Kementerian Agama di tingkat kecamatan yang bertugas memberikan pelayanan, pencatatan nikah dan rujuk, serta pembinaan kehidupan keagamaan bagi masyarakat Ngoro, Kabupaten Jombang.",
@@ -69,6 +89,7 @@ export const profileData: ProfileData = {
 
   vision: "Terwujudnya Pelayanan Kantor Urusan Agama Kecamatan Ngoro yang Profesional, Transparan, dan Berintegritas dalam Membangun Masyarakat Kecamatan Ngoro yang Religius, Rukun, Moderat, serta Berakhlakul Karimah.",
 
+  // Daftar misi KUA
   missions: [
     "Meningkatkan kualitas pelayanan administrasi nikah dan rujuk yang cepat, akurat, tertib hukum, dan sesuai dengan regulasi perundang-undangan.",
     "Menguatkan pelayanan bimbingan dan ketahanan keluarga melalui program Bimbingan Perkawinan (Bimwin) menuju keluarga sakinah, mawaddah, wa rahmah.",
@@ -81,6 +102,7 @@ export const profileData: ProfileData = {
     
   ],
 
+  // Daftar tugas & fungsi KUA
   duties: [
     {
       id: "nikah",
@@ -121,6 +143,7 @@ export const profileData: ProfileData = {
   ],
 
   // 13 Desa di Kecamatan Ngoro, Kabupaten Jombang
+  // Daftar 13 desa wilayah kerja KUA Ngoro
   villages: [
     { id: "1", name: "Badang", code: "35.17.03.2006" },
     { id: "2", name: "Banyuarang", code: "35.17.03.2008" },
@@ -136,6 +159,7 @@ export const profileData: ProfileData = {
     { id: "12", name: "Sidowarek", code: "35.17.03.2009" },
     { id: "13", name: "Sugihwaras", code: "35.17.03.2013" },
   ],
+  // Daftar pegawai (data cadangan). Nama & jabatan masih perlu diverifikasi - lihat tanda TODO di bawah.
   staff: [
     {
       id: "staf-1",

@@ -1,9 +1,14 @@
+// BAGIAN ALUR PERNIKAHAN di Beranda: lima langkah persiapan nikah ditampilkan sebagai garis waktu
+// (mendatar di layar lebar, menurun di HP) + tombol menuju panduan pernikahan lengkap. Data dari data/marriage.ts.
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, HeartHandshake } from "lucide-react";
 import { motion } from "framer-motion";
 import { marriageSteps } from "../../data/marriage";
 
+/**
+ * Komponen garis waktu langkah pernikahan; tiap kartu muncul bergantian saat discroll ke layar.
+ */
 export const MarriageTimelineSection: React.FC = () => {
   return (
     <section className="py-16 sm:py-24 bg-white border-b border-stone-200/60 overflow-hidden">
@@ -23,12 +28,13 @@ export const MarriageTimelineSection: React.FC = () => {
           </p>
         </div>
 
-        {/* Desktop Horizontal Timeline / Mobile Vertical Timeline */}
+        {/* Garis waktu: mendatar di layar lebar, menurun di HP */}
         <div className="relative">
-          {/* Connecting Line Desktop */}
+          {/* Garis penghubung antar kartu (hanya di layar lebar) */}
           <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-1 bg-emerald-100 -translate-y-1/2 z-0" />
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-4 relative z-10">
+            {/* Satu kartu per langkah; delay bertingkat membuat kartu muncul satu per satu */}
             {marriageSteps.map((item, idx) => (
               <motion.div
                 key={item.step}
@@ -73,7 +79,7 @@ export const MarriageTimelineSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom CTA Action Banner */}
+        {/* Tombol menuju halaman panduan pernikahan lengkap */}
         <div className="mt-12 text-center">
           <Link
             to="/layanan/pernikahan"

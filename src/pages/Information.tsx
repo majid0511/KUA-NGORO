@@ -1,3 +1,5 @@
+// HALAMAN INFORMASI (alamat: /informasi): pusat berita, artikel, dan pengumuman resmi KUA dari Supabase.
+// Ada pencarian teks + filter kategori; di sisi kanan ada widget pengumuman resmi, jam pelayanan, dan kontak WhatsApp.
 import { useState, useEffect } from "react";
 import { Newspaper, Bell, Phone, Clock } from "lucide-react";
 import { SearchInput } from "../components/ui/SearchInput";
@@ -10,6 +12,9 @@ import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { Modal } from "../components/ui/Modal";
 
+/**
+ * Halaman informasi. Alur: muat berita & pengumuman -> saring -> tampilkan kartu -> klik untuk membaca di modal.
+ */
 export default function Information() {
   usePageMeta({
     title: "Informasi & Berita",
@@ -18,18 +23,27 @@ export default function Information() {
     path: "/informasi",
   });
 
+  // Semua berita/artikel yang dimuat (kolom kiri)
   const [beritaList, setBeritaList] = useState<Berita[]>([]);
+  // Pengumuman yang masih berlaku (widget kanan)
   const [pengumumanList, setPengumumanList] = useState<Pengumuman[]>([]);
+  // True selama data sedang dimuat
   const [loading, setLoading] = useState(true);
+  // Pesan kesalahan jika gagal memuat (null = tidak ada masalah)
   const [error, setError] = useState<string | null>(null);
 
+  // Teks yang diketik di kotak pencarian
   const [searchQuery, setSearchQuery] = useState("");
+  // Kategori filter yang dipilih ("Semua" = tanpa filter)
   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
+  // Berita yang sedang dibuka di modal (null = modal tertutup)
   const [selectedNews, setSelectedNews] = useState<Berita | null>(null);
 
+  // Daftar tombol filter kategori; harus sama dengan pilihan kategori di form admin berita
   const categories = ["Semua", "Pengumuman", "Berita", "Artikel"];
 
   useEffect(() => {
+    // Muat berita dan pengumuman bersamaan (Promise.all); error ditangkap agar halaman tidak rusak
     async function loadCmsData() {
       setLoading(true);
       setError(null);
@@ -49,6 +63,7 @@ export default function Information() {
     loadCmsData();
   }, []);
 
+  // Berita yang cocok dengan kata kunci (judul/ringkasan) DAN kategori yang dipilih
   const filteredNews = beritaList.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,7 +76,7 @@ export default function Information() {
 
   return (
     <div className="py-10 space-y-16">
-      {/* Page Header */}
+      {/* Kepala halaman */}
       <section className="bg-gradient-to-b from-emerald-50 to-white py-12 border-b border-stone-200/60">
         <div className="container-kua">
           <div className="max-w-3xl">
@@ -79,12 +94,12 @@ export default function Information() {
         </div>
       </section>
 
-      {/* Main Content + Sidebar Grid */}
+      {/* Grid utama: daftar berita (kiri, 8 bagian) + sidebar (kanan, 4 bagian) */}
       <section className="container-kua">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Main Content Area (8 cols desktop) */}
+          {/* Kolom kiri: pencarian, filter, dan daftar kartu berita */}
           <div className="lg:col-span-8 space-y-8">
-            {/* Search & Filter */}
+            {/* Kotak pencarian + tombol filter kategori */}
             <div className="space-y-4">
               <SearchInput
                 value={searchQuery}
@@ -109,7 +124,7 @@ export default function Information() {
               </div>
             </div>
 
-            {/* CMS Loading / Error / Content */}
+            {/* Status data: sedang memuat / gagal / siap ditampilkan */}
             {loading && <LoadingState message="Memuat daftar berita & pengumuman..." />}
             {error && <ErrorState message={error} />}
 
@@ -141,9 +156,9 @@ export default function Information() {
             )}
           </div>
 
-          {/* Sidebar Area (4 cols desktop) */}
+          {/* Kolom kanan (sidebar): tiga widget */}
           <aside className="lg:col-span-4 space-y-6">
-            {/* Quick Announcement Widget from CMS */}
+            {/* Widget 1: 3 pengumuman resmi terbaru; jika kosong tampil pengingat pendaftaran nikah */}
             <div className="bg-amber-50/80 border border-amber-200 rounded-3xl p-6 space-y-4">
               <div className="flex items-center gap-2 text-amber-900 font-bold text-base">
                 <Bell className="w-5 h-5 text-amber-700" />
@@ -168,7 +183,7 @@ export default function Information() {
               )}
             </div>
 
-            {/* Office Hours Widget */}
+            {/* Widget 2: jam pelayanan kantor */}
             <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-xs">
               <div className="flex items-center gap-2 text-stone-900 font-bold text-base pb-3 border-b border-stone-100">
                 <Clock className="w-5 h-5 text-[#0f5132]" />
@@ -190,7 +205,7 @@ export default function Information() {
               </div>
             </div>
 
-            {/* Quick Contact Box */}
+            {/* Widget 3: tombol chat WhatsApp resmi KUA */}
             <div className="bg-emerald-950 text-white rounded-3xl p-6 space-y-4 shadow-md">
               <div className="flex items-center gap-2 font-bold text-emerald-300 text-base">
                 <Phone className="w-5 h-5" />
@@ -212,7 +227,7 @@ export default function Information() {
         </div>
       </section>
 
-      {/* Detail News Modal */}
+      {/* Modal detail berita: gambar, kategori, tanggal, penulis, ringkasan, dan isi lengkap */}
       <Modal
         isOpen={!!selectedNews}
         onClose={() => setSelectedNews(null)}

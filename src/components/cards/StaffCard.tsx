@@ -1,6 +1,10 @@
+// KARTU PEGAWAI: foto (atau ikon jika belum ada foto), lencana jabatan, nama, jabatan, NIP, dan keterangan singkat.
 import React from "react";
 import { UserCheck } from "lucide-react";
 
+/**
+ * Data satu pegawai. nip, description, dan photoUrl opsional (bagian yang kosong tidak ditampilkan).
+ */
 interface StaffCardProps {
   name: string;
   position: string;
@@ -10,6 +14,9 @@ interface StaffCardProps {
   photoUrl?: string;
 }
 
+/**
+ * Kartu pegawai; di layar kecil tersusun vertikal, di layar lebar foto di kiri dan teks di kanan.
+ */
 export const StaffCard: React.FC<StaffCardProps> = ({
   name,
   position,
@@ -21,6 +28,7 @@ export const StaffCard: React.FC<StaffCardProps> = ({
   return (
     <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition duration-200 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
       <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-emerald-50 border border-emerald-100 overflow-hidden shrink-0 flex items-center justify-center">
+        {/* Jika ada foto tampilkan foto; jika tidak, tampilkan ikon orang sebagai gantinya */}
         {photoUrl ? (
           <img
             src={photoUrl}
@@ -35,6 +43,7 @@ export const StaffCard: React.FC<StaffCardProps> = ({
 
       <div className="text-center sm:text-left flex-1">
         <span className="inline-block px-2.5 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-[#0f5132] mb-1">
+          {/* Lencana kategori jabatan (Kepala / Penghulu / Penyuluh / Pelaksana / Staf) */}
           {roleCategory}
         </span>
 
@@ -46,6 +55,7 @@ export const StaffCard: React.FC<StaffCardProps> = ({
           {position}
         </p>
 
+        {/* NIP hanya ditampilkan jika diisi */}
         {nip && (
           <p className="text-xs font-mono text-stone-500 mt-1">
             NIP. {nip}

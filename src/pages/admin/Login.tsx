@@ -1,15 +1,30 @@
+// HALAMAN LOGIN ADMIN (alamat: /admin/login): form email + kata sandi memakai Supabase Auth.
+// Setelah berhasil login, sistem juga memastikan akun tersebut terdaftar di tabel "admins" -- akun biasa ditolak.
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Landmark, Loader2 } from 'lucide-react';
 
+/**
+ * Halaman login. Di layar lebar ada panel hijau di kiri (branding) dan form di kanan; di HP hanya form.
+ */
 export default function AdminLogin() {
   const navigate = useNavigate();
+  // Isi kolom email
   const [email, setEmail]       = useState('');
+  // Isi kolom kata sandi
   const [password, setPassword] = useState('');
+  // True saat proses login berjalan (tombol dinonaktifkan)
   const [loading, setLoading]   = useState(false);
+  // Pesan kesalahan yang ditampilkan di bawah form (null = tidak ada)
   const [error, setError]       = useState<string | null>(null);
 
+  /**
+   * Proses login, dalam 3 langkah:
+   * 1. Masuk ke Supabase Auth dengan email & kata sandi (gagal -> pesan "Email atau kata sandi salah").
+   * 2. Cek apakah user ada di tabel "admins" (tidak ada -> langsung keluar lagi + pesan "tidak memiliki akses admin").
+   * 3. Berhasil -> pindah ke Dashboard (replace: tombol Back tidak kembali ke halaman login).
+   */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -26,7 +41,7 @@ export default function AdminLogin() {
       return;
     }
 
-    // Verify admin table membership
+    // Langkah 2: pastikan akun terdaftar sebagai admin
     const { data: adminRow } = await supabase!
       .from('admins')
       .select('user_id')
@@ -43,6 +58,7 @@ export default function AdminLogin() {
     navigate('/admin', { replace: true });
   }
 
+  // Jika Supabase belum dikonfigurasi (file .env belum diisi), tampilkan petunjuk alih-alih form yang tidak akan berfungsi
   if (!supabase) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
@@ -56,11 +72,11 @@ export default function AdminLogin() {
 
   return (
     <>
-      {/* noindex for admin pages */}
+      {/* Minta mesin pencari tidak mengindeks halaman admin */}
       <meta name="robots" content="noindex,nofollow" />
 
       <div className="min-h-screen grid lg:grid-cols-2 bg-slate-50">
-        {/* Brand panel (desktop only) */}
+        {/* Panel branding hijau (hanya layar lebar) */}
         <div className="hidden lg:flex flex-col justify-between bg-[#0f5132] text-white p-10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
@@ -79,7 +95,7 @@ export default function AdminLogin() {
           <p className="text-xs text-emerald-300">Panel internal · Kabupaten Jombang</p>
         </div>
 
-        {/* Form panel */}
+        {/* Panel form login */}
         <div className="flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-sm">
             <div className="lg:hidden flex flex-col items-center mb-8">

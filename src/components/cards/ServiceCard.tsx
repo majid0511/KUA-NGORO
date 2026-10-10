@@ -1,8 +1,13 @@
+// KARTU LAYANAN: menampilkan satu layanan KUA (ikon, nomor urut, judul, ringkasan) dengan tautan ke detailnya.
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, HeartHandshake, Building2, Landmark, ShieldCheck, BookOpen, Info, Users } from "lucide-react";
 import { motion } from "framer-motion";
 
+/**
+ * Data satu layanan. detailUrl = halaman detail di situs ini; externalUrl (opsional) = jika diisi,
+ * kartu mengarah ke situs luar dan detailUrl diabaikan.
+ */
 interface ServiceCardProps {
   id: string;
   number: string;
@@ -13,6 +18,10 @@ interface ServiceCardProps {
   externalUrl?: string;
 }
 
+/**
+ * Memilih ikon sesuai nama dari database. HANYA 6 nama ini yang dikenali (HeartHandshake, Building2, Landmark,
+ * ShieldCheck, BookOpen, Users); selain itu memakai ikon "Info". Menu pilihan ikon di panel admin harus sama dengan daftar ini.
+ */
 const getIconComponent = (iconName: string) => {
   switch (iconName) {
     case "HeartHandshake":
@@ -32,6 +41,9 @@ const getIconComponent = (iconName: string) => {
   }
 };
 
+/**
+ * Kartu layanan dengan efek terangkat sedikit saat disorot kursor.
+ */
 export const ServiceCard: React.FC<ServiceCardProps> = ({
   id,
   number,
@@ -41,6 +53,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
   detailUrl,
   externalUrl,
 }) => {
+  // Tujuan tautan: detailUrl jika ada, jika tidak ke bagian layanan yang bersangkutan di halaman /layanan
   const targetUrl = detailUrl || `/layanan#${id}`;
 
   const cardContent = (
@@ -75,6 +88,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
     </motion.div>
   );
 
+  // Jika ada tautan luar: buka di tab baru; jika tidak, pindah halaman di dalam situs
   if (externalUrl) {
     return (
       <a href={externalUrl} target="_blank" rel="noopener noreferrer" className="block h-full">

@@ -1,8 +1,13 @@
+// BAGIAN TAUTAN RESMI di Beranda: kumpulan kartu yang mengarah ke portal resmi Kemenag dan aplikasi terkait.
+// Daftar tautan diambil dari data/officialLinks.ts.
 import React from "react";
 import { SectionHeading } from "../ui/SectionHeading";
 import { OfficialLinkCard } from "../cards/OfficialLinkCard";
 import { officialLinksData } from "../../data/officialLinks";
 
+/**
+ * Menampilkan semua tautan resmi sebagai grid kartu (1/2/3 kolom sesuai lebar layar).
+ */
 export const OfficialLinksSection: React.FC = () => {
   return (
     <section className="py-16 sm:py-24 bg-stone-50/70 border-b border-stone-200/60">

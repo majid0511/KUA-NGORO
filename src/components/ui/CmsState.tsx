@@ -1,3 +1,5 @@
+// TIGA KEADAAN TAMPILAN untuk data yang diambil dari Supabase: sedang memuat, kosong, dan gagal.
+// Dipakai bersama di semua halaman yang menampilkan data dari database agar tampilannya seragam.
 import React from 'react';
 import { Loader2, Inbox, AlertCircle, RefreshCw } from 'lucide-react';
 
@@ -5,6 +7,9 @@ interface LoadingStateProps {
   message?: string;
 }
 
+/**
+ * Tampilan "sedang memuat": ikon berputar + pesan.
+ */
 export const LoadingState: React.FC<LoadingStateProps> = ({
   message = 'Memuat informasi...',
 }) => (
@@ -19,6 +24,9 @@ interface EmptyStateProps {
   submessage?: string;
 }
 
+/**
+ * Tampilan "data kosong": dipakai saat database aktif tetapi admin belum mengisi apa pun.
+ */
 export const EmptyState: React.FC<EmptyStateProps> = ({
   message = 'Belum ada informasi yang tersedia.',
   submessage,
@@ -35,6 +43,9 @@ interface ErrorStateProps {
   onRetry?: () => void;
 }
 
+/**
+ * Tampilan "gagal memuat"; jika onRetry diberikan, muncul tombol "Coba Lagi".
+ */
 export const ErrorState: React.FC<ErrorStateProps> = ({
   message = 'Informasi belum dapat dimuat. Silakan coba kembali beberapa saat lagi.',
   onRetry,

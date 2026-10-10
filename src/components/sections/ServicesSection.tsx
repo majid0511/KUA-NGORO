@@ -1,3 +1,4 @@
+// BAGIAN LAYANAN di Beranda: kartu semua layanan aktif dari Supabase + tautan ke halaman Layanan lengkap (/layanan).
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
@@ -8,12 +9,18 @@ import { getLayanan } from "../../lib/cms";
 import type { Layanan } from "../../lib/cms/types";
 import { LoadingState, EmptyState } from "../ui/CmsState";
 
+/**
+ * Komponen bagian layanan: memuat data, lalu menampilkan loading / kosong / grid kartu layanan.
+ */
 export const ServicesSection: React.FC = () => {
+  // Seluruh layanan aktif yang berhasil dimuat
   const [services, setServices] = useState<Layanan[]>([]);
+  // True selama data masih dimuat
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    // Muat layanan; "cancelled" mencegah update state jika komponen sudah ditutup
     getLayanan().then((res) => {
       if (!cancelled && res.data) setServices(res.data);
       if (!cancelled) setLoading(false);
@@ -49,6 +56,7 @@ export const ServicesSection: React.FC = () => {
           <EmptyState message="Belum ada layanan yang aktif." />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+            {/* Satu kartu per layanan; nomor urut diambil dari kolom "order" (diformat 2 digit), jeda animasi bertingkat */}
             {services.map((service, i) => (
               <motion.div
                 key={service.id}

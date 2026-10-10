@@ -1,3 +1,5 @@
+// KELOLA BERITA (alamat: /admin/berita): daftar, tambah, ubah, hapus berita, serta alihkan status Draft <-> Published.
+// Hanya berita berstatus "published" yang tampil di situs publik. Halaman ini punya dua tampilan: daftar (list) dan form.
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Berita } from '../../lib/cms/types';
@@ -10,25 +12,40 @@ import { useImageUpload } from './useImageUpload';
 import { showToast } from './toast';
 import { Image as ImageIcon } from 'lucide-react';
 
+// Tampilan halaman: daftar berita atau form tambah/edit
 type Mode = 'list' | 'form';
 
+// Isi awal form "Tambah Berita": kosong, kategori Berita, status Draft (belum tayang), tanggal hari ini
 const EMPTY_FORM: Omit<Berita, 'id'> = {
   title: '', slug: '', excerpt: '', content: '',
   featured_image: '', category: 'Berita', author: 'Tim Humas KUA Ngoro',
   published_at: new Date().toISOString().slice(0, 10), status: 'draft',
 };
 
+/**
+ * Halaman kelola berita.
+ */
 export default function BeritaAdmin() {
+  // Tampilan aktif (daftar / form)
   const [mode, setMode]           = useState<Mode>('list');
+  // Seluruh berita dari database (termasuk draft)
   const [list, setList]           = useState<Berita[]>([]);
+  // True selama daftar dimuat
   const [loading, setLoading]     = useState(true);
+  // True saat form sedang disimpan (tombol dinonaktifkan)
   const [saving, setSaving]       = useState(false);
+  // Pesan error saat memuat daftar (null = tidak ada)
   const [error, setError]         = useState<string | null>(null);
+  // Berita yang sedang diedit (null = mode tambah baru)
   const [editing, setEditing]     = useState<Berita | null>(null);
+  // Isi form yang sedang diketik
   const [form, setForm]           = useState<Omit<Berita, 'id'>>(EMPTY_FORM);
+  // Berita yang menunggu konfirmasi hapus (null = dialog tertutup)
   const [deleteTarget, setDeleteTarget] = useState<Berita | null>(null);
+  // Fungsi & status unggah gambar ke Supabase Storage
   const { uploading, upload }     = useImageUpload();
 
+  // Ambil semua berita dari database, terbaru di atas (admin boleh melihat draft karena aturan RLS)
   async function load() {
     setLoading(true);
     const { data, error } = await supabase!
@@ -40,14 +57,17 @@ export default function BeritaAdmin() {
     setLoading(false);
   }
 
+  // Muat daftar saat halaman pertama dibuka
   useEffect(() => { load(); }, []);
 
+  // Buka form kosong untuk menambah berita baru
   function openAdd() {
     setEditing(null);
     setForm({ ...EMPTY_FORM });
     setMode('form');
   }
 
+  // Buka form berisi data berita yang dipilih untuk diedit (id dibuang karena tidak ikut diubah)
   function openEdit(item: Berita) {
     setEditing(item);
     const { id: _, ...rest } = item;
@@ -55,6 +75,10 @@ export default function BeritaAdmin() {
     setMode('form');
   }
 
+  /**
+   * Simpan form: jika sedang mengedit -> UPDATE, jika tidak -> INSERT.
+   * Judul & slug wajib diisi. Setelah sukses kembali ke daftar dan memuat ulang.
+   */
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim() || !form.slug.trim()) return;
@@ -71,6 +95,7 @@ export default function BeritaAdmin() {
     load();
   }
 
+  // Hapus berita yang sudah dikonfirmasi, lalu muat ulang daftar
   async function handleDelete() {
     if (!deleteTarget) return;
     if (!(await run(supabase!.from('berita').delete().eq('id', deleteTarget.id)))) return;
@@ -78,6 +103,7 @@ export default function BeritaAdmin() {
     load();
   }
 
+  // Balik status: published -> draft, atau draft -> published (klik lencana status di tabel)
   async function toggleStatus(item: Berita) {
     if (!(await run(supabase!.from('berita')
       .update({ status: item.status === 'published' ? 'draft' : 'published' })
@@ -85,6 +111,8 @@ export default function BeritaAdmin() {
     load();
   }
 
+  // Saat admin memilih file gambar: unggah ke Storage, lalu simpan alamat publiknya ke form.
+  // Jika gagal (mis. >2 MB atau bukan gambar), tampilkan toast error.
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -96,6 +124,7 @@ export default function BeritaAdmin() {
     }
   }
 
+  // TAMPILAN FORM tambah/edit berita
   if (mode === 'form') {
     return (
       <FormCard title={editing ? 'Edit Berita' : 'Tambah Berita'}>
@@ -105,6 +134,7 @@ export default function BeritaAdmin() {
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value,
                 slug: f.slug || e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '') }))} />
           </Field>
+          {/* Slug = potongan alamat berita (/news/<slug>); dibuat otomatis dari judul dan hanya boleh huruf kecil, angka, dan tanda hubung */}
           <Field label="Slug (URL)" required>
             <input className={inputCls} required value={form.slug}
               onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '') }))} />
@@ -140,6 +170,7 @@ export default function BeritaAdmin() {
             <textarea className={`${textareaCls} min-h-[180px]`} required value={form.content}
               onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))} />
           </Field>
+          {/* Foto utama: bisa unggah file (tersimpan di Storage) atau tempel alamat gambar yang sudah ada */}
           <Field label="Foto Utama">
             <div className="space-y-2">
               {form.featured_image && (
@@ -162,6 +193,7 @@ export default function BeritaAdmin() {
 
   return (
     <div className="max-w-5xl">
+      {/* TAMPILAN DAFTAR: tabel semua berita; judul kolom: Judul, Kategori, Tanggal, Status, Aksi */}
       <PageHeader title="Berita" description="Berita dan artikel yang tampil di halaman Informasi." addLabel="Tulis Berita" onAdd={openAdd} />
       {loading ? <AdminLoading /> : error ? <AdminError message={error} /> : list.length === 0 ? (
         <AdminEmpty label="berita" />

@@ -3,7 +3,8 @@ import { queryWithFallback } from './client';
 import type { Berita, CmsResponse } from './types';
 import { newsData } from '../../data/news';
 
-// ── Fallback (local static data) ─────────────────────────────
+// ── Data cadangan (data statis lokal) ────────────────────────
+// Mengubah data berita lokal (src/data/news.ts) ke bentuk Berita; dipakai jika Supabase tidak tersedia.
 const fallbackBeritaList: Berita[] = newsData.map((item) => ({
   id:             item.id,
   title:          item.title,
@@ -17,11 +18,11 @@ const fallbackBeritaList: Berita[] = newsData.map((item) => ({
   status:         'published' as const,
 }));
 
-// ── Fetchers ──────────────────────────────────────────────────
+// ── Pengambil data ────────────────────────────────────────────
 
 /**
- * Returns all published berita ordered by published_at desc.
- * Empty result from Supabase → returns [], no fallback.
+ * Mengambil semua berita berstatus "published", terbaru di atas.
+ * Jika Supabase aktif tetapi tabelnya kosong -> hasilnya kosong (bukan data cadangan).
  */
 export async function getBerita(): Promise<CmsResponse<Berita[]>> {
   return queryWithFallback(async () => {
@@ -37,8 +38,8 @@ export async function getBerita(): Promise<CmsResponse<Berita[]>> {
 }
 
 /**
- * Returns a single published berita by slug.
- * Not found → null, no fallback.
+ * Mengambil satu berita "published" berdasarkan slug (bagian akhir alamat, mis. /news/judul-berita).
+ * Tidak ditemukan -> null (halaman menampilkan pesan "tidak ditemukan").
  */
 export async function getBeritaBySlug(slug: string): Promise<CmsResponse<Berita | null>> {
   const localMatch = fallbackBeritaList.find((b) => b.slug === slug) ?? null;

@@ -1,3 +1,6 @@
+// TITIK MASUK APLIKASI (entry point).
+// File pertama yang dijalankan browser: memasang aplikasi React ke elemen <div id="root"> di index.html.
+// BrowserRouter dipasang di sini agar seluruh halaman bisa memakai routing berbasis URL (react-router).
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

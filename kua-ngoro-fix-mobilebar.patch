@@ -1,0 +1,21 @@
+diff --git a/src/components/layout/MobileStickyBar.tsx b/src/components/layout/MobileStickyBar.tsx
+index 6ffb1cf..9aaa269 100644
+--- a/src/components/layout/MobileStickyBar.tsx
++++ b/src/components/layout/MobileStickyBar.tsx
+@@ -24,11 +24,11 @@ export const MobileStickyBar: React.FC = () => {
+   const [phone, setPhone] = useState(profileData.phone);
+ 
+   useEffect(() => {
+-    // PERHATIAN: getProfil() mengembalikan pembungkus { data, fromFallback, error }, jadi nomor telepon yang
+-    // benar ada di profil.data?.phone (seperti di Navbar), bukan profil.phone. Selama belum diperbaiki,
+-    // bilah ini selalu memakai nomor dari data lokal.
+-    getProfil().then((profil) => {
+-      if (profil.phone) {
++    // Ambil nomor terbaru dari profil di database. getProfil() mengembalikan pembungkus { data, fromFallback, error },
++    // jadi profilnya ada di response.data (sama seperti di Navbar). Jika nomor kosong, tetap memakai nomor lokal.
++    getProfil().then((response) => {
++      const profil = response.data;
++      if (profil?.phone) {
+         setPhone(profil.phone);
+         setWaNumber(toWaNumber(profil.phone));
+       }

@@ -1,9 +1,13 @@
+// DASHBOARD ADMIN (alamat: /admin): ringkasan jumlah konten, pintasan ke halaman kelola, dan statistik pengunjung (Google Analytics).
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Newspaper, Bell, Landmark, User, Users, Image, ArrowRight } from 'lucide-react';
 import AnalyticsSection from './AnalyticsSection';
 
+/**
+ * Jumlah baris tiap tabel konten
+ */
 interface CountState {
   berita:     number;
   pengumuman: number;
@@ -12,6 +16,7 @@ interface CountState {
   galeri:     number;
 }
 
+// Definisi kartu statistik: kunci tabel, label, ikon, dan halaman tujuan saat diklik
 const CARDS = [
   { key: 'berita',     label: 'Berita',     icon: Newspaper, to: '/admin/berita' },
   { key: 'pengumuman', label: 'Pengumuman', icon: Bell,      to: '/admin/pengumuman' },
@@ -20,11 +25,17 @@ const CARDS = [
   { key: 'galeri',     label: 'Galeri',     icon: Image,     to: '/admin/galeri' },
 ] as const;
 
+/**
+ * Halaman dashboard. Jumlah data diambil sekali saat halaman dibuka.
+ */
 export default function AdminDashboard() {
+  // Jumlah data tiap tabel (awal 0 sampai data selesai dimuat)
   const [counts, setCounts] = useState<CountState>({ berita: 0, pengumuman: 0, layanan: 0, staf: 0, galeri: 0 });
+  // True selama jumlah data belum selesai dimuat (kartu menampilkan tanda "-")
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Hitung jumlah baris tiap tabel secara bersamaan. count: 'exact' + head: true = hanya minta jumlahnya, bukan isi datanya (hemat data).
     async function fetchCounts() {
       const tables = ['berita', 'pengumuman', 'layanan', 'staf', 'galeri'] as const;
       const results = await Promise.all(
@@ -49,7 +60,7 @@ export default function AdminDashboard() {
         <p className="text-sm text-slate-500 mt-0.5">Ringkasan konten dan statistik website KUA Kecamatan Ngoro.</p>
       </div>
 
-      {/* Stats row */}
+      {/* Baris kartu statistik: jumlah berita, pengumuman, layanan, staf, galeri */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {CARDS.map(({ key, label, icon: Icon, to }) => (
           <Link
@@ -66,11 +77,11 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Analytics Section */}
+      {/* Statistik pengunjung dari Google Analytics (lihat AnalyticsSection.tsx & api/analytics.ts) */}
       <AnalyticsSection />
 
       <div className="grid lg:grid-cols-5 gap-6">
-        {/* Quick links */}
+        {/* Pintasan ke halaman kelola yang paling sering dipakai */}
         <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-5">
           <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Pintasan</h2>
           <div className="divide-y divide-slate-100">
@@ -91,7 +102,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Profil shortcut */}
+        {/* Pintasan ke edit Profil KUA (juga tempat sakelar Mode Maintenance) */}
         <Link
           to="/admin/profil"
           className="lg:col-span-2 flex flex-col justify-between gap-6 p-5 bg-[#0f5132] text-white rounded-xl hover:bg-[#073822] transition group"

@@ -1,3 +1,5 @@
+// MENU SAMPING UNTUK HP (drawer): panel yang meluncur dari kanan berisi logo, daftar menu, dan akses cepat WhatsApp/telepon.
+// Dibuka lewat tombol hamburger di Navbar.
 import React, { useEffect, useState } from "react";
 import { X, Phone, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -6,11 +8,17 @@ import { profileData } from "../../data/profile";
 import { getProfil } from "../../lib/cms/profil";
 import kualogo from "../../assets/kualogo.png";
 
+/**
+ * isOpen = sedang terbuka atau tidak, onClose = fungsi penutup yang diberikan Navbar.
+ */
 interface MobileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+/**
+ * Mengubah nomor telepon menjadi format tautan WhatsApp (hanya angka, awalan 0 -> 62).
+ */
 function toWaNumber(phone: string): string {
   const digits = phone.replace(/\D/g, "");
 
@@ -20,6 +28,9 @@ function toWaNumber(phone: string): string {
   return digits;
 }
 
+/**
+ * Panel menu samping dengan animasi geser dari kanan dan latar gelap di belakangnya.
+ */
 export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   isOpen,
   onClose,
@@ -54,7 +65,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
+          {/* Latar gelap di belakang panel; mengkliknya menutup drawer */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -63,7 +74,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm"
           />
 
-          {/* Mobile Drawer */}
+          {/* Panel menu yang meluncur masuk dari sisi kanan */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -76,7 +87,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             className="fixed inset-y-0 right-0 z-10 flex w-full max-w-xs flex-col justify-between overflow-y-auto bg-white shadow-2xl sm:max-w-sm"
           >
             <div>
-              {/* Header */}
+              {/* Bagian kepala: logo + nama kantor + tombol tutup */}
               <div className="flex items-center justify-between border-b border-stone-200 bg-emerald-950 p-5 text-white">
                 <div className="flex items-center gap-3">
                   {/* Logo KUA */}
@@ -88,7 +99,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                     />
                   </div>
 
-                  {/* Nama */}
+                  {/* Nama kantor */}
                   <div>
                     <span className="block text-sm font-bold leading-tight">
                       KUA Ngoro
@@ -99,7 +110,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                   </div>
                 </div>
 
-                {/* Tombol Close */}
+                {/* Tombol X penutup menu */}
                 <button
                   type="button"
                   onClick={onClose}
@@ -110,19 +121,19 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                 </button>
               </div>
 
-              {/* Navigation */}
+              {/* Daftar menu halaman (versi menurun); menutup drawer saat salah satu diklik */}
               <div className="p-4">
                 <NavLinks vertical onItemClick={onClose} />
               </div>
             </div>
 
-            {/* Quick Contact */}
+            {/* Akses cepat: tombol WhatsApp dan telepon di bagian bawah panel */}
             <div className="space-y-3 border-t border-stone-200 bg-stone-50 p-5">
               <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-500">
                 Akses Cepat KUA
               </div>
 
-              {/* WhatsApp */}
+              {/* Tombol konsultasi via WhatsApp */}
               <a
                 href={`https://wa.me/${waNumber}`}
                 target="_blank"
@@ -134,7 +145,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                 <span>Konsultasi WhatsApp</span>
               </a>
 
-              {/* Telepon */}
+              {/* Tombol panggilan telepon */}
               <a
                 href={`tel:${phone}`}
                 onClick={onClose}

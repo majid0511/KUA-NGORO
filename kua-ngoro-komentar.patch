@@ -1,0 +1,3486 @@
+diff --git a/api/analytics.ts b/api/analytics.ts
+index 445ec6d..97f1a7d 100644
+--- a/api/analytics.ts
++++ b/api/analytics.ts
+@@ -1 +1,12 @@
++// FUNGSI SERVER (Vercel Serverless) UNTUK STATISTIK PENGUNJUNG: alamat /api/analytics.
++// Berjalan di server, BUKAN di browser, sehingga kredensial Google (client secret & refresh token) tidak pernah terkirim ke pengunjung.
++//
++// Alur satu permintaan:
++//   1. Pastikan peminta adalah admin yang login (verifyAdminUser) -> jika tidak, jawab 401.
++//   2. Baca kredensial Google dari environment variable Vercel (jika belum lengkap, jawab "belum dikonfigurasi").
++//   3. Tukar refresh token menjadi access token Google (getAccessTokenFromRefreshToken).
++//   4. Minta 4 laporan sekaligus ke Google Analytics Data API: tren harian, halaman terpopuler, sumber lalu lintas, perangkat.
++//   5. Rapikan hasilnya menjadi JSON sederhana untuk komponen AnalyticsSection.
++// Environment variable yang dibutuhkan: GA_PROPERTY_ID, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN,
++// serta VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY (untuk memeriksa login admin).
+ import type { IncomingMessage, ServerResponse } from 'http';
+@@ -3,2 +14,5 @@ import { createClient } from '@supabase/supabase-js';
+ 
++/**
++ * Bentuk objek permintaan (sebagian saja) yang dipakai fungsi ini
++ */
+ interface VercelRequest extends IncomingMessage {
+@@ -9,2 +23,5 @@ interface VercelRequest extends IncomingMessage {
+ 
++/**
++ * Bentuk objek jawaban (sebagian saja): status() mengatur kode HTTP, json() mengirim isi JSON
++ */
+ interface VercelResponse extends ServerResponse {
+@@ -87,3 +104,3 @@ async function verifyAdminUser(req: VercelRequest): Promise<boolean> {
+ 
+-    // Pastikan user terdaftar di tabel admins
++    // Pastikan user terdaftar di tabel "admins" (login saja belum cukup); ada = admin, tidak ada = bukan admin
+     const { data: adminRecord } = await supabase
+@@ -101,3 +118,7 @@ async function verifyAdminUser(req: VercelRequest): Promise<boolean> {
+ 
++/**
++ * Pintu masuk fungsi server: dipanggil Vercel setiap ada permintaan GET ke /api/analytics?days=7|30|90.
++ */
+ export default async function handler(req: VercelRequest, res: VercelResponse) {
++  // Hanya menerima permintaan GET; metode lain ditolak (405)
+   if (req.method !== 'GET') {
+@@ -106,3 +127,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+ 
+-  // 1. Verifikasi Authentication Admin
++  // Langkah 1: pastikan peminta adalah admin yang login (jika tidak, hentikan di sini dengan kode 401)
+   const isAuthorized = await verifyAdminUser(req);
+@@ -115,3 +136,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+ 
+-  // 2. Ambil Environment Variables (OAuth 2.0)
++  // Langkah 2: ambil kredensial Google dari environment variable server (tidak pernah terlihat oleh browser)
+   const propertyId = process.env.GA_PROPERTY_ID;
+@@ -130,2 +151,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+ 
++  // Periode laporan dalam hari dari alamat (?days=7|30|90); bila tidak valid dipakai 7 hari
+   const daysParam = (req.query.days as string) || '7';
+@@ -134,6 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+   try {
+-    // 3. Ambil Google OAuth 2.0 access_token dari refresh token
++    // Langkah 3: tukar refresh token menjadi access token sementara dari Google
+     const accessToken = await getAccessTokenFromRefreshToken(clientId, clientSecret, refreshToken);
+ 
+-    // 4. Panggil GA Data API batchRunReports
++    // Langkah 4: minta empat laporan sekaligus ke Google Analytics Data API
++    // Alamat endpoint batchRunReports milik properti GA kita (GA_PROPERTY_ID)
+     const reportUrl = `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:batchRunReports`;
+@@ -198,2 +221,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+ 
++    // Jawaban mentah Google berisi daftar laporan sesuai urutan permintaan
+     const rawData = await reportRes.json();
+@@ -201,3 +225,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+ 
+-    // Parse Report 1: Daily trends & Totals
++    // Langkah 5a: olah laporan 1 -> data tren per hari + total keseluruhan
+     const dailyReport = reports[0] || {};
+@@ -222,2 +246,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+ 
++      // Ubah tanggal Google (YYYYMMDD) menjadi "DD/MM" untuk label grafik
+       const formattedDate = dateStr.length === 8
+@@ -235,3 +260,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+ 
+-    // Parse Report 2: Popular Pages
++    // Langkah 5b: olah laporan 2 -> halaman terpopuler
+     const topPagesReport = reports[1] || {};
+@@ -244,3 +269,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+ 
+-    // Parse Report 3: Traffic Sources
++    // Langkah 5c: olah laporan 3 -> sumber lalu lintas
+     const trafficReport = reports[2] || {};
+@@ -252,3 +277,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+ 
+-    // Parse Report 4: Devices
++    // Langkah 5d: olah laporan 4 -> jenis perangkat
+     const deviceReport = reports[3] || {};
+@@ -276,2 +301,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
+   } catch (error) {
++    // Kesalahan tak terduga: dicatat di log server; browser hanya menerima pesan umum (detail teknis tidak dibocorkan)
+     console.error('Analytics API exception:', error);
+diff --git a/src/App.tsx b/src/App.tsx
+index b250dfc..ee504d2 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1 +1,5 @@
++// KERANGKA UTAMA APLIKASI.
++// File ini menentukan: (1) halaman apa yang tampil untuk setiap alamat URL (routing),
++// (2) apakah situs sedang dalam mode maintenance, dan (3) kerangka tampilan situs publik
++// (navbar, jadwal sholat, isi halaman, footer). Panel admin (/admin) dipisahkan karena punya tampilan sendiri.
+ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+@@ -26,2 +30,6 @@ const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
+ 
++/**
++ * Komponen kecil tanpa tampilan: setiap kali pengunjung pindah halaman,
++ * layar otomatis kembali ke paling atas (bawaan browser tidak melakukannya pada aplikasi satu halaman).
++ */
+ function ScrollToTop() {
+@@ -34,4 +42,12 @@ function ScrollToTop() {
+ 
++/**
++ * Komponen akar. Urutan pengecekan:
++ * 1. Jika alamat diawali /admin -> tampilkan panel admin (selalu bisa diakses, bahkan saat maintenance).
++ * 2. Jika status maintenance belum diketahui -> layar kosong sebentar (mencegah isi situs berkedip).
++ * 3. Jika maintenance aktif -> tampilkan pesan "Web dalam Maintenance".
++ * 4. Selain itu -> tampilkan situs publik normal.
++ */
+ export default function App() {
+   const { pathname } = useLocation();
++  // Status maintenance: null = belum diketahui, true = aktif, false = tidak aktif.
+   const [maintenance, setMaintenance] = useState<boolean | null>(null);
+@@ -48,2 +64,4 @@ export default function App() {
+     let cancelled = false;
++    // Tanya ke database (Supabase) apakah mode maintenance sedang aktif.
++    // Flag "cancelled" mencegah update state jika komponen sudah ditutup sebelum jawaban datang.
+     isMaintenanceMode().then((on) => {
+@@ -78,7 +96,12 @@ export default function App() {
+     <div className="min-h-screen flex flex-col bg-[#fbfbf9] text-stone-900 font-sans relative">
++      {/* Reset posisi scroll saat pindah halaman */}
+       <ScrollToTop />
++      {/* Menu navigasi bagian atas (muncul di semua halaman publik) */}
+       <Navbar />
++      {/* Strip jadwal sholat harian di bawah navbar */}
+       <PrayerTimesBar />
++      {/* Area isi halaman: berubah sesuai alamat URL yang sedang dibuka */}
+       <main className="flex-1">
+         <Routes>
++          {/* Beranda */}
+           <Route path="/" element={<Home />} />
+@@ -112,4 +135,7 @@ export default function App() {
+       </main>
++      {/* Footer: kontak, tautan cepat, dan hak cipta */}
+       <Footer />
++      {/* Tombol cepat (telepon/WhatsApp) yang menempel di bawah layar HP */}
+       <MobileStickyBar />
++      {/* Pencatat statistik kunjungan dari Vercel Analytics */}
+       <Analytics />
+diff --git a/src/components/MaintenanceScreen.tsx b/src/components/MaintenanceScreen.tsx
+index 107721b..0f9f7e2 100644
+--- a/src/components/MaintenanceScreen.tsx
++++ b/src/components/MaintenanceScreen.tsx
+@@ -1 +1,3 @@
++// LAYAR MAINTENANCE: ditampilkan menggantikan seluruh situs publik ketika admin mengaktifkan "Mode Maintenance"
++// di panel admin (menu Profil KUA). Berisi pesan "Web dalam Maintenance" dan tombol WhatsApp untuk keperluan mendesak.
+ import { Wrench } from "lucide-react";
+@@ -3,2 +5,5 @@ import { profileData } from "../data/profile";
+ 
++/**
++ * Halaman pesan pemeliharaan situs (tidak memakai navbar/footer).
++ */
+ export function MaintenanceScreen() {
+diff --git a/src/components/PrayerTimesBar.tsx b/src/components/PrayerTimesBar.tsx
+index b6cf0eb..a4a95cb 100644
+--- a/src/components/PrayerTimesBar.tsx
++++ b/src/components/PrayerTimesBar.tsx
+@@ -1 +1,3 @@
++// STRIP JADWAL SHOLAT: pita hijau tipis di bawah navbar yang menampilkan waktu sholat hari ini untuk wilayah Jombang.
++// Sholat BERIKUTNYA disorot. Di HP hanya menampilkan sholat berikutnya; di layar lebar menampilkan kelima waktu.
+ import React, { useEffect, useState } from "react";
+@@ -3,6 +5,12 @@ import { getTodayPrayerTimes, getNextPrayerName, type PrayerTimes } from "../lib
+ 
++// Urutan lima waktu sholat yang ditampilkan
+ const ORDER: (keyof PrayerTimes)[] = ["Subuh", "Dzuhur", "Ashar", "Maghrib", "Isya"];
+ 
++/**
++ * Mengambil jadwal hari ini lewat getTodayPrayerTimes(), lalu memperbarui sorotan "sholat berikutnya" tiap menit.
++ */
+ export const PrayerTimesBar: React.FC = () => {
++  // Jadwal sholat hari ini (null = belum dimuat atau gagal dimuat)
+   const [times, setTimes] = useState<PrayerTimes | null>(null);
++  // Nama sholat berikutnya yang belum masuk waktunya (null = semua sudah lewat)
+   const [next, setNext] = useState<keyof PrayerTimes | null>(null);
+@@ -11,2 +19,3 @@ export const PrayerTimesBar: React.FC = () => {
+     let cancelled = false;
++    // Muat jadwal sekali saat komponen tampil; flag "cancelled" mencegah update state jika komponen sudah ditutup
+     getTodayPrayerTimes().then((t) => {
+@@ -21,2 +30,3 @@ export const PrayerTimesBar: React.FC = () => {
+     if (!times) return;
++    // Hitung sholat berikutnya sekarang, lalu hitung ulang setiap 60 detik agar sorotan ikut berpindah
+     setNext(getNextPrayerName(times));
+diff --git a/src/components/cards/ActivityCard.tsx b/src/components/cards/ActivityCard.tsx
+index 795a7ae..cc5b10e 100644
+--- a/src/components/cards/ActivityCard.tsx
++++ b/src/components/cards/ActivityCard.tsx
+@@ -1 +1,3 @@
++// KARTU KEGIATAN: menampilkan satu foto dokumentasi kegiatan (foto, kategori, tanggal, judul, ringkasan).
++// Mengkliknya memanggil onPreview, biasanya untuk membuka foto dalam modal berukuran besar.
+ import React from "react";
+@@ -5,2 +7,5 @@ import { motion } from "framer-motion";
+ 
++/**
++ * Data satu kegiatan. location opsional; onPreview = fungsi yang dipanggil saat kartu diklik.
++ */
+ interface ActivityCardProps {
+@@ -16,2 +21,5 @@ interface ActivityCardProps {
+ 
++/**
++ * Kartu foto kegiatan dengan efek terangkat saat disorot kursor dan ikon zoom di atas foto.
++ */
+ export const ActivityCard: React.FC<ActivityCardProps> = ({
+@@ -36,2 +44,3 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
+           alt={title}
++          // Gambar baru diunduh saat hampir terlihat di layar (menghemat kuota & mempercepat halaman)
+           loading="lazy"
+@@ -40,3 +49,3 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
+ 
+-        {/* Subtle overlay on hover */}
++        {/* Lapisan gelap tipis + ikon zoom yang muncul saat kartu disorot kursor */}
+         <div className="absolute inset-0 bg-stone-900/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+@@ -48,2 +57,3 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
+         <div className="absolute top-3 left-3 z-10">
++          {/* Lencana kategori di pojok kiri atas foto */}
+           <Badge variant="green">{category}</Badge>
+diff --git a/src/components/cards/NewsCard.tsx b/src/components/cards/NewsCard.tsx
+index 00ce654..d42d7cb 100644
+--- a/src/components/cards/NewsCard.tsx
++++ b/src/components/cards/NewsCard.tsx
+@@ -1 +1,2 @@
++// KARTU BERITA/PENGUMUMAN: menampilkan foto, kategori, tanggal, penulis, judul, dan ringkasan satu berita.
+ import React from "react";
+@@ -6,2 +7,6 @@ import { motion } from "framer-motion";
+ 
++/**
++ * Data satu berita. onClick (opsional): jika diberikan, tombol "Baca Selengkapnya" memanggil fungsi ini
++ * (mis. membuka modal); jika tidak, tombol menjadi tautan ke halaman Informasi.
++ */
+ interface NewsCardProps {
+@@ -17,2 +22,5 @@ interface NewsCardProps {
+ 
++/**
++ * Kartu berita dengan efek terangkat saat disorot kursor.
++ */
+ export const NewsCard: React.FC<NewsCardProps> = ({
+@@ -27,2 +35,3 @@ export const NewsCard: React.FC<NewsCardProps> = ({
+ }) => {
++  // Menentukan warna lencana menurut kategori: Pengumuman = emas, Berita = hijau, Artikel = biru, lainnya = abu
+   const getBadgeVariant = (cat: string) => {
+@@ -40,2 +49,3 @@ export const NewsCard: React.FC<NewsCardProps> = ({
+ 
++  // Mengubah tanggal (mis. 2026-10-09) menjadi format Indonesia ("9 Oktober 2026"); jika gagal diubah, tampilkan apa adanya
+   const formatDate = (dateStr: string) => {
+@@ -96,2 +106,3 @@ export const NewsCard: React.FC<NewsCardProps> = ({
+         <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-sm font-semibold text-[#0f5132]">
++          {/* Dua bentuk tombol "Baca Selengkapnya": tombol biasa (jika ada onClick) atau tautan ke /informasi */}
+           {onClick ? (
+diff --git a/src/components/cards/OfficialLinkCard.tsx b/src/components/cards/OfficialLinkCard.tsx
+index d254dff..e55aca6 100644
+--- a/src/components/cards/OfficialLinkCard.tsx
++++ b/src/components/cards/OfficialLinkCard.tsx
+@@ -1 +1,2 @@
++// KARTU TAUTAN RESMI: kartu kecil yang membuka situs resmi (Kemenag, SIMKAH, dll) di tab baru.
+ import React from "react";
+@@ -4,2 +5,5 @@ import { motion } from "framer-motion";
+ 
++/**
++ * Data satu tautan: nama, deskripsi, alamat (url), kategori, nama ikon, dan penanda terverifikasi.
++ */
+ interface OfficialLinkCardProps {
+@@ -13,2 +17,6 @@ interface OfficialLinkCardProps {
+ 
++/**
++ * Memilih ikon sesuai nama (teks) dari data; nama yang tidak dikenali memakai ikon Landmark sebagai cadangan.
++ * Jika menambah ikon baru, tambahkan juga di sini.
++ */
+ const getIcon = (iconName: string) => {
+@@ -34,2 +42,5 @@ const getIcon = (iconName: string) => {
+ 
++/**
++ * Kartu tautan. target="_blank" + rel="noopener noreferrer" = buka di tab baru dengan aman.
++ */
+ export const OfficialLinkCard: React.FC<OfficialLinkCardProps> = ({
+@@ -55,2 +66,3 @@ export const OfficialLinkCard: React.FC<OfficialLinkCardProps> = ({
+           </div>
++          {/* Tanda "Resmi Kemenag" hanya muncul jika tautan sudah terverifikasi */}
+           {verified && (
+diff --git a/src/components/cards/ServiceCard.tsx b/src/components/cards/ServiceCard.tsx
+index 8a558d6..1fb95ba 100644
+--- a/src/components/cards/ServiceCard.tsx
++++ b/src/components/cards/ServiceCard.tsx
+@@ -1 +1,2 @@
++// KARTU LAYANAN: menampilkan satu layanan KUA (ikon, nomor urut, judul, ringkasan) dengan tautan ke detailnya.
+ import React from "react";
+@@ -5,2 +6,6 @@ import { motion } from "framer-motion";
+ 
++/**
++ * Data satu layanan. detailUrl = halaman detail di situs ini; externalUrl (opsional) = jika diisi,
++ * kartu mengarah ke situs luar dan detailUrl diabaikan.
++ */
+ interface ServiceCardProps {
+@@ -15,2 +20,6 @@ interface ServiceCardProps {
+ 
++/**
++ * Memilih ikon sesuai nama dari database. HANYA 6 nama ini yang dikenali (HeartHandshake, Building2, Landmark,
++ * ShieldCheck, BookOpen, Users); selain itu memakai ikon "Info". Menu pilihan ikon di panel admin harus sama dengan daftar ini.
++ */
+ const getIconComponent = (iconName: string) => {
+@@ -34,2 +43,5 @@ const getIconComponent = (iconName: string) => {
+ 
++/**
++ * Kartu layanan dengan efek terangkat sedikit saat disorot kursor.
++ */
+ export const ServiceCard: React.FC<ServiceCardProps> = ({
+@@ -43,2 +55,3 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
+ }) => {
++  // Tujuan tautan: detailUrl jika ada, jika tidak ke bagian layanan yang bersangkutan di halaman /layanan
+   const targetUrl = detailUrl || `/layanan#${id}`;
+@@ -77,2 +90,3 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({
+ 
++  // Jika ada tautan luar: buka di tab baru; jika tidak, pindah halaman di dalam situs
+   if (externalUrl) {
+diff --git a/src/components/cards/StaffCard.tsx b/src/components/cards/StaffCard.tsx
+index 03a48a9..c6b5739 100644
+--- a/src/components/cards/StaffCard.tsx
++++ b/src/components/cards/StaffCard.tsx
+@@ -1 +1,2 @@
++// KARTU PEGAWAI: foto (atau ikon jika belum ada foto), lencana jabatan, nama, jabatan, NIP, dan keterangan singkat.
+ import React from "react";
+@@ -3,2 +4,5 @@ import { UserCheck } from "lucide-react";
+ 
++/**
++ * Data satu pegawai. nip, description, dan photoUrl opsional (bagian yang kosong tidak ditampilkan).
++ */
+ interface StaffCardProps {
+@@ -12,2 +16,5 @@ interface StaffCardProps {
+ 
++/**
++ * Kartu pegawai; di layar kecil tersusun vertikal, di layar lebar foto di kiri dan teks di kanan.
++ */
+ export const StaffCard: React.FC<StaffCardProps> = ({
+@@ -23,2 +30,3 @@ export const StaffCard: React.FC<StaffCardProps> = ({
+       <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-emerald-50 border border-emerald-100 overflow-hidden shrink-0 flex items-center justify-center">
++        {/* Jika ada foto tampilkan foto; jika tidak, tampilkan ikon orang sebagai gantinya */}
+         {photoUrl ? (
+@@ -37,2 +45,3 @@ export const StaffCard: React.FC<StaffCardProps> = ({
+         <span className="inline-block px-2.5 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-[#0f5132] mb-1">
++          {/* Lencana kategori jabatan (Kepala / Penghulu / Penyuluh / Pelaksana / Staf) */}
+           {roleCategory}
+@@ -48,2 +57,3 @@ export const StaffCard: React.FC<StaffCardProps> = ({
+ 
++        {/* NIP hanya ditampilkan jika diisi */}
+         {nip && (
+diff --git a/src/components/layout/Footer.tsx b/src/components/layout/Footer.tsx
+index 8cb2f33..1e63c4d 100644
+--- a/src/components/layout/Footer.tsx
++++ b/src/components/layout/Footer.tsx
+@@ -1 +1,3 @@
++// FOOTER (bagian bawah situs publik): profil singkat KUA, tautan cepat, tautan instansi induk, kredit pengembang, dan hak cipta.
++// Ditampilkan di semua halaman publik (dipasang sekali di App.tsx).
+ import React from "react";
+@@ -11,3 +13,7 @@ import kualogo from "../../assets/kualogo.png";
+ 
++/**
++ * Komponen footer, terdiri dari 4 kolom informasi + baris hak cipta di paling bawah.
++ */
+ export const Footer: React.FC = () => {
++  // Menggulung halaman ke paling atas dengan halus (dipakai tombol panah di pojok kanan bawah footer)
+   const scrollToTop = () => {
+@@ -19,5 +25,5 @@ export const Footer: React.FC = () => {
+       <div className="container-kua">
+-        {/* Main Footer Grid */}
++        {/* Grid utama footer: 4 kolom (1 kolom di HP, 2 di tablet, 12 bagian di layar lebar) */}
+         <div className="grid grid-cols-1 gap-8 border-b border-emerald-900/60 pb-10 md:grid-cols-2 md:gap-10 sm:pb-12 lg:grid-cols-12">
+-          {/* 1. Brand KUA Ngoro */}
++          {/* Kolom 1: logo, nama, dan deskripsi singkat KUA Ngoro */}
+           <div className="space-y-4 text-left lg:col-span-4">
+@@ -55,3 +61,3 @@ export const Footer: React.FC = () => {
+ 
+-          {/* 2. Quick Links */}
++          {/* Kolom 2: tautan cepat ke halaman utama situs */}
+           <div className="space-y-3 lg:col-span-2">
+@@ -104,3 +110,3 @@ export const Footer: React.FC = () => {
+ 
+-          {/* 3. Institution */}
++          {/* Kolom 3: tautan ke situs resmi instansi induk (Kemenag pusat, provinsi, kabupaten); dibuka di tab baru */}
+           <div className="space-y-3 lg:col-span-3">
+@@ -146,3 +152,3 @@ export const Footer: React.FC = () => {
+ 
+-          {/* 4. Developer Credit Box (Subtle Internship Signature) */}
++          {/* Kolom 4: kredit pengembang (proyek magang mahasiswa IAI At-Tahdzib) */}
+           <div className="space-y-3 lg:col-span-3">
+@@ -176,3 +182,3 @@ export const Footer: React.FC = () => {
+ 
+-        {/* 5. Copyright Bottom Bar */}
++        {/* Baris paling bawah: hak cipta + tombol kembali ke atas */}
+         <div className="flex flex-col items-center justify-between gap-4 pt-6 text-xs text-emerald-200/80 sm:flex-row sm:pt-8">
+diff --git a/src/components/layout/MobileStickyBar.tsx b/src/components/layout/MobileStickyBar.tsx
+index 1d812b4..6ffb1cf 100644
+--- a/src/components/layout/MobileStickyBar.tsx
++++ b/src/components/layout/MobileStickyBar.tsx
+@@ -1 +1,3 @@
++// BILAH AKSI CEPAT DI HP: empat tombol (WhatsApp, Telepon, Nikah, Lokasi) yang menempel di bagian bawah layar.
++// Hanya tampil di layar kecil (HP); disembunyikan di layar lebar.
+ import React, { useEffect, useState } from "react";
+@@ -6,2 +8,5 @@ import { getProfil } from "../../lib/cms/profil";
+ 
++/**
++ * Mengubah nomor telepon menjadi format tautan WhatsApp (hanya angka, awalan 0 -> 62). Sama dengan fungsi di Navbar.
++ */
+ function toWaNumber(phone: string): string {
+@@ -13,2 +18,5 @@ function toWaNumber(phone: string): string {
+ 
++/**
++ * Komponen bilah bawah. Nomor telepon/WA diambil dari data lokal, lalu diperbarui dari profil di Supabase.
++ */
+ export const MobileStickyBar: React.FC = () => {
+@@ -18,2 +26,5 @@ export const MobileStickyBar: React.FC = () => {
+   useEffect(() => {
++    // PERHATIAN: getProfil() mengembalikan pembungkus { data, fromFallback, error }, jadi nomor telepon yang
++    // benar ada di profil.data?.phone (seperti di Navbar), bukan profil.phone. Selama belum diperbaiki,
++    // bilah ini selalu memakai nomor dari data lokal.
+     getProfil().then((profil) => {
+@@ -29,3 +40,3 @@ export const MobileStickyBar: React.FC = () => {
+       <div className="grid grid-cols-4 gap-1 text-center">
+-        {/* 1. WhatsApp */}
++        {/* 1. WhatsApp: chat langsung ke KUA */}
+         <a
+@@ -40,3 +51,3 @@ export const MobileStickyBar: React.FC = () => {
+ 
+-        {/* 2. Telepon */}
++        {/* 2. Telepon: langsung memanggil nomor kantor */}
+         <a
+@@ -49,3 +60,3 @@ export const MobileStickyBar: React.FC = () => {
+ 
+-        {/* 3. Nikah Online */}
++        {/* 3. Nikah: pintasan ke halaman layanan pernikahan */}
+         <Link
+@@ -58,3 +69,3 @@ export const MobileStickyBar: React.FC = () => {
+ 
+-        {/* 4. Lokasi Maps */}
++        {/* 4. Lokasi: membuka Google Maps kantor di tab baru */}
+         <a
+diff --git a/src/components/layout/Navbar.tsx b/src/components/layout/Navbar.tsx
+index 9641962..52580e0 100644
+--- a/src/components/layout/Navbar.tsx
++++ b/src/components/layout/Navbar.tsx
+@@ -1 +1,3 @@
++// NAVBAR (menu atas situs publik): pita info resmi + logo & nama kantor + menu halaman + tombol "Hubungi KUA".
++// Di layar kecil menu diganti tombol hamburger yang membuka MobileDrawer. Nomor WhatsApp/telepon diambil dari profil di Supabase.
+ import React, { useEffect, useState } from "react";
+@@ -10,2 +12,6 @@ import kuaLogo from "../../assets/kualogo.png";
+ 
++/**
++ * Mengubah nomor telepon (mis. "0851-3322-5303") menjadi format yang dipakai tautan WhatsApp wa.me:
++ * buang semua karakter selain angka, lalu awalan 0 diganti kode negara 62 (hasil: "6285133225303").
++ */
+ function toWaNumber(phone: string): string {
+@@ -19,7 +25,13 @@ function toWaNumber(phone: string): string {
+ 
++/**
++ * Komponen menu atas. Mengubah gaya (lebih padat & berbayang) setelah halaman di-scroll lebih dari 20 piksel.
++ */
+ export const Navbar: React.FC = () => {
++  // Apakah menu samping (drawer) di HP sedang terbuka
+   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+   const scrollPosition = useScrollPosition();
++  // True jika halaman sudah digulir > 20 piksel -> header tampil dengan gaya "scrolled"
+   const isScrolled = scrollPosition > 20;
+ 
++  // Nomor WA & telepon yang ditampilkan; awalnya dari data lokal, lalu diganti data dari database jika ada
+   const [waNumber, setWaNumber] = useState(profileData.whatsapp);
+@@ -28,2 +40,3 @@ export const Navbar: React.FC = () => {
+   useEffect(() => {
++    // Ambil profil terbaru dari Supabase; jika nomor telepon terisi, pakai untuk tampilan & tautan WhatsApp
+     getProfil().then((response) => {
+@@ -40,3 +53,3 @@ export const Navbar: React.FC = () => {
+     <>
+-      {/* Top Banner Notice for Official Institution */}
++      {/* Pita atas: penanda bahwa ini situs resmi instansi + kontak WhatsApp (kontak disembunyikan di HP) */}
+       <div className="bg-emerald-950 px-4 py-1.5 text-xs text-emerald-100">
+@@ -69,3 +82,3 @@ export const Navbar: React.FC = () => {
+ 
+-      {/* Main Navigation Header */}
++      {/* Header utama: menempel di atas layar saat discroll (sticky) */}
+       <header
+@@ -78,3 +91,3 @@ export const Navbar: React.FC = () => {
+         <div className="container-kua flex items-center justify-between">
+-          {/* Logo Brand */}
++          {/* Logo & nama kantor; mengkliknya kembali ke Beranda */}
+           <Link
+@@ -95,3 +108,3 @@ export const Navbar: React.FC = () => {
+ 
+-          {/* Desktop Navigation Links */}
++          {/* Menu halaman untuk layar lebar (disembunyikan di HP/tablet) */}
+           <div className="hidden lg:block">
+@@ -100,3 +113,3 @@ export const Navbar: React.FC = () => {
+ 
+-          {/* Right Action CTA & Mobile Trigger */}
++          {/* Sisi kanan: tombol "Hubungi KUA" (layar lebar) dan tombol hamburger (HP) */}
+           <div className="flex items-center gap-3">
+@@ -110,3 +123,3 @@ export const Navbar: React.FC = () => {
+ 
+-            {/* Mobile Hamburger Menu Button */}
++            {/* Tombol hamburger: membuka menu samping di layar kecil */}
+             <button
+@@ -123,3 +136,3 @@ export const Navbar: React.FC = () => {
+ 
+-      {/* Mobile Drawer Navigation */}
++      {/* Menu samping untuk HP; terbuka/tertutup mengikuti mobileDrawerOpen */}
+       <MobileDrawer
+diff --git a/src/components/navigation/MobileDrawer.tsx b/src/components/navigation/MobileDrawer.tsx
+index 1cce210..74129aa 100644
+--- a/src/components/navigation/MobileDrawer.tsx
++++ b/src/components/navigation/MobileDrawer.tsx
+@@ -1 +1,3 @@
++// MENU SAMPING UNTUK HP (drawer): panel yang meluncur dari kanan berisi logo, daftar menu, dan akses cepat WhatsApp/telepon.
++// Dibuka lewat tombol hamburger di Navbar.
+ import React, { useEffect, useState } from "react";
+@@ -8,2 +10,5 @@ import kualogo from "../../assets/kualogo.png";
+ 
++/**
++ * isOpen = sedang terbuka atau tidak, onClose = fungsi penutup yang diberikan Navbar.
++ */
+ interface MobileDrawerProps {
+@@ -13,2 +18,5 @@ interface MobileDrawerProps {
+ 
++/**
++ * Mengubah nomor telepon menjadi format tautan WhatsApp (hanya angka, awalan 0 -> 62).
++ */
+ function toWaNumber(phone: string): string {
+@@ -22,2 +30,5 @@ function toWaNumber(phone: string): string {
+ 
++/**
++ * Panel menu samping dengan animasi geser dari kanan dan latar gelap di belakangnya.
++ */
+ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
+@@ -56,3 +67,3 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
+         <div className="fixed inset-0 z-50 lg:hidden">
+-          {/* Backdrop */}
++          {/* Latar gelap di belakang panel; mengkliknya menutup drawer */}
+           <motion.div
+@@ -65,3 +76,3 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
+ 
+-          {/* Mobile Drawer */}
++          {/* Panel menu yang meluncur masuk dari sisi kanan */}
+           <motion.div
+@@ -78,3 +89,3 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
+             <div>
+-              {/* Header */}
++              {/* Bagian kepala: logo + nama kantor + tombol tutup */}
+               <div className="flex items-center justify-between border-b border-stone-200 bg-emerald-950 p-5 text-white">
+@@ -90,3 +101,3 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
+ 
+-                  {/* Nama */}
++                  {/* Nama kantor */}
+                   <div>
+@@ -101,3 +112,3 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
+ 
+-                {/* Tombol Close */}
++                {/* Tombol X penutup menu */}
+                 <button
+@@ -112,3 +123,3 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
+ 
+-              {/* Navigation */}
++              {/* Daftar menu halaman (versi menurun); menutup drawer saat salah satu diklik */}
+               <div className="p-4">
+@@ -118,3 +129,3 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
+ 
+-            {/* Quick Contact */}
++            {/* Akses cepat: tombol WhatsApp dan telepon di bagian bawah panel */}
+             <div className="space-y-3 border-t border-stone-200 bg-stone-50 p-5">
+@@ -124,3 +135,3 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
+ 
+-              {/* WhatsApp */}
++              {/* Tombol konsultasi via WhatsApp */}
+               <a
+@@ -136,3 +147,3 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
+ 
+-              {/* Telepon */}
++              {/* Tombol panggilan telepon */}
+               <a
+diff --git a/src/components/navigation/NavLinks.tsx b/src/components/navigation/NavLinks.tsx
+index 2b1a3d9..49fd207 100644
+--- a/src/components/navigation/NavLinks.tsx
++++ b/src/components/navigation/NavLinks.tsx
+@@ -1 +1,3 @@
++// DAFTAR MENU NAVIGASI: tautan ke halaman-halaman utama situs.
++// Dipakai di Navbar (mendatar, layar lebar) dan MobileDrawer (menurun, HP).
+ import React from "react";
+@@ -3,2 +5,5 @@ import { NavLink } from "react-router-dom";
+ 
++/**
++ * Satu menu: label = teks yang tampil, path = alamat halaman tujuan.
++ */
+ export interface NavItem {
+@@ -8,2 +13,5 @@ export interface NavItem {
+ 
++/**
++ * Daftar menu & urutannya. Untuk menambah/mengubah menu, edit daftar ini (dan tambahkan rutenya di App.tsx).
++ */
+ const navItemsList: NavItem[] = [
+@@ -18,2 +26,5 @@ const navItemsList: NavItem[] = [
+ 
++/**
++ * className = kelas tambahan, onItemClick = dipanggil saat menu diklik (mis. menutup drawer), vertical = susun ke bawah.
++ */
+ interface NavLinksProps {
+@@ -24,2 +35,5 @@ interface NavLinksProps {
+ 
++/**
++ * Menampilkan semua menu. Menu halaman yang sedang dibuka otomatis diberi warna/tebal berbeda (isActive).
++ */
+ export const NavLinks: React.FC<NavLinksProps> = ({
+@@ -35,2 +49,3 @@ export const NavLinks: React.FC<NavLinksProps> = ({
+           to={item.path}
++          // Khusus "Home": hanya aktif jika alamat PERSIS "/" (kalau tidak, Home selalu tampak aktif di semua halaman)
+           end={item.path === "/"}
+diff --git a/src/components/sections/AboutSection.tsx b/src/components/sections/AboutSection.tsx
+index 0cb3031..20accf9 100644
+--- a/src/components/sections/AboutSection.tsx
++++ b/src/components/sections/AboutSection.tsx
+@@ -1 +1,3 @@
++// BAGIAN "TENTANG KUA" di Beranda: foto kegiatan di kiri, ringkasan profil + tiga poin layanan unggulan di kanan,
++// serta tombol menuju halaman Profil lengkap. Teks ringkasan diambil dari data profil (profileData.aboutShort).
+ import React from "react";
+@@ -8,2 +10,5 @@ import fotoNikah from "../../assets/fotoNikah.webp";
+ 
++/**
++ * Komponen bagian Tentang KUA. Kedua kolom muncul dengan animasi geser saat discroll ke layar (sekali saja).
++ */
+ export const AboutSection: React.FC = () => {
+@@ -13,3 +18,3 @@ export const AboutSection: React.FC = () => {
+         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+-          {/* Left Column Image */}
++          {/* Kolom kiri: foto + keterangan di atas foto */}
+           <motion.div
+@@ -40,3 +45,3 @@ export const AboutSection: React.FC = () => {
+ 
+-            {/* Accent badge */}
++            {/* Lencana aksen "PPAIW & SIMKAH" di pojok kanan bawah foto (disembunyikan di HP) */}
+             <div className="hidden sm:flex absolute -bottom-6 -right-6 bg-[#0f5132] text-white p-5 rounded-2xl shadow-xl max-w-xs flex-col space-y-1">
+@@ -49,3 +54,3 @@ export const AboutSection: React.FC = () => {
+ 
+-          {/* Right Column Content */}
++          {/* Kolom kanan: judul, ringkasan, poin layanan, dan tombol */}
+           <motion.div
+diff --git a/src/components/sections/ActivitiesSection.tsx b/src/components/sections/ActivitiesSection.tsx
+index 3a2ca2b..bf71ad5 100644
+--- a/src/components/sections/ActivitiesSection.tsx
++++ b/src/components/sections/ActivitiesSection.tsx
+@@ -1 +1,3 @@
++// BAGIAN KEGIATAN di Beranda: menampilkan 4 foto dokumentasi kegiatan terbaru dari tabel "galeri" di Supabase.
++// Mengklik foto membuka detailnya dalam modal. Jika galeri kosong, tampil pesan "belum ada dokumentasi".
+ import React, { useEffect, useState } from "react";
+@@ -11,5 +13,11 @@ import { LoadingState, EmptyState } from "../ui/CmsState";
+ 
++/**
++ * Komponen bagian kegiatan: memuat data galeri, lalu menampilkan loading / kosong / grid kartu.
++ */
+ export const ActivitiesSection: React.FC = () => {
++  // Seluruh foto galeri yang berhasil dimuat
+   const [items, setItems] = useState<Galeri[]>([]);
++  // True selama data masih dimuat (menampilkan indikator loading)
+   const [loading, setLoading] = useState(true);
++  // Foto yang sedang dibuka di modal (null = modal tertutup)
+   const [selected, setSelected] = useState<Galeri | null>(null);
+@@ -18,2 +26,3 @@ export const ActivitiesSection: React.FC = () => {
+     let cancelled = false;
++    // Muat galeri; "cancelled" mencegah update state jika komponen sudah ditutup
+     getGaleri().then((res) => {
+@@ -27,2 +36,3 @@ export const ActivitiesSection: React.FC = () => {
+ 
++  // Hanya 4 foto pertama (terbaru) yang ditampilkan di Beranda
+   const featured = items.slice(0, 4);
+@@ -77,3 +87,3 @@ export const ActivitiesSection: React.FC = () => {
+ 
+-        {/* Lightbox Detail Modal */}
++        {/* Modal detail foto: gambar besar, kategori, tanggal, dan deskripsi */}
+         <Modal
+diff --git a/src/components/sections/ContactCtaSection.tsx b/src/components/sections/ContactCtaSection.tsx
+index 25a3470..957fd31 100644
+--- a/src/components/sections/ContactCtaSection.tsx
++++ b/src/components/sections/ContactCtaSection.tsx
+@@ -1 +1,3 @@
++// BAGIAN AJAKAN MENGHUBUNGI (call-to-action): pita hijau berisi ajakan "Butuh Informasi Lebih Lanjut?"
++// dengan tombol ke halaman Kontak dan tombol chat WhatsApp. Dipasang di bagian bawah banyak halaman.
+ import React from "react";
+@@ -5,2 +7,5 @@ import { profileData } from "../../data/profile";
+ 
++/**
++ * Komponen ajakan menghubungi KUA. Nomor WhatsApp diambil dari data profil lokal.
++ */
+ export const ContactCtaSection: React.FC = () => {
+@@ -8,2 +13,3 @@ export const ContactCtaSection: React.FC = () => {
+     <section className="py-16 sm:py-20 bg-gradient-to-r from-[#042918] via-[#0f5132] to-[#042918] text-white relative overflow-hidden">
++      {/* Hiasan: kilau cahaya halus di pojok kanan atas */}
+       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_50%)]" />
+diff --git a/src/components/sections/HeroSection.tsx b/src/components/sections/HeroSection.tsx
+index 9b83199..60bf531 100644
+--- a/src/components/sections/HeroSection.tsx
++++ b/src/components/sections/HeroSection.tsx
+@@ -1 +1,3 @@
++// BAGIAN UTAMA (HERO) di Beranda: sambutan paling atas berisi judul "KUA Kecamatan Ngoro", ajakan bertindak (tombol),
++// foto kantor, dan lencana status "Pelayanan Buka/Tutup" yang dihitung otomatis dari jam kerja.
+ import React from "react";
+@@ -7,3 +9,10 @@ import fotoDepan from "../../assets/fotodepan.webp";
+ // Jam layanan mengikuti src/data/profile.ts (WIB). Hari libur nasional belum terdeteksi.
++/**
++ * Menentukan apakah kantor sedang buka SEKARANG berdasarkan jam kerja zona Asia/Jakarta (WIB),
++ * sehingga hasilnya sama untuk pengunjung di zona waktu mana pun.
++ * Jam kerja: Senin-Kamis 07.30-16.00, Jumat 07.30-16.30, Sabtu-Minggu tutup.
++ * Catatan: hari libur nasional belum terdeteksi.
++ */
+ const isServiceOpen = (now: Date = new Date()): boolean => {
++  // Ambil nama hari & jam/menit saat ini menurut WIB
+   const parts = new Intl.DateTimeFormat("en-US", {
+@@ -17,2 +26,3 @@ const isServiceOpen = (now: Date = new Date()): boolean => {
+   const day = get("weekday");
++  // Ubah jam:menit menjadi total menit sejak tengah malam agar mudah dibandingkan (450 = 07.30, 960 = 16.00, 990 = 16.30)
+   const minutes = Number(get("hour")) * 60 + Number(get("minute"));
+@@ -23,3 +33,7 @@ const isServiceOpen = (now: Date = new Date()): boolean => {
+ 
++/**
++ * Komponen hero. Isi kiri muncul bertahap (kata demi kata) saat halaman dimuat; kartu foto di kanan.
++ */
+ export const HeroSection: React.FC = () => {
++  // Status buka/tutup kantor; dihitung ulang tiap menit oleh useEffect di bawah
+   const [open, setOpen] = React.useState(isServiceOpen);
+@@ -29,4 +43,6 @@ export const HeroSection: React.FC = () => {
+   }, []);
++  // Kata-kata judul yang dimunculkan satu per satu (efek animasi)
+   const headlineWords = ["KUA", "Kecamatan", "Ngoro"];
+ 
++  // Pengaturan animasi (framer-motion): wadah memunculkan anak-anaknya berurutan dengan jeda 0,12 detik
+   const containerVariants: Variants = {
+@@ -42,2 +58,3 @@ export const HeroSection: React.FC = () => {
+ 
++  // Animasi tiap kata judul: naik dari bawah dengan efek pegas
+   const wordVariants: Variants = {
+@@ -56,2 +73,3 @@ export const HeroSection: React.FC = () => {
+ 
++  // Animasi elemen lain: memudar masuk sambil naik sedikit
+   const itemFadeUp: Variants = {
+@@ -69,3 +87,3 @@ export const HeroSection: React.FC = () => {
+         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+-          {/* Left Column Text & CTAs */}
++          {/* Kolom kiri: lencana, judul, deskripsi, tombol, dan tiga poin keunggulan */}
+           <motion.div
+@@ -76,3 +94,3 @@ export const HeroSection: React.FC = () => {
+           >
+-            {/* 1. Eyebrow Badge */}
++            {/* 1. Lencana kecil di atas judul */}
+             <motion.div variants={itemFadeUp} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-emerald-200 text-[#0f5132] text-xs sm:text-sm font-semibold tracking-wide shadow-xs">
+@@ -82,3 +100,3 @@ export const HeroSection: React.FC = () => {
+ 
+-            {/* 2. Headline with Clip-Path Word Reveal */}
++            {/* 2. Judul besar; tiap kata muncul bergantian dari bawah */}
+             <div className="overflow-hidden">
+@@ -102,3 +120,3 @@ export const HeroSection: React.FC = () => {
+ 
+-            {/* 3. Supporting Text */}
++            {/* 3. Kalimat pendukung di bawah judul */}
+             <motion.p
+@@ -110,3 +128,3 @@ export const HeroSection: React.FC = () => {
+ 
+-            {/* 4. Action CTA Buttons */}
++            {/* 4. Dua tombol aksi: Lihat Layanan & Hubungi KUA */}
+             <motion.div
+@@ -132,3 +150,3 @@ export const HeroSection: React.FC = () => {
+ 
+-            {/* Quick Micro Features */}
++            {/* Tiga poin keunggulan singkat */}
+             <motion.div
+@@ -152,3 +170,3 @@ export const HeroSection: React.FC = () => {
+ 
+-          {/* Right Column Visual Image Card */}
++          {/* Kolom kanan: kartu foto kantor dengan dua lencana melayang */}
+           <motion.div
+@@ -160,3 +178,3 @@ export const HeroSection: React.FC = () => {
+             <div className="relative mx-auto max-w-md lg:max-w-none">
+-              {/* Main Image Container */}
++              {/* Foto kantor + gradasi gelap + keterangan alamat di atasnya */}
+               <div className="relative rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-stone-100 aspect-[4/3] sm:aspect-[14/10]">
+@@ -183,3 +201,3 @@ export const HeroSection: React.FC = () => {
+ 
+-              {/* Floating Stat Badge */}
++              {/* Lencana melayang kiri-bawah: "13 Desa" wilayah kerja */}
+               <div className="absolute -bottom-6 -left-4 sm:-left-6 bg-white border border-stone-200 p-4 rounded-2xl shadow-xl flex items-center gap-3">
+@@ -194,3 +212,3 @@ export const HeroSection: React.FC = () => {
+ 
+-              {/* Floating Status Badge */}
++              {/* Lencana melayang kanan-atas: status Pelayanan Buka (hijau, berdenyut) / Tutup (abu-abu) */}
+               <div
+diff --git a/src/components/sections/LocationSection.tsx b/src/components/sections/LocationSection.tsx
+index 065d998..776a515 100644
+--- a/src/components/sections/LocationSection.tsx
++++ b/src/components/sections/LocationSection.tsx
+@@ -1 +1,3 @@
++// BAGIAN LOKASI di Beranda: peta Google Maps tertanam + alamat, telepon, email, dan jam pelayanan kantor,
++// serta tombol "Buka di Google Maps". Data kontak diambil dari profil di Supabase; jika kosong, memakai data lokal.
+ import React, { useEffect, useState } from "react";
+@@ -7,3 +9,7 @@ import type { Profil } from "../../lib/cms/types";
+ 
++/**
++ * Komponen lokasi kantor (peta di kiri, informasi di kanan pada layar lebar; peta di atas pada HP).
++ */
+ export const LocationSection: React.FC = () => {
++  // Profil dari database (null selama belum dimuat atau gagal)
+   const [profil, setProfil] = useState<Profil | null>(null);
+@@ -20,2 +26,3 @@ export const LocationSection: React.FC = () => {
+ 
++  // Setiap data: pakai nilai dari database jika terisi, jika tidak pakai data lokal (profileData)
+   const address = profil?.address || profileData.address;
+@@ -43,5 +50,5 @@ export const LocationSection: React.FC = () => {
+ 
+-        {/* Desktop: Map 55% + Information 45% / Mobile: Map above Info */}
++        {/* Layar lebar: peta ~58% + informasi ~42% berdampingan. HP: peta di atas, informasi di bawah */}
+         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch rounded-3xl overflow-hidden border border-stone-200 shadow-md bg-stone-50">
+-          {/* Map Section (55% desktop -> 7 cols) */}
++          {/* Peta Google Maps (iframe) */}
+           <div className="lg:col-span-7 min-h-[340px] sm:min-h-[420px] relative bg-stone-200 overflow-hidden">
+@@ -60,3 +67,3 @@ export const LocationSection: React.FC = () => {
+ 
+-          {/* Information Section (45% desktop -> 5 cols) */}
++          {/* Panel informasi: alamat, telepon, email, jam operasional, dan tombol Maps */}
+           <div className="lg:col-span-5 p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-6 bg-white">
+diff --git a/src/components/sections/MarriageTimelineSection.tsx b/src/components/sections/MarriageTimelineSection.tsx
+index 0c30a3c..568acff 100644
+--- a/src/components/sections/MarriageTimelineSection.tsx
++++ b/src/components/sections/MarriageTimelineSection.tsx
+@@ -1 +1,3 @@
++// BAGIAN ALUR PERNIKAHAN di Beranda: lima langkah persiapan nikah ditampilkan sebagai garis waktu
++// (mendatar di layar lebar, menurun di HP) + tombol menuju panduan pernikahan lengkap. Data dari data/marriage.ts.
+ import React from "react";
+@@ -6,2 +8,5 @@ import { marriageSteps } from "../../data/marriage";
+ 
++/**
++ * Komponen garis waktu langkah pernikahan; tiap kartu muncul bergantian saat discroll ke layar.
++ */
+ export const MarriageTimelineSection: React.FC = () => {
+@@ -25,5 +30,5 @@ export const MarriageTimelineSection: React.FC = () => {
+ 
+-        {/* Desktop Horizontal Timeline / Mobile Vertical Timeline */}
++        {/* Garis waktu: mendatar di layar lebar, menurun di HP */}
+         <div className="relative">
+-          {/* Connecting Line Desktop */}
++          {/* Garis penghubung antar kartu (hanya di layar lebar) */}
+           <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-1 bg-emerald-100 -translate-y-1/2 z-0" />
+@@ -31,2 +36,3 @@ export const MarriageTimelineSection: React.FC = () => {
+           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-4 relative z-10">
++            {/* Satu kartu per langkah; delay bertingkat membuat kartu muncul satu per satu */}
+             {marriageSteps.map((item, idx) => (
+@@ -75,3 +81,3 @@ export const MarriageTimelineSection: React.FC = () => {
+ 
+-        {/* Bottom CTA Action Banner */}
++        {/* Tombol menuju halaman panduan pernikahan lengkap */}
+         <div className="mt-12 text-center">
+diff --git a/src/components/sections/NewsSection.tsx b/src/components/sections/NewsSection.tsx
+index d44d4e3..0501e5f 100644
+--- a/src/components/sections/NewsSection.tsx
++++ b/src/components/sections/NewsSection.tsx
+@@ -1 +1,2 @@
++// BAGIAN INFORMASI TERBARU di Beranda: menampilkan 3 berita/pengumuman terbaru dari Supabase + tautan ke arsip lengkap (/informasi).
+ import React, { useEffect, useState } from "react";
+@@ -10,4 +11,9 @@ import { LoadingState, EmptyState } from "../ui/CmsState";
+ 
++/**
++ * Komponen bagian berita: memuat data, lalu menampilkan loading / kosong / grid 3 kartu berita.
++ */
+ export const NewsSection: React.FC = () => {
++  // Seluruh berita yang berhasil dimuat
+   const [news, setNews] = useState<Berita[]>([]);
++  // True selama data masih dimuat
+   const [loading, setLoading] = useState(true);
+@@ -16,2 +22,3 @@ export const NewsSection: React.FC = () => {
+     let cancelled = false;
++    // Muat berita; "cancelled" mencegah update state jika komponen sudah ditutup
+     getBerita().then((res) => {
+@@ -25,2 +32,3 @@ export const NewsSection: React.FC = () => {
+ 
++  // Hanya 3 berita terbaru (data sudah diurutkan terbaru-di-atas oleh getBerita)
+   const latestNews = news.slice(0, 3);
+diff --git a/src/components/sections/OfficialLinksSection.tsx b/src/components/sections/OfficialLinksSection.tsx
+index a30619e..79b3e7e 100644
+--- a/src/components/sections/OfficialLinksSection.tsx
++++ b/src/components/sections/OfficialLinksSection.tsx
+@@ -1 +1,3 @@
++// BAGIAN TAUTAN RESMI di Beranda: kumpulan kartu yang mengarah ke portal resmi Kemenag dan aplikasi terkait.
++// Daftar tautan diambil dari data/officialLinks.ts.
+ import React from "react";
+@@ -5,2 +7,5 @@ import { officialLinksData } from "../../data/officialLinks";
+ 
++/**
++ * Menampilkan semua tautan resmi sebagai grid kartu (1/2/3 kolom sesuai lebar layar).
++ */
+ export const OfficialLinksSection: React.FC = () => {
+diff --git a/src/components/sections/QuickAccessSection.tsx b/src/components/sections/QuickAccessSection.tsx
+index 32dc808..9a5451b 100644
+--- a/src/components/sections/QuickAccessSection.tsx
++++ b/src/components/sections/QuickAccessSection.tsx
+@@ -1 +1,3 @@
++// BAGIAN AKSES CEPAT di Beranda (kotak putih yang menimpa bagian bawah hero): empat pintasan—Lokasi, Telepon, WhatsApp, dan Jam Pelayanan.
++// Datanya diambil dari profil di Supabase; jika kosong, memakai data lokal.
+ import React, { useEffect, useState } from "react";
+@@ -7,3 +9,7 @@ import type { Profil } from "../../lib/cms/types";
+ 
++/**
++ * Komponen empat kartu pintasan kontak.
++ */
+ export const QuickAccessSection: React.FC = () => {
++  // Profil dari database (null selama belum dimuat atau gagal)
+   const [profil, setProfil] = useState<Profil | null>(null);
+@@ -20,2 +26,3 @@ export const QuickAccessSection: React.FC = () => {
+ 
++  // Nilai dari database jika terisi, jika tidak pakai data lokal
+   const address = profil?.address || profileData.address;
+@@ -24,2 +31,3 @@ export const QuickAccessSection: React.FC = () => {
+   const fridayHours = profil?.office_hours?.fridayHours || profileData.officeHours.fridayHours;
++  // Nomor telepon hanya angka, dipakai untuk tautan WhatsApp (wa.me)
+   const rawPhoneNum = phone.replace(/[^0-9]/g, "");
+@@ -27,2 +35,3 @@ export const QuickAccessSection: React.FC = () => {
+ 
++  // Definisi empat kartu: judul, isi, teks tombol, tujuan tautan (external = buka di tab baru), dan ikon
+   const quickItems = [
+@@ -74,2 +83,3 @@ export const QuickAccessSection: React.FC = () => {
+         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 divide-y sm:divide-y-0 sm:divide-x divide-stone-100">
++          {/* Tiap pintasan dirender sebagai tautan; baris pertama tidak diberi jarak atas tambahan */}
+           {quickItems.map((item, idx) => (
+diff --git a/src/components/sections/ServicesSection.tsx b/src/components/sections/ServicesSection.tsx
+index c2acd6a..cc4e7d9 100644
+--- a/src/components/sections/ServicesSection.tsx
++++ b/src/components/sections/ServicesSection.tsx
+@@ -1 +1,2 @@
++// BAGIAN LAYANAN di Beranda: kartu semua layanan aktif dari Supabase + tautan ke halaman Layanan lengkap (/layanan).
+ import React, { useEffect, useState } from "react";
+@@ -10,4 +11,9 @@ import { LoadingState, EmptyState } from "../ui/CmsState";
+ 
++/**
++ * Komponen bagian layanan: memuat data, lalu menampilkan loading / kosong / grid kartu layanan.
++ */
+ export const ServicesSection: React.FC = () => {
++  // Seluruh layanan aktif yang berhasil dimuat
+   const [services, setServices] = useState<Layanan[]>([]);
++  // True selama data masih dimuat
+   const [loading, setLoading] = useState(true);
+@@ -16,2 +22,3 @@ export const ServicesSection: React.FC = () => {
+     let cancelled = false;
++    // Muat layanan; "cancelled" mencegah update state jika komponen sudah ditutup
+     getLayanan().then((res) => {
+@@ -51,2 +58,3 @@ export const ServicesSection: React.FC = () => {
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
++            {/* Satu kartu per layanan; nomor urut diambil dari kolom "order" (diformat 2 digit), jeda animasi bertingkat */}
+             {services.map((service, i) => (
+diff --git a/src/components/ui/Accordion.tsx b/src/components/ui/Accordion.tsx
+index d039fc9..19417e1 100644
+--- a/src/components/ui/Accordion.tsx
++++ b/src/components/ui/Accordion.tsx
+@@ -1 +1,3 @@
++// KOMPONEN AKORDEON: daftar judul yang bisa diklik untuk membuka/menutup isinya (dipakai untuk FAQ & persyaratan layanan).
++// Hanya satu item yang terbuka dalam satu waktu.
+ import React, { useState } from "react";
+@@ -4,2 +6,5 @@ import { motion, AnimatePresence } from "framer-motion";
+ 
++/**
++ * Properti satu item akordeon: id, judul, isi (children), status terbuka, dan fungsi yang dipanggil saat judul diklik.
++ */
+ export interface AccordionItemProps {
+@@ -12,2 +17,5 @@ export interface AccordionItemProps {
+ 
++/**
++ * Satu baris akordeon: tombol judul (dengan panah yang berputar) + isi yang membuka/menutup dengan animasi.
++ */
+ export const AccordionItem: React.FC<AccordionItemProps> = ({
+@@ -24,2 +32,3 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
+         className="w-full px-5 py-4 text-left font-semibold text-stone-900 flex items-center justify-between gap-4 hover:bg-stone-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
++        // Memberi tahu pembaca layar (aksesibilitas) apakah bagian ini sedang terbuka
+         aria-expanded={isOpen}
+@@ -36,2 +45,3 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
+ 
++      {/* Animasi tinggi saat isi muncul/hilang; initial={false} = tidak dianimasikan saat halaman pertama dimuat */}
+       <AnimatePresence initial={false}>
+@@ -54,2 +64,5 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
+ 
++/**
++ * Properti akordeon: daftar item {id, judul, isi}. (allowMultiple belum dipakai.)
++ */
+ export interface AccordionProps {
+@@ -63,5 +76,10 @@ export interface AccordionProps {
+ 
++/**
++ * Akordeon lengkap. Item pertama terbuka secara bawaan; mengklik item yang sedang terbuka akan menutupnya.
++ */
+ export const Accordion: React.FC<AccordionProps> = ({ items }) => {
++  // id item yang sedang terbuka (null = semua tertutup)
+   const [openId, setOpenId] = useState<string | null>(items[0]?.id || null);
+ 
++  // Klik item: jika sudah terbuka -> tutup, jika belum -> buka (dan otomatis menutup yang lain)
+   const handleToggle = (id: string) => {
+diff --git a/src/components/ui/Badge.tsx b/src/components/ui/Badge.tsx
+index c3f5e90..84bbdc3 100644
+--- a/src/components/ui/Badge.tsx
++++ b/src/components/ui/Badge.tsx
+@@ -1,3 +1,7 @@
++// KOMPONEN LENCANA (badge): label kecil berwarna, mis. kategori berita "Pengumuman" atau jabatan pegawai.
+ import React from "react";
+ 
++/**
++ * variant = warna (hijau/emas/abu/biru), size = ukuran (sm/md), className = kelas tambahan.
++ */
+ interface BadgeProps {
+@@ -9,2 +13,5 @@ interface BadgeProps {
+ 
++/**
++ * Menampilkan teks (children) di dalam kotak kecil berwarna sesuai variant.
++ */
+ export const Badge: React.FC<BadgeProps> = ({
+@@ -15,2 +22,3 @@ export const Badge: React.FC<BadgeProps> = ({
+ }) => {
++  // Pasangan warna latar, teks, dan garis tepi untuk tiap variant
+   const variantStyles = {
+@@ -22,2 +30,3 @@ export const Badge: React.FC<BadgeProps> = ({
+ 
++  // Ukuran padding & huruf untuk tiap size
+   const sizeStyles = {
+diff --git a/src/components/ui/Button.tsx b/src/components/ui/Button.tsx
+index 851da61..b61d2cc 100644
+--- a/src/components/ui/Button.tsx
++++ b/src/components/ui/Button.tsx
+@@ -1 +1,3 @@
++// KOMPONEN TOMBOL serbaguna, dipakai di seluruh situs.
++// Satu komponen bisa menjadi: tombol biasa (<button>), tautan antar halaman (prop "to"), atau tautan luar (prop "href").
+ import React from "react";
+@@ -3,2 +5,10 @@ import { Link } from "react-router-dom";
+ 
++/**
++ * Properti tombol:
++ * - variant : gaya (primary hijau tua, secondary hijau muda, outline berbingkai, ghost tanpa latar)
++ * - size    : ukuran (sm/md/lg)
++ * - to      : jika diisi, jadi tautan ke halaman lain di situs ini
++ * - href    : jika diisi, jadi tautan ke alamat luar (external=true -> buka di tab baru)
++ * - leftIcon / rightIcon : ikon di kiri/kanan teks
++ */
+ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+@@ -14,2 +24,5 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
+ 
++/**
++ * Merender tombol atau tautan sesuai prop yang diberikan, dengan gaya seragam.
++ */
+ export const Button: React.FC<ButtonProps> = ({
+@@ -27,2 +40,3 @@ export const Button: React.FC<ButtonProps> = ({
+ }) => {
++  // Gaya dasar semua tombol: sebaris, rata tengah, ada cincin fokus untuk navigasi keyboard, redup saat nonaktif
+   const baseStyles =
+@@ -30,2 +44,3 @@ export const Button: React.FC<ButtonProps> = ({
+ 
++  // Ukuran tiap size (tinggi minimum dijaga agar mudah disentuh di HP)
+   const sizeStyles = {
+@@ -36,2 +51,3 @@ export const Button: React.FC<ButtonProps> = ({
+ 
++  // Warna tiap variant
+   const variantStyles = {
+@@ -47,4 +63,6 @@ export const Button: React.FC<ButtonProps> = ({
+ 
++  // Gabungan semua kelas CSS yang berlaku untuk tombol ini
+   const combinedClasses = `${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`;
+ 
++  // Isi tombol: ikon kiri (opsional) + teks + ikon kanan (opsional)
+   const content = (
+@@ -57,2 +75,3 @@ export const Button: React.FC<ButtonProps> = ({
+ 
++  // Kasus 1: tautan ke halaman lain di dalam situs (tanpa memuat ulang halaman)
+   if (to) {
+@@ -65,2 +84,3 @@ export const Button: React.FC<ButtonProps> = ({
+ 
++  // Kasus 2: tautan ke alamat luar; rel="noopener noreferrer" mencegah halaman tujuan mengakses halaman kita
+   if (href) {
+diff --git a/src/components/ui/CmsState.tsx b/src/components/ui/CmsState.tsx
+index afe9e2c..255e44c 100644
+--- a/src/components/ui/CmsState.tsx
++++ b/src/components/ui/CmsState.tsx
+@@ -1 +1,3 @@
++// TIGA KEADAAN TAMPILAN untuk data yang diambil dari Supabase: sedang memuat, kosong, dan gagal.
++// Dipakai bersama di semua halaman yang menampilkan data dari database agar tampilannya seragam.
+ import React from 'react';
+@@ -7,2 +9,5 @@ interface LoadingStateProps {
+ 
++/**
++ * Tampilan "sedang memuat": ikon berputar + pesan.
++ */
+ export const LoadingState: React.FC<LoadingStateProps> = ({
+@@ -21,2 +26,5 @@ interface EmptyStateProps {
+ 
++/**
++ * Tampilan "data kosong": dipakai saat database aktif tetapi admin belum mengisi apa pun.
++ */
+ export const EmptyState: React.FC<EmptyStateProps> = ({
+@@ -37,2 +45,5 @@ interface ErrorStateProps {
+ 
++/**
++ * Tampilan "gagal memuat"; jika onRetry diberikan, muncul tombol "Coba Lagi".
++ */
+ export const ErrorState: React.FC<ErrorStateProps> = ({
+diff --git a/src/components/ui/Modal.tsx b/src/components/ui/Modal.tsx
+index 3c907a1..4bfd707 100644
+--- a/src/components/ui/Modal.tsx
++++ b/src/components/ui/Modal.tsx
+@@ -1 +1,2 @@
++// KOMPONEN MODAL (jendela pop-up di tengah layar dengan latar gelap), dipakai mis. untuk detail layanan & foto kegiatan.
+ import React, { useEffect } from "react";
+@@ -4,2 +5,5 @@ import { motion, AnimatePresence } from "framer-motion";
+ 
++/**
++ * isOpen = tampil/tidak, onClose = fungsi penutup, title = judul (opsional), maxWidth = lebar maksimum.
++ */
+ interface ModalProps {
+@@ -12,2 +16,5 @@ interface ModalProps {
+ 
++/**
++ * Menampilkan modal dengan animasi. Bisa ditutup dengan tombol X, klik latar gelap, atau tombol Esc.
++ */
+ export const Modal: React.FC<ModalProps> = ({
+@@ -20,2 +27,3 @@ export const Modal: React.FC<ModalProps> = ({
+   useEffect(() => {
++    // Tekan tombol Esc -> tutup modal
+     const handleKeyDown = (e: KeyboardEvent) => {
+@@ -25,2 +33,3 @@ export const Modal: React.FC<ModalProps> = ({
+     if (isOpen) {
++      // Saat modal terbuka, kunci scroll halaman di belakangnya
+       document.body.style.overflow = "hidden";
+@@ -30,2 +39,3 @@ export const Modal: React.FC<ModalProps> = ({
+     return () => {
++      // Pembersihan: kembalikan scroll halaman & lepas pendengar keyboard saat modal ditutup
+       document.body.style.overflow = "unset";
+@@ -35,2 +45,3 @@ export const Modal: React.FC<ModalProps> = ({
+ 
++  // Pemetaan nama lebar ke kelas CSS
+   const maxWidthClasses = {
+@@ -47,3 +58,3 @@ export const Modal: React.FC<ModalProps> = ({
+         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
+-          {/* Overlay backdrop */}
++          {/* Latar gelap di belakang modal; mengkliknya menutup modal */}
+           <motion.div
+@@ -56,3 +67,3 @@ export const Modal: React.FC<ModalProps> = ({
+ 
+-          {/* Modal Panel */}
++          {/* Panel putih modal (muncul dengan efek membesar halus) */}
+           <motion.div
+@@ -64,2 +75,3 @@ export const Modal: React.FC<ModalProps> = ({
+           >
++            {/* Jika ada judul: tampilkan bilah judul + tombol X di dalamnya */}
+             {title && (
+@@ -77,2 +89,3 @@ export const Modal: React.FC<ModalProps> = ({
+ 
++            {/* Jika tanpa judul: tombol X melayang di pojok kanan atas */}
+             {!title && (
+diff --git a/src/components/ui/SearchInput.tsx b/src/components/ui/SearchInput.tsx
+index f59b245..e1a84d6 100644
+--- a/src/components/ui/SearchInput.tsx
++++ b/src/components/ui/SearchInput.tsx
+@@ -1 +1,2 @@
++// KOMPONEN KOTAK PENCARIAN: input teks dengan ikon kaca pembesar dan tombol X untuk menghapus isinya.
+ import React from "react";
+@@ -3,2 +4,5 @@ import { Search, X } from "lucide-react";
+ 
++/**
++ * value = teks saat ini, onChange = dipanggil tiap kali teks berubah, placeholder = teks petunjuk.
++ */
+ interface SearchInputProps {
+@@ -10,2 +14,5 @@ interface SearchInputProps {
+ 
++/**
++ * Kotak pencarian "terkontrol": isinya disimpan oleh halaman pemakai (lewat value/onChange), bukan di komponen ini.
++ */
+ export const SearchInput: React.FC<SearchInputProps> = ({
+@@ -28,2 +35,3 @@ export const SearchInput: React.FC<SearchInputProps> = ({
+       />
++      {/* Tombol X hanya muncul jika sudah ada teks yang diketik */}
+       {value && (
+diff --git a/src/components/ui/SectionHeading.tsx b/src/components/ui/SectionHeading.tsx
+index 1957b64..828b960 100644
+--- a/src/components/ui/SectionHeading.tsx
++++ b/src/components/ui/SectionHeading.tsx
+@@ -1 +1,3 @@
++// KOMPONEN JUDUL BAGIAN: label kecil (eyebrow) + judul besar + deskripsi, dengan animasi muncul saat discroll ke layar.
++// Dipakai di hampir semua bagian/halaman agar gaya judul seragam.
+ import React from "react";
+@@ -3,2 +5,6 @@ import { motion } from "framer-motion";
+ 
++/**
++ * eyebrow = label kecil di atas judul, title = judul utama, description = kalimat penjelas,
++ * centered = rata tengah, children = konten tambahan di bawah deskripsi.
++ */
+ interface SectionHeadingProps {
+@@ -12,2 +18,5 @@ interface SectionHeadingProps {
+ 
++/**
++ * Menampilkan blok judul; animasi hanya berjalan sekali (viewport once) saat 40% bagian sudah terlihat.
++ */
+ export const SectionHeading: React.FC<SectionHeadingProps> = ({
+diff --git a/src/data/activities.ts b/src/data/activities.ts
+index 422841b..ec9115c 100644
+--- a/src/data/activities.ts
++++ b/src/data/activities.ts
+@@ -1 +1,7 @@
++/**
++ * Bentuk satu data kegiatan lokal. Field "location" tidak dipakai lagi karena tabel galeri tidak punya kolom lokasi.
++ */
++// DATA CADANGAN KEGIATAN (galeri).
++// Saat ini sengaja dikosongkan: foto kegiatan yang tampil di situs berasal dari tabel "galeri" di Supabase
++// (diisi lewat panel admin). Array ini hanya dipakai bila Supabase tidak dikonfigurasi / gagal diakses.
+ export interface ActivityItem {
+diff --git a/src/data/faq.ts b/src/data/faq.ts
+index 86081a7..c1113d5 100644
+--- a/src/data/faq.ts
++++ b/src/data/faq.ts
+@@ -1 +1,6 @@
++/**
++ * Satu kelompok FAQ: nama kategori + daftar pasangan pertanyaan & jawabannya.
++ */
++// DATA PERTANYAAN UMUM (FAQ) seputar layanan KUA, dikelompokkan per kategori.
++// Ditampilkan sebagai akordeon (klik untuk membuka jawaban) di halaman Layanan Pernikahan. Diedit langsung di file ini.
+ export interface FaqCategory {
+@@ -9,2 +14,5 @@ export interface FaqCategory {
+ 
++/**
++ * Seluruh isi FAQ yang ditampilkan di situs.
++ */
+ export const faqData: FaqCategory[] = [
+diff --git a/src/data/marriage.ts b/src/data/marriage.ts
+index 2ce9731..a3a7f4c 100644
+--- a/src/data/marriage.ts
++++ b/src/data/marriage.ts
+@@ -1 +1,6 @@
++/**
++ * Satu langkah dalam alur pendaftaran nikah (nomor, judul, penjelasan, dan rincian poin-poinnya).
++ */
++// DATA HALAMAN LAYANAN PERNIKAHAN: langkah-langkah pendaftaran nikah, daftar dokumen persyaratan, dan biaya.
++// Diedit langsung di file ini; dipakai oleh halaman Marriage dan bagian alur nikah di Beranda.
+ export interface MarriageStep {
+@@ -8,2 +13,5 @@ export interface MarriageStep {
+ 
++/**
++ * Satu dokumen persyaratan nikah: kode formulir (mis. N1), nama, instansi penerbit, fungsi, dan untuk siapa wajib.
++ */
+ export interface DocumentItem {
+@@ -16,2 +24,5 @@ export interface DocumentItem {
+ 
++/**
++ * Alur pendaftaran nikah dari awal sampai akad, ditampilkan sebagai garis waktu.
++ */
+ export const marriageSteps: MarriageStep[] = [
+@@ -75,2 +86,5 @@ export const marriageSteps: MarriageStep[] = [
+ 
++/**
++ * Daftar periksa (checklist) dokumen yang harus disiapkan calon pengantin.
++ */
+ export const documentChecklist: DocumentItem[] = [
+@@ -120,2 +134,6 @@ export const documentChecklist: DocumentItem[] = [
+ 
++/**
++ * Biaya nikah: nikah di Balai KUA (gratis) dan nikah di luar KUA (PNBP resmi).
++ * Sesuai PP No. 59 Tahun 2018 - jika aturan berubah, perbarui angka di sini.
++ */
+ export const marriageFees = {
+diff --git a/src/data/news.ts b/src/data/news.ts
+index 8521b0f..53b8c38 100644
+--- a/src/data/news.ts
++++ b/src/data/news.ts
+@@ -1 +1,7 @@
++/**
++ * Bentuk satu berita/pengumuman lokal. "category" menentukan jenisnya; "featured" menandai konten penting/disorot.
++ */
++// DATA CADANGAN BERITA & PENGUMUMAN.
++// Sengaja dikosongkan: konten berita/pengumuman yang tampil berasal dari Supabase (diisi lewat panel admin).
++// Array ini hanya dipakai bila Supabase tidak dikonfigurasi / gagal diakses.
+ export interface NewsItem {
+diff --git a/src/data/officialLinks.ts b/src/data/officialLinks.ts
+index 530a037..51f0bda 100644
+--- a/src/data/officialLinks.ts
++++ b/src/data/officialLinks.ts
+@@ -1 +1,7 @@
++/**
++ * Satu tautan resmi. "verified" = true berarti alamatnya sudah dipastikan benar (ditampilkan sebagai tanda terverifikasi).
++ * "icon" harus berupa nama ikon yang dikenali komponen OfficialLinkCard.
++ */
++// DATA TAUTAN RESMI: daftar situs/aplikasi resmi terkait KUA (Kemenag RI, SIMKAH, dll) yang ditampilkan di Beranda.
++// Diedit langsung di file ini.
+ export interface OfficialLinkItem {
+@@ -10,2 +16,5 @@ export interface OfficialLinkItem {
+ 
++/**
++ * Daftar semua tautan resmi.
++ */
+ export const officialLinksData: OfficialLinkItem[] = [
+diff --git a/src/data/profile.ts b/src/data/profile.ts
+index cf18248..3e2a36f 100644
+--- a/src/data/profile.ts
++++ b/src/data/profile.ts
+@@ -1 +1,7 @@
++/**
++ * Satu tugas/fungsi KUA beserta nama ikonnya.
++ */
++// DATA PROFIL KANTOR (cadangan lokal): nama, alamat, kontak, jam layanan, visi-misi, tugas, 13 desa wilayah kerja, dan pegawai.
++// Dipakai bila Supabase tidak dikonfigurasi / gagal diakses, dan sebagai pengisi bagian yang masih kosong di database.
++// Ketika Supabase aktif, isi profil & staf diambil dari tabel "profil" dan "staf" (diedit lewat panel admin).
+ export interface Duty {
+@@ -7,2 +13,5 @@ export interface Duty {
+ 
++/**
++ * Satu desa dalam wilayah kerja KUA Ngoro (kode opsional).
++ */
+ export interface Village {
+@@ -13,2 +22,5 @@ export interface Village {
+ 
++/**
++ * Satu pegawai KUA. NIP & foto opsional; roleCategory menentukan lencana yang tampil di kartu pegawai.
++ */
+ export interface StaffMember {
+@@ -23,2 +35,5 @@ export interface StaffMember {
+ 
++/**
++ * Bentuk lengkap data profil kantor.
++ */
+ export interface ProfileData {
+@@ -46,2 +61,5 @@ export interface ProfileData {
+ 
++/**
++ * Isi data profil kantor. Jika ada informasi yang berubah (alamat, nomor, jam layanan), ubah di sini atau lewat panel admin.
++ */
+ export const profileData: ProfileData = {
+@@ -55,2 +73,3 @@ export const profileData: ProfileData = {
+   
++  // Jam pelayanan: dipakai untuk teks di situs dan perhitungan lencana "Pelayanan Buka/Tutup".
+   officeHours: {
+@@ -61,2 +80,3 @@ export const profileData: ProfileData = {
+ 
++  // Tautan Google Maps lokasi kantor
+   mapsUrl: "https://www.google.com/maps/place/KUA+Kecamatan+Ngoro/@-7.6925264,112.2692273,17z/data=!3m1!4b1!4m6!3m5!1s0x2e7868772497aa05:0x2fe556b013739c7f!8m2!3d-7.6925264!4d112.2718022",
+@@ -71,2 +91,3 @@ export const profileData: ProfileData = {
+ 
++  // Daftar misi KUA
+   missions: [
+@@ -83,2 +104,3 @@ export const profileData: ProfileData = {
+ 
++  // Daftar tugas & fungsi KUA
+   duties: [
+@@ -123,2 +145,3 @@ export const profileData: ProfileData = {
+   // 13 Desa di Kecamatan Ngoro, Kabupaten Jombang
++  // Daftar 13 desa wilayah kerja KUA Ngoro
+   villages: [
+@@ -138,2 +161,3 @@ export const profileData: ProfileData = {
+   ],
++  // Daftar pegawai (data cadangan). Nama & jabatan masih perlu diverifikasi - lihat tanda TODO di bawah.
+   staff: [
+diff --git a/src/data/services.ts b/src/data/services.ts
+index 5538452..65ce23e 100644
+--- a/src/data/services.ts
++++ b/src/data/services.ts
+@@ -1 +1,7 @@
++/**
++ * Satu layanan: ringkasan singkat (shortDesc), penjelasan lengkap (fullDesc), nama ikon, persyaratan, dan langkah prosedur.
++ */
++// DATA CADANGAN LAYANAN KUA (nikah, wakaf, dll).
++// Dipakai hanya bila Supabase tidak dikonfigurasi / gagal diakses; saat normal, layanan diambil dari tabel "layanan"
++// (diisi lewat panel admin). Diubah ke bentuk Layanan di src/lib/cms/layanan.ts.
+ export interface ServiceItem {
+@@ -10,2 +16,5 @@ export interface ServiceItem {
+ 
++/**
++ * Daftar semua layanan cadangan; urutan array = urutan tampil.
++ */
+ export const servicesData: ServiceItem[] = [
+diff --git a/src/hooks/usePageMeta.ts b/src/hooks/usePageMeta.ts
+index 186da35..cecc3db 100644
+--- a/src/hooks/usePageMeta.ts
++++ b/src/hooks/usePageMeta.ts
+@@ -2,7 +2,15 @@ import { useEffect } from "react";
+ 
+-// Ganti dengan domain produksi (mis. https://kua-ngoro.vercel.app atau domain sendiri)
+-// setelah deploy, supaya og:url dan canonical menunjuk ke alamat yang benar.
++// Alamat situs yang sebenarnya. WAJIB diganti dengan domain produksi (mis. https://kua-ngoro.vercel.app
++// atau domain sendiri) setelah deploy, supaya og:url dan canonical menunjuk ke alamat yang benar.
+ export const SITE_URL = "https://kua-ngoro-ngoro.vercel.app";
++// Nama situs, ditempelkan di belakang judul tab browser: "Judul Halaman | KUA Kecamatan Ngoro"
+ const SITE_NAME = "KUA Kecamatan Ngoro";
+ 
++/**
++ * Data yang diberikan tiap halaman:
++ * - title       : judul halaman
++ * - description : ringkasan (tampil di hasil pencarian Google & saat tautan dibagikan)
++ * - path        : alamat halaman, mis. "/layanan"
++ * - noindex     : true = minta mesin pencari TIDAK mengindeks halaman ini (dipakai di halaman 404)
++ */
+ interface PageMeta {
+@@ -14,2 +22,5 @@ interface PageMeta {
+ 
++/**
++ * Mengisi (atau membuat jika belum ada) satu tag <meta> di <head>, mis. description atau og:title.
++ */
+ function setMeta(name: string, content: string, attr: "name" | "property" = "name") {
+@@ -24,2 +35,5 @@ function setMeta(name: string, content: string, attr: "name" | "property" = "nam
+ 
++/**
++ * Mengisi (atau membuat jika belum ada) satu tag <link> di <head>, dipakai untuk alamat "canonical".
++ */
+ function setLink(rel: string, href: string) {
+@@ -35,6 +49,8 @@ function setLink(rel: string, href: string) {
+ /**
+- * Mengatur <title>, meta description, Open Graph, canonical, dan robots
+- * per halaman. Situs ini SPA (client-side render), jadi mesin pencari
+- * perlu menjalankan JS untuk membaca ini — cukup untuk Google, tapi
+- * bukan pengganti server-side rendering untuk crawler yang lebih ketat.
++ * Hook untuk mengatur info SEO tiap halaman: judul tab, deskripsi, Open Graph (pratinjau saat tautan
++ * dibagikan ke WhatsApp/sosmed), canonical, dan aturan robots.
++ * Dipanggil di bagian atas setiap halaman publik.
++ *
++ * Catatan: situs ini dirender di browser (SPA), jadi mesin pencari perlu menjalankan JavaScript untuk
++ * membaca ini. Google bisa, tetapi crawler yang lebih ketat belum tentu.
+  */
+diff --git a/src/hooks/useScrollPosition.ts b/src/hooks/useScrollPosition.ts
+index 899a5c9..d9eba65 100644
+--- a/src/hooks/useScrollPosition.ts
++++ b/src/hooks/useScrollPosition.ts
+@@ -2,2 +2,6 @@ import { useState, useEffect } from "react";
+ 
++/**
++ * Hook yang mengembalikan seberapa jauh halaman sudah di-scroll ke bawah (dalam piksel).
++ * Dipakai Navbar untuk mengubah tampilan (mis. menjadi lebih solid) setelah pengunjung menggulir halaman.
++ */
+ export function useScrollPosition() {
+@@ -6,2 +10,3 @@ export function useScrollPosition() {
+   useEffect(() => {
++    // Dipanggil setiap kali halaman di-scroll: simpan posisi vertikal terbaru
+     const updatePosition = () => {
+@@ -10,2 +15,3 @@ export function useScrollPosition() {
+ 
++    // "passive: true" memberi tahu browser bahwa kita tidak menahan scroll, sehingga scroll tetap mulus
+     window.addEventListener("scroll", updatePosition, { passive: true });
+@@ -13,2 +19,3 @@ export function useScrollPosition() {
+ 
++    // Pembersihan: lepas pendengar scroll saat komponen ditutup agar tidak bocor memori
+     return () => window.removeEventListener("scroll", updatePosition);
+diff --git a/src/lib/analyticsTracker.ts b/src/lib/analyticsTracker.ts
+index 916422d..897166e 100644
+--- a/src/lib/analyticsTracker.ts
++++ b/src/lib/analyticsTracker.ts
+@@ -3,4 +3,6 @@ import { useLocation } from 'react-router-dom';
+ 
++// ID pengukuran Google Analytics dari file .env (boleh kosong = fitur analytics mati)
+ const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined;
+ 
++// Memberitahu TypeScript bahwa objek window punya properti dataLayer & gtag (disuntikkan oleh skrip Google)
+ declare global {
+@@ -13,3 +15,5 @@ declare global {
+ /**
+- * Inisialisasi skrip Google Analytics 4 jika VITE_GA_MEASUREMENT_ID dikonfigurasi.
++ * Menyalakan Google Analytics 4 (statistik pengunjung).
++ * Hanya aktif jika variabel VITE_GA_MEASUREMENT_ID diisi di file .env; jika kosong, tidak melakukan apa-apa.
++ * Dipanggil sekali saat aplikasi dimulai (lihat App.tsx).
+  */
+@@ -28,2 +32,3 @@ export function initGA() {
+   window.dataLayer = window.dataLayer || [];
++  // Fungsi standar Google: mengantre perintah ke dataLayer untuk diproses skrip GA
+   function gtag(...args: unknown[]) {
+@@ -40,3 +45,5 @@ export function initGA() {
+ /**
+- * Hook untuk melacak perpindahan halaman di React Router (SPA).
++ * Hook yang mengirim catatan "halaman dilihat" ke Google Analytics setiap kali alamat URL berubah.
++ * Perlu dikirim manual karena situs ini aplikasi satu halaman (SPA): browser tidak memuat ulang halaman
++ * saat pindah menu, sehingga GA tidak mendeteksinya otomatis.
+  */
+diff --git a/src/lib/cms/berita.ts b/src/lib/cms/berita.ts
+index 2c46aaf..7cf93c4 100644
+--- a/src/lib/cms/berita.ts
++++ b/src/lib/cms/berita.ts
+@@ -5,3 +5,4 @@ import { newsData } from '../../data/news';
+ 
+-// ── Fallback (local static data) ─────────────────────────────
++// ── Data cadangan (data statis lokal) ────────────────────────
++// Mengubah data berita lokal (src/data/news.ts) ke bentuk Berita; dipakai jika Supabase tidak tersedia.
+ const fallbackBeritaList: Berita[] = newsData.map((item) => ({
+@@ -19,7 +20,7 @@ const fallbackBeritaList: Berita[] = newsData.map((item) => ({
+ 
+-// ── Fetchers ──────────────────────────────────────────────────
++// ── Pengambil data ────────────────────────────────────────────
+ 
+ /**
+- * Returns all published berita ordered by published_at desc.
+- * Empty result from Supabase → returns [], no fallback.
++ * Mengambil semua berita berstatus "published", terbaru di atas.
++ * Jika Supabase aktif tetapi tabelnya kosong -> hasilnya kosong (bukan data cadangan).
+  */
+@@ -39,4 +40,4 @@ export async function getBerita(): Promise<CmsResponse<Berita[]>> {
+ /**
+- * Returns a single published berita by slug.
+- * Not found → null, no fallback.
++ * Mengambil satu berita "published" berdasarkan slug (bagian akhir alamat, mis. /news/judul-berita).
++ * Tidak ditemukan -> null (halaman menampilkan pesan "tidak ditemukan").
+  */
+diff --git a/src/lib/cms/client.ts b/src/lib/cms/client.ts
+index 4b6e0f0..131664b 100644
+--- a/src/lib/cms/client.ts
++++ b/src/lib/cms/client.ts
+@@ -4,4 +4,4 @@ import type { CmsResponse } from './types';
+ /**
+- * Returns true when both Supabase env vars are present.
+- * Used by pages to decide whether to show a "CMS not configured" note.
++ * Cek apakah Supabase sudah dikonfigurasi (URL & kunci ada di file .env).
++ * Jika belum, situs memakai data cadangan lokal.
+  */
+@@ -12,9 +12,14 @@ export function isCmsConfigured(): boolean {
+ /**
+- * Core fallback wrapper.
++ * Pembungkus inti: coba ambil data dari Supabase, dan pakai data cadangan jika perlu.
++ * Dipakai oleh semua fungsi pengambil data (getBerita, getLayanan, dst).
+  *
+- * Semantics (per spec):
+- *  • CMS not configured  → return fallback, error: null
+- *  • CMS returns data    → return CMS data, fromFallback: false
+- *  • CMS returns empty   → return empty ([], null), fromFallback: false  ← NOT falling back
+- *  • CMS throws          → return fallback, error message
++ * Aturan:
++ *  • Supabase belum dikonfigurasi -> pakai data cadangan, tanpa pesan error
++ *  • Supabase mengembalikan data   -> pakai data dari database
++ *  • Supabase mengembalikan KOSONG -> tetap kosong (TIDAK pakai cadangan; artinya admin memang belum mengisi)
++ *  • Supabase error / gagal        -> pakai data cadangan + pesan error
++ *
++ * Parameter:
++ *  - fetcher      : fungsi yang mengambil data dari Supabase (harus melempar error jika gagal)
++ *  - fallbackData : data cadangan lokal
+  */
+@@ -32,2 +37,3 @@ export async function queryWithFallback<T>(
+   } catch (err) {
++    // Catat error di konsol browser untuk keperluan debugging, lalu pakai data cadangan
+     console.warn('[CMS Error] Fetch failed, using fallback data:', err);
+diff --git a/src/lib/cms/galeri.ts b/src/lib/cms/galeri.ts
+index e99b3d6..9308766 100644
+--- a/src/lib/cms/galeri.ts
++++ b/src/lib/cms/galeri.ts
+@@ -5,3 +5,4 @@ import { activitiesData } from '../../data/activities';
+ 
+-// ── Fallback ──────────────────────────────────────────────────
++// ── Data cadangan ─────────────────────────────────────────────
++// Dipakai hanya jika Supabase belum dikonfigurasi / gagal diakses. Diubah ke bentuk Galeri.
+ const fallbackGaleriList: Galeri[] = activitiesData.map((act) => ({
+@@ -15,6 +16,6 @@ const fallbackGaleriList: Galeri[] = activitiesData.map((act) => ({
+ 
+-// ── Fetcher ───────────────────────────────────────────────────
++// ── Pengambil data ────────────────────────────────────────────
+ 
+ /**
+- * Returns all galeri items ordered by published_at desc.
++ * Mengambil semua foto galeri, terbaru di atas (urut published_at menurun).
+  */
+diff --git a/src/lib/cms/index.ts b/src/lib/cms/index.ts
+index 37cba87..2a234f6 100644
+--- a/src/lib/cms/index.ts
++++ b/src/lib/cms/index.ts
+@@ -1 +1,3 @@
++// Pintu masuk tunggal lapisan data (CMS). Halaman cukup menulis: import { getBerita } from "../lib/cms"
++// tanpa perlu tahu file mana yang menyimpannya. Semua fungsi pengambil data & tipe diekspor ulang dari sini.
+ export * from './types';
+diff --git a/src/lib/cms/layanan.ts b/src/lib/cms/layanan.ts
+index 32440c3..53b35e2 100644
+--- a/src/lib/cms/layanan.ts
++++ b/src/lib/cms/layanan.ts
+@@ -5,3 +5,4 @@ import { servicesData } from '../../data/services';
+ 
+-// ── Fallback ──────────────────────────────────────────────────
++// ── Data cadangan ─────────────────────────────────────────────
++// Mengubah data layanan lokal (src/data/services.ts) ke bentuk Layanan; urutan mengikuti urutan array.
+ const fallbackLayananList: Layanan[] = servicesData.map((svc, idx) => ({
+@@ -19,6 +20,6 @@ const fallbackLayananList: Layanan[] = servicesData.map((svc, idx) => ({
+ 
+-// ── Fetchers ──────────────────────────────────────────────────
++// ── Pengambil data ────────────────────────────────────────────
+ 
+ /**
+- * Returns all active layanan ordered by order asc.
++ * Mengambil semua layanan yang aktif, urut berdasarkan kolom "order" (kecil ke besar).
+  */
+@@ -38,3 +39,4 @@ export async function getLayanan(): Promise<CmsResponse<Layanan[]>> {
+ /**
+- * Returns a single active layanan by slug or id.
++ * Mengambil satu layanan aktif berdasarkan slug (alamat singkat) atau id.
++ * Data cadangan dicari lebih dulu agar bisa dipakai jika database gagal.
+  */
+diff --git a/src/lib/cms/pengumuman.ts b/src/lib/cms/pengumuman.ts
+index bcb10a1..8ec45f0 100644
+--- a/src/lib/cms/pengumuman.ts
++++ b/src/lib/cms/pengumuman.ts
+@@ -5,3 +5,4 @@ import { newsData } from '../../data/news';
+ 
+-// ── Fallback ──────────────────────────────────────────────────
++// ── Data cadangan ─────────────────────────────────────────────
++// Diambil dari berita lokal yang berkategori "Pengumuman"; dipakai jika Supabase tidak tersedia.
+ const fallbackPengumumanList: Pengumuman[] = newsData
+@@ -18,3 +19,4 @@ const fallbackPengumumanList: Pengumuman[] = newsData
+ 
+-// Client-side expiry filter (applied to both CMS and fallback data)
++// Membuang pengumuman yang sudah kedaluwarsa (expires_at lebih lama dari hari ini).
++// Berlaku untuk data dari database maupun data cadangan.
+ function filterExpired(list: Pengumuman[]): Pengumuman[] {
+@@ -24,6 +26,6 @@ function filterExpired(list: Pengumuman[]): Pengumuman[] {
+ 
+-// ── Fetcher ───────────────────────────────────────────────────
++// ── Pengambil data ────────────────────────────────────────────
+ 
+ /**
+- * Returns published & non-expired pengumuman ordered by published_at desc.
++ * Mengambil pengumuman yang berstatus "published" dan belum kedaluwarsa, terbaru di atas.
+  */
+@@ -41,3 +43,3 @@ export async function getPengumuman(): Promise<CmsResponse<Pengumuman[]>> {
+ 
+-  // Apply client-side expiry filter regardless of data source
++  // Filter kedaluwarsa dijalankan di sini agar berlaku untuk kedua sumber data
+   if (response.data) {
+diff --git a/src/lib/cms/profil.ts b/src/lib/cms/profil.ts
+index 37c9180..096f968 100644
+--- a/src/lib/cms/profil.ts
++++ b/src/lib/cms/profil.ts
+@@ -5,3 +5,5 @@ import { profileData } from '../../data/profile';
+ 
+-// ── Fallback ──────────────────────────────────────────────────
++// ── Data cadangan ─────────────────────────────────────────────
++// Profil lokal (src/data/profile.ts) diubah ke bentuk Profil. Mode maintenance selalu false di cadangan,
++// supaya situs tidak pernah "terkunci" hanya karena database tidak terjangkau.
+ const fallbackProfil: Profil = {
+@@ -19,7 +21,8 @@ const fallbackProfil: Profil = {
+ 
+-// ── Fetcher ───────────────────────────────────────────────────
++// ── Pengambil data ────────────────────────────────────────────
+ 
+ /**
+- * Returns the singleton profil row.
+- * If no row exists in Supabase, returns null (not a fallback — EmptyState shown).
++ * Mengambil profil kantor (hanya ada satu baris di tabel "profil").
++ * Jika baris belum ada, atau ada kolom yang kosong, bagian yang kosong diisi dari data cadangan lokal
++ * sehingga halaman tidak pernah tampil bolong.
+  */
+@@ -33,2 +36,3 @@ export async function getProfil(): Promise<CmsResponse<Profil>> {
+     if (error) throw new Error(error.message);
++    // Belum ada baris profil di database -> pakai profil cadangan sepenuhnya
+     if (!data) return fallbackProfil;
+@@ -40,2 +44,3 @@ export async function getProfil(): Promise<CmsResponse<Profil>> {
+       vision:       data.vision || fallbackProfil.vision,
++      // Misi berupa daftar; pakai cadangan jika kosong atau bukan daftar
+       mission:      (Array.isArray(data.mission) && data.mission.length > 0) ? data.mission : fallbackProfil.mission,
+diff --git a/src/lib/cms/staf.ts b/src/lib/cms/staf.ts
+index 04cbfdb..d95f35d 100644
+--- a/src/lib/cms/staf.ts
++++ b/src/lib/cms/staf.ts
+@@ -5,3 +5,4 @@ import { profileData } from '../../data/profile';
+ 
+-// ── Fallback ──────────────────────────────────────────────────
++// ── Data cadangan ─────────────────────────────────────────────
++// Daftar staf lokal (src/data/profile.ts) diubah ke bentuk Staf; urutan mengikuti urutan array.
+ const fallbackStafList: Staf[] = profileData.staff.map((s, idx) => ({
+@@ -17,6 +18,6 @@ const fallbackStafList: Staf[] = profileData.staff.map((s, idx) => ({
+ 
+-// ── Fetcher ───────────────────────────────────────────────────
++// ── Pengambil data ────────────────────────────────────────────
+ 
+ /**
+- * Returns all active staf ordered by order asc.
++ * Mengambil semua pegawai yang aktif (active = true), urut berdasarkan kolom "order".
+  */
+diff --git a/src/lib/cms/types.ts b/src/lib/cms/types.ts
+index 28866fc..19d0279 100644
+--- a/src/lib/cms/types.ts
++++ b/src/lib/cms/types.ts
+@@ -1,3 +1,7 @@
+-// Interfaces for the 6 Headless CMS Content Models
++// Bentuk (tipe) data untuk 6 jenis konten yang dikelola lewat panel admin.
++// Nama field sama dengan nama kolom di tabel Supabase masing-masing.
+ 
++/**
++ * Berita / artikel (tabel "berita"). Hanya yang berstatus "published" tampil di situs publik.
++ */
+ export interface Berita {
+@@ -15,2 +19,5 @@ export interface Berita {
+ 
++/**
++ * Pengumuman resmi (tabel "pengumuman"). Bisa punya tanggal kedaluwarsa (expires_at) dan prioritas "important" untuk disorot.
++ */
+ export interface Pengumuman {
+@@ -25,2 +32,5 @@ export interface Pengumuman {
+ 
++/**
++ * Layanan KUA, mis. nikah, wakaf (tabel "layanan"). Berisi persyaratan & langkah prosedur; "order" menentukan urutan tampil.
++ */
+ export interface Layanan {
+@@ -38,2 +48,5 @@ export interface Layanan {
+ 
++/**
++ * Profil kantor (tabel "profil" - hanya satu baris). Juga menyimpan sakelar maintenance_mode untuk menutup situs sementara.
++ */
+ export interface Profil {
+@@ -55,2 +68,5 @@ export interface Profil {
+ 
++/**
++ * Pegawai KUA (tabel "staf"). NIP bersifat opsional; "active" = tampil di situs.
++ */
+ export interface Staf {
+@@ -66,2 +82,5 @@ export interface Staf {
+ 
++/**
++ * Foto dokumentasi kegiatan (tabel "galeri").
++ */
+ export interface Galeri {
+@@ -75,2 +94,8 @@ export interface Galeri {
+ 
++/**
++ * Bungkus hasil pengambilan data:
++ * - data         : isi data (null jika gagal total)
++ * - fromFallback : true jika yang ditampilkan data cadangan lokal, bukan dari database
++ * - error        : pesan kesalahan untuk ditampilkan (null jika tidak ada masalah)
++ */
+ export interface CmsResponse<T> {
+diff --git a/src/lib/prayerTimes.ts b/src/lib/prayerTimes.ts
+index 8e44674..8a74c25 100644
+--- a/src/lib/prayerTimes.ts
++++ b/src/lib/prayerTimes.ts
+@@ -1 +1,6 @@
++/**
++ * Lima waktu sholat wajib dalam format "HH:MM" (24 jam)
++ */
++// JADWAL SOLAT HARIAN: mengambil waktu sholat hari ini dari layanan Aladhan API (untuk Kabupaten Jombang) dan menentukan sholat berikutnya.
++// Dipakai oleh komponen PrayerTimesBar (strip hijau di bawah navbar).
+ export interface PrayerTimes {
+@@ -8,2 +13,3 @@ export interface PrayerTimes {
+ 
++// Awalan nama kunci penyimpanan di browser (localStorage); ditambah tanggal agar jadwal baru diambil tiap hari
+ const CACHE_KEY_PREFIX = 'kua-ngoro:prayer-times:';
+@@ -22,2 +28,3 @@ const CACHE_KEY_PREFIX = 'kua-ngoro:prayer-times:';
+ export async function getTodayPrayerTimes(): Promise<PrayerTimes | null> {
++  // Tanggal hari ini dalam format YYYY-MM-DD, dipakai sebagai bagian kunci cache
+   const todayKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+@@ -25,2 +32,3 @@ export async function getTodayPrayerTimes(): Promise<PrayerTimes | null> {
+   try {
++    // Jika jadwal hari ini sudah tersimpan di browser, langsung pakai (tanpa menghubungi API lagi)
+     const cached = localStorage.getItem(CACHE_KEY_PREFIX + todayKey);
+@@ -32,2 +40,3 @@ export async function getTodayPrayerTimes(): Promise<PrayerTimes | null> {
+   try {
++    // Minta jadwal ke Aladhan API. method=20 adalah metode perhitungan Kemenag RI.
+     const res = await fetch(
+@@ -40,2 +49,3 @@ export async function getTodayPrayerTimes(): Promise<PrayerTimes | null> {
+ 
++    // Ambil lima waktu wajib dari jawaban API (nama Inggris -> Indonesia: Fajr=Subuh, Dhuhr=Dzuhur, Asr=Ashar, Isha=Isya)
+     const times: PrayerTimes = {
+@@ -49,2 +59,3 @@ export async function getTodayPrayerTimes(): Promise<PrayerTimes | null> {
+     try {
++      // Simpan jadwal hari ini di browser agar kunjungan berikutnya di hari yang sama tidak memanggil API lagi
+       localStorage.setItem(CACHE_KEY_PREFIX + todayKey, JSON.stringify(times));
+@@ -56,2 +67,3 @@ export async function getTodayPrayerTimes(): Promise<PrayerTimes | null> {
+   } catch (err) {
++    // Gagal (offline / API bermasalah): catat di konsol lalu kembalikan null -> strip jadwal disembunyikan, situs tetap normal
+     console.warn('[PrayerTimes] Gagal mengambil jadwal sholat:', err);
+@@ -69,2 +81,3 @@ export function getNextPrayerName(times: PrayerTimes): keyof PrayerTimes | null
+   const nowMinutes = now.getHours() * 60 + now.getMinutes();
++  // Mengubah "HH:MM" menjadi total menit sejak tengah malam agar mudah dibandingkan
+   const toMinutes = (hhmm: string) => {
+@@ -74,2 +87,3 @@ export function getNextPrayerName(times: PrayerTimes): keyof PrayerTimes | null
+ 
++  // Urutan waktu sholat dalam sehari; dipakai untuk mencari yang pertama belum masuk waktunya
+   const order: (keyof PrayerTimes)[] = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
+diff --git a/src/lib/supabase.ts b/src/lib/supabase.ts
+index e8fa139..7911629 100644
+--- a/src/lib/supabase.ts
++++ b/src/lib/supabase.ts
+@@ -2,2 +2,4 @@ import { createClient } from '@supabase/supabase-js';
+ 
++// Alamat project Supabase & kunci publik, dibaca dari file .env (awalan VITE_ wajib agar terbaca di browser).
++// Kunci "anon" aman di browser karena akses data dibatasi aturan Row Level Security di database.
+ const supabaseUrl  = import.meta.env.VITE_SUPABASE_URL  as string | undefined;
+@@ -6,5 +8,6 @@ const supabaseKey  = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefine
+ /**
+- * Singleton Supabase client.
+- * Only initialised when both env vars are present.
+- * Import this in cms/ modules — do NOT create a second client elsewhere.
++ * Koneksi tunggal ke Supabase (database + login + penyimpanan file).
++ * Hanya dibuat jika URL dan kunci publik (anon key) ada di file .env; jika tidak, nilainya null
++ * dan situs otomatis memakai data cadangan lokal.
++ * Impor dari sini saja - jangan membuat koneksi kedua di tempat lain.
+  */
+diff --git a/src/main.tsx b/src/main.tsx
+index 9230150..d30cbbe 100644
+--- a/src/main.tsx
++++ b/src/main.tsx
+@@ -1 +1,4 @@
++// TITIK MASUK APLIKASI (entry point).
++// File pertama yang dijalankan browser: memasang aplikasi React ke elemen <div id="root"> di index.html.
++// BrowserRouter dipasang di sini agar seluruh halaman bisa memakai routing berbasis URL (react-router).
+ import { StrictMode } from "react";
+diff --git a/src/pages/Activities.tsx b/src/pages/Activities.tsx
+index d7318b5..d7d8bef 100644
+--- a/src/pages/Activities.tsx
++++ b/src/pages/Activities.tsx
+@@ -1 +1,3 @@
++// HALAMAN GALERI KEGIATAN (alamat: /kegiatan): semua foto dokumentasi dari tabel "galeri" di Supabase,
++// dengan filter kategori (Kegiatan, Pelayanan, Acara, Lainnya) dan tampilan foto besar dalam modal.
+ import { useState, useEffect } from "react";
+@@ -10,2 +12,5 @@ import { usePageMeta } from "../hooks/usePageMeta";
+ 
++/**
++ * Halaman galeri. Alur: muat data -> tampilkan loading/error/grid -> klik foto membuka modal.
++ */
+ export default function Activities() {
+@@ -18,9 +23,15 @@ export default function Activities() {
+ 
++  // Semua foto galeri yang dimuat
+   const [galeriList, setGaleriList] = useState<Galeri[]>([]);
++  // True selama data sedang dimuat
+   const [loading, setLoading] = useState(true);
++  // Pesan kesalahan jika galeri gagal dimuat (null = tidak ada masalah)
+   const [error, setError] = useState<string | null>(null);
+ 
++  // Kategori filter yang sedang dipilih ("Semua" = tanpa filter)
+   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
++  // Foto yang sedang dibuka di modal (null = modal tertutup)
+   const [selectedActivity, setSelectedActivity] = useState<Galeri | null>(null);
+ 
++  // Daftar tombol filter; nilainya harus sama dengan pilihan kategori di form admin galeri
+   const categories = ["Semua", "Kegiatan", "Pelayanan", "Acara", "Lainnya"];
+@@ -28,2 +39,3 @@ export default function Activities() {
+   useEffect(() => {
++    // Memuat galeri dari Supabase (atau data cadangan); error ditangkap agar halaman tidak rusak
+     async function loadData() {
+@@ -43,2 +55,3 @@ export default function Activities() {
+ 
++  // Foto yang lolos filter kategori yang dipilih
+   const filteredActivities = galeriList.filter(
+@@ -49,3 +62,3 @@ export default function Activities() {
+     <div className="py-10 space-y-16">
+-      {/* Page Header */}
++      {/* Kepala halaman: judul & penjelasan singkat */}
+       <section className="bg-gradient-to-b from-emerald-50 to-white py-12 border-b border-stone-200/60">
+@@ -67,3 +80,3 @@ export default function Activities() {
+ 
+-      {/* Category Filter Pills */}
++      {/* Tombol filter kategori + daftar foto */}
+       <section className="container-kua space-y-8">
+@@ -85,3 +98,3 @@ export default function Activities() {
+ 
+-        {/* CMS Loading / Error / Content */}
++        {/* Status data: sedang memuat / gagal / siap ditampilkan */}
+         {loading && <LoadingState message="Memuat galeri kegiatan KUA..." />}
+@@ -116,3 +129,3 @@ export default function Activities() {
+ 
+-      {/* Lightbox Preview Modal */}
++      {/* Modal pratinjau foto besar saat sebuah kartu diklik */}
+       <Modal
+diff --git a/src/pages/Contact.tsx b/src/pages/Contact.tsx
+index fdd9cc7..3271445 100644
+--- a/src/pages/Contact.tsx
++++ b/src/pages/Contact.tsx
+@@ -1 +1,3 @@
++// HALAMAN KONTAK (alamat: /kontak): alamat, telepon, WhatsApp, email, jam pelayanan, formulir pesan, dan peta lokasi.
++// Data kontak diambil dari profil di Supabase; jika kosong, memakai data lokal.
+ import React, { useEffect, useState } from "react";
+@@ -8,2 +10,5 @@ import type { Profil } from "../lib/cms/types";
+ 
++/**
++ * Halaman kontak.
++ */
+ export default function Contact() {
+@@ -16,2 +21,3 @@ export default function Contact() {
+ 
++  // Profil dari database (null selama belum dimuat atau gagal)
+   const [profil, setProfil] = useState<Profil | null>(null);
+@@ -28,2 +34,3 @@ export default function Contact() {
+ 
++  // Setiap data: pakai nilai dari database jika terisi, jika tidak pakai data lokal (profileData)
+   const address = profil?.address || profileData.address;
+@@ -32,2 +39,3 @@ export default function Contact() {
+   const officeHours = profil?.office_hours || profileData.officeHours;
++  // Nomor telepon hanya angka, dipakai untuk tautan WhatsApp (wa.me)
+   const rawPhone = phone.replace(/[^0-9]/g, "");
+@@ -35,2 +43,3 @@ export default function Contact() {
+ 
++  // Isi formulir yang sedang diketik pengunjung
+   const [formData, setFormData] = useState({
+@@ -42,4 +51,10 @@ export default function Contact() {
+ 
++  // True setelah tombol "Kirim Pesan" ditekan -> formulir diganti layar konfirmasi
+   const [submitted, setSubmitted] = useState(false);
+ 
++  /**
++   * CATATAN PENTING: formulir ini TIDAK menyimpan atau mengirim pesan ke server mana pun.
++   * "Kirim Pesan" hanya memvalidasi nama & pesan terisi lalu menampilkan layar konfirmasi.
++   * Pesan baru benar-benar terkirim ketika pengunjung menekan "Lanjutkan ke WhatsApp" (handleWhatsAppSend).
++   */
+   const handleSubmit = (e: React.FormEvent) => {
+@@ -50,2 +65,6 @@ export default function Contact() {
+ 
++  /**
++   * Membuka WhatsApp (tab baru) ke nomor KUA dengan isi pesan yang sudah terisi otomatis dari formulir
++   * (nama, telepon, topik, pesan). encodeURIComponent memastikan karakter khusus aman di dalam alamat URL.
++   */
+   const handleWhatsAppSend = () => {
+@@ -57,3 +76,3 @@ export default function Contact() {
+     <div className="py-10 space-y-16">
+-      {/* Page Header */}
++      {/* Kepala halaman */}
+       <section className="bg-gradient-to-b from-emerald-50 to-white py-12 border-b border-stone-200/60">
+@@ -75,6 +94,6 @@ export default function Contact() {
+ 
+-      {/* Main Contact Grid */}
++      {/* Grid utama: informasi kontak (kiri) + formulir (kanan) */}
+       <section className="container-kua">
+         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+-          {/* Contact Details (5 cols) */}
++          {/* Kolom kiri: kartu informasi kontak resmi */}
+           <div className="lg:col-span-5 space-y-6">
+@@ -140,3 +159,3 @@ export default function Contact() {
+ 
+-              {/* Office Hours */}
++              {/* Jam pelayanan kantor */}
+               <div className="pt-4 border-t border-stone-100 space-y-2">
+@@ -153,3 +172,3 @@ export default function Contact() {
+ 
+-          {/* Contact Inquiry Form (7 cols) */}
++          {/* Kolom kanan: formulir pesan & konsultasi */}
+           <div className="lg:col-span-7 bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+@@ -162,2 +181,3 @@ export default function Contact() {
+ 
++            {/* Jika sudah "terkirim": tampilkan konfirmasi + tombol lanjut ke WhatsApp; jika belum: tampilkan formulir */}
+             {submitted ? (
+@@ -260,3 +280,3 @@ export default function Contact() {
+ 
+-      {/* Google Maps Frame */}
++      {/* Peta Google Maps lokasi kantor (iframe tertanam) */}
+       <section className="container-kua">
+diff --git a/src/pages/Home.tsx b/src/pages/Home.tsx
+index 33f8820..a68226b 100644
+--- a/src/pages/Home.tsx
++++ b/src/pages/Home.tsx
+@@ -1 +1,3 @@
++// HALAMAN BERANDA (alamat: /). Hanya merakit bagian-bagian (section) secara berurutan dari atas ke bawah;
++// isi tiap bagian ada di folder src/components/sections/.
+ import { HeroSection } from "../components/sections/HeroSection";
+@@ -12,2 +14,5 @@ import { usePageMeta } from "../hooks/usePageMeta";
+ 
++/**
++ * Halaman Beranda. usePageMeta mengatur judul tab & deskripsi untuk mesin pencari.
++ */
+ export default function Home() {
+@@ -22,11 +27,21 @@ export default function Home() {
+     <div className="space-y-0">
++      {/* 1. Sambutan utama + foto kantor + status buka/tutup */}
+       <HeroSection />
++      {/* 2. Pintasan cepat: lokasi, telepon, WhatsApp, jam layanan */}
+       <QuickAccessSection />
++      {/* 3. Tentang KUA */}
+       <AboutSection />
++      {/* 4. Daftar layanan (dari database) */}
+       <ServicesSection />
++      {/* 5. Alur persiapan pernikahan */}
+       <MarriageTimelineSection />
++      {/* 6. Berita & pengumuman terbaru (dari database) */}
+       <NewsSection />
++      {/* 7. Dokumentasi kegiatan (dari database) */}
+       <ActivitiesSection />
++      {/* 8. Tautan portal resmi Kemenag */}
+       <OfficialLinksSection />
++      {/* 9. Peta & informasi lokasi kantor */}
+       <LocationSection />
++      {/* 10. Ajakan menghubungi KUA */}
+       <ContactCtaSection />
+diff --git a/src/pages/Information.tsx b/src/pages/Information.tsx
+index 569c664..701496c 100644
+--- a/src/pages/Information.tsx
++++ b/src/pages/Information.tsx
+@@ -1 +1,3 @@
++// HALAMAN INFORMASI (alamat: /informasi): pusat berita, artikel, dan pengumuman resmi KUA dari Supabase.
++// Ada pencarian teks + filter kategori; di sisi kanan ada widget pengumuman resmi, jam pelayanan, dan kontak WhatsApp.
+ import { useState, useEffect } from "react";
+@@ -12,2 +14,5 @@ import { Modal } from "../components/ui/Modal";
+ 
++/**
++ * Halaman informasi. Alur: muat berita & pengumuman -> saring -> tampilkan kartu -> klik untuk membaca di modal.
++ */
+ export default function Information() {
+@@ -20,11 +25,19 @@ export default function Information() {
+ 
++  // Semua berita/artikel yang dimuat (kolom kiri)
+   const [beritaList, setBeritaList] = useState<Berita[]>([]);
++  // Pengumuman yang masih berlaku (widget kanan)
+   const [pengumumanList, setPengumumanList] = useState<Pengumuman[]>([]);
++  // True selama data sedang dimuat
+   const [loading, setLoading] = useState(true);
++  // Pesan kesalahan jika gagal memuat (null = tidak ada masalah)
+   const [error, setError] = useState<string | null>(null);
+ 
++  // Teks yang diketik di kotak pencarian
+   const [searchQuery, setSearchQuery] = useState("");
++  // Kategori filter yang dipilih ("Semua" = tanpa filter)
+   const [selectedCategory, setSelectedCategory] = useState<string>("Semua");
++  // Berita yang sedang dibuka di modal (null = modal tertutup)
+   const [selectedNews, setSelectedNews] = useState<Berita | null>(null);
+ 
++  // Daftar tombol filter kategori; harus sama dengan pilihan kategori di form admin berita
+   const categories = ["Semua", "Pengumuman", "Berita", "Artikel"];
+@@ -32,2 +45,3 @@ export default function Information() {
+   useEffect(() => {
++    // Muat berita dan pengumuman bersamaan (Promise.all); error ditangkap agar halaman tidak rusak
+     async function loadCmsData() {
+@@ -51,2 +65,3 @@ export default function Information() {
+ 
++  // Berita yang cocok dengan kata kunci (judul/ringkasan) DAN kategori yang dipilih
+   const filteredNews = beritaList.filter((item) => {
+@@ -63,3 +78,3 @@ export default function Information() {
+     <div className="py-10 space-y-16">
+-      {/* Page Header */}
++      {/* Kepala halaman */}
+       <section className="bg-gradient-to-b from-emerald-50 to-white py-12 border-b border-stone-200/60">
+@@ -81,8 +96,8 @@ export default function Information() {
+ 
+-      {/* Main Content + Sidebar Grid */}
++      {/* Grid utama: daftar berita (kiri, 8 bagian) + sidebar (kanan, 4 bagian) */}
+       <section className="container-kua">
+         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+-          {/* Main Content Area (8 cols desktop) */}
++          {/* Kolom kiri: pencarian, filter, dan daftar kartu berita */}
+           <div className="lg:col-span-8 space-y-8">
+-            {/* Search & Filter */}
++            {/* Kotak pencarian + tombol filter kategori */}
+             <div className="space-y-4">
+@@ -111,3 +126,3 @@ export default function Information() {
+ 
+-            {/* CMS Loading / Error / Content */}
++            {/* Status data: sedang memuat / gagal / siap ditampilkan */}
+             {loading && <LoadingState message="Memuat daftar berita & pengumuman..." />}
+@@ -143,5 +158,5 @@ export default function Information() {
+ 
+-          {/* Sidebar Area (4 cols desktop) */}
++          {/* Kolom kanan (sidebar): tiga widget */}
+           <aside className="lg:col-span-4 space-y-6">
+-            {/* Quick Announcement Widget from CMS */}
++            {/* Widget 1: 3 pengumuman resmi terbaru; jika kosong tampil pengingat pendaftaran nikah */}
+             <div className="bg-amber-50/80 border border-amber-200 rounded-3xl p-6 space-y-4">
+@@ -170,3 +185,3 @@ export default function Information() {
+ 
+-            {/* Office Hours Widget */}
++            {/* Widget 2: jam pelayanan kantor */}
+             <div className="bg-white border border-stone-200 rounded-3xl p-6 space-y-4 shadow-xs">
+@@ -192,3 +207,3 @@ export default function Information() {
+ 
+-            {/* Quick Contact Box */}
++            {/* Widget 3: tombol chat WhatsApp resmi KUA */}
+             <div className="bg-emerald-950 text-white rounded-3xl p-6 space-y-4 shadow-md">
+@@ -214,3 +229,3 @@ export default function Information() {
+ 
+-      {/* Detail News Modal */}
++      {/* Modal detail berita: gambar, kategori, tanggal, penulis, ringkasan, dan isi lengkap */}
+       <Modal
+diff --git a/src/pages/Marriage.tsx b/src/pages/Marriage.tsx
+index edaf820..4a6ad01 100644
+--- a/src/pages/Marriage.tsx
++++ b/src/pages/Marriage.tsx
+@@ -1 +1,3 @@
++// HALAMAN LAYANAN PERNIKAHAN (alamat: /layanan/pernikahan): panduan lengkap untuk calon pengantin—transparansi biaya nikah,
++// checklist dokumen interaktif, alur 5 tahap, banner SIMKAH Online, dan FAQ. Seluruh data dari data/marriage.ts & data/faq.ts.
+ import { useState } from "react";
+@@ -9,2 +11,5 @@ import { usePageMeta } from "../hooks/usePageMeta";
+ 
++/**
++ * Halaman panduan pernikahan.
++ */
+ export default function Marriage() {
+@@ -17,4 +22,6 @@ export default function Marriage() {
+ 
++  // Dokumen mana saja yang sudah dicentang pengunjung, mis. { N1: true }. Hanya di memori browser, tidak disimpan.
+   const [checkedDocs, setCheckedDocs] = useState<Record<string, boolean>>({});
+ 
++  // Centang / hapus centang satu dokumen berdasarkan kodenya
+   const toggleDoc = (code: string) => {
+@@ -23,2 +30,3 @@ export default function Marriage() {
+ 
++  // Ambil kelompok FAQ "pernikahan" saja dari seluruh data FAQ (kosong jika tidak ada)
+   const marriageFaqItems = faqData.find((f) => f.id === "pernikahan")?.items || [];
+@@ -27,3 +35,3 @@ export default function Marriage() {
+     <div className="py-10 space-y-16">
+-      {/* Page Header */}
++      {/* Kepala halaman */}
+       <section className="bg-gradient-to-b from-amber-50/80 via-emerald-50/40 to-white py-12 border-b border-stone-200/60">
+@@ -45,3 +53,3 @@ export default function Marriage() {
+ 
+-      {/* Transparansi Biaya Nikah Box */}
++      {/* Bagian 1: Transparansi biaya nikah (dua kartu) */}
+       <section className="container-kua">
+@@ -54,3 +62,3 @@ export default function Marriage() {
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+-          {/* Card 1: Rp 0 di KUA */}
++          {/* Kartu 1: nikah di Balai KUA = gratis */}
+           <div className="bg-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-lg border border-emerald-800 flex flex-col justify-between">
+@@ -82,3 +90,3 @@ export default function Marriage() {
+ 
+-          {/* Card 2: Rp 600.000 Bedol */}
++          {/* Kartu 2: nikah di luar KUA ("bedol") = biaya resmi PNBP */}
+           <div className="bg-white border-2 border-amber-200 p-6 sm:p-8 rounded-3xl shadow-sm flex flex-col justify-between">
+@@ -112,3 +120,3 @@ export default function Marriage() {
+ 
+-      {/* Checklist Dokumen Interaktif */}
++      {/* Bagian 2: Checklist dokumen yang bisa dicentang pengunjung */}
+       <section className="bg-stone-50/80 py-16 border-y border-stone-200/60">
+@@ -174,3 +182,3 @@ export default function Marriage() {
+ 
+-      {/* Alur 5 Tahap Nikah */}
++      {/* Bagian 3: Alur 5 tahap pendaftaran nikah */}
+       <section className="container-kua">
+@@ -218,3 +226,3 @@ export default function Marriage() {
+ 
+-      {/* SIMKAH Online Banner */}
++      {/* Bagian 4: Banner ajakan mendaftar lewat SIMKAH Online */}
+       <section className="container-kua">
+@@ -245,3 +253,3 @@ export default function Marriage() {
+ 
+-      {/* FAQ Pernikahan */}
++      {/* Bagian 5: FAQ pernikahan (akordeon) */}
+       <section className="container-kua">
+diff --git a/src/pages/NewsDetail.tsx b/src/pages/NewsDetail.tsx
+index ce3f441..fc738c2 100644
+--- a/src/pages/NewsDetail.tsx
++++ b/src/pages/NewsDetail.tsx
+@@ -1 +1,3 @@
++// HALAMAN DETAIL BERITA (alamat: /news/<slug>): menampilkan satu berita secara lengkap.
++// "slug" adalah potongan alamat yang mengidentifikasi berita, mis. /news/pendaftaran-nikah-online.
+ import { useEffect, useState } from "react";
+@@ -9,4 +11,9 @@ import { usePageMeta } from "../hooks/usePageMeta";
+ 
++/**
++ * Halaman detail berita. Menampilkan: loading -> error -> "tidak ditemukan" -> isi berita lengkap.
++ */
+ export default function NewsDetail() {
++  // Ambil slug dari alamat URL
+   const { slug } = useParams<{ slug: string }>();
++  // Berita yang sedang dibuka (null = belum ada / tidak ditemukan)
+   const [berita, setBerita] = useState<Berita | null>(null);
+@@ -14,2 +21,3 @@ export default function NewsDetail() {
+   const [error, setError] = useState<string | null>(null);
++  // True sesaat setelah tombol "Bagikan" ditekan (untuk menampilkan "Link Tersalin!")
+   const [copied, setCopied] = useState(false);
+@@ -17,2 +25,3 @@ export default function NewsDetail() {
+   useEffect(() => {
++    // Muat berita berdasarkan slug; dijalankan ulang jika slug berubah
+     async function loadData() {
+@@ -35,2 +44,3 @@ export default function NewsDetail() {
+ 
++  // Salin alamat halaman ke clipboard, lalu tampilkan "Link Tersalin!" selama 2 detik
+   const handleShare = () => {
+@@ -43,2 +53,3 @@ export default function NewsDetail() {
+ 
++  // Tahap 1: sedang memuat -> tampilkan indikator loading
+   if (loading) {
+@@ -51,2 +62,3 @@ export default function NewsDetail() {
+ 
++  // Tahap 2: terjadi kesalahan -> tampilkan pesan error
+   if (error) {
+@@ -59,2 +71,3 @@ export default function NewsDetail() {
+ 
++  // Tahap 3: berita tidak ditemukan -> pesan + tombol kembali ke Pusat Informasi
+   if (!berita) {
+@@ -73,3 +86,3 @@ export default function NewsDetail() {
+       <div className="container-kua max-w-4xl">
+-        {/* Back Link */}
++        {/* Tautan kembali ke daftar informasi */}
+         <Link
+@@ -82,3 +95,3 @@ export default function NewsDetail() {
+ 
+-        {/* Category & Metadata */}
++        {/* Kategori, judul, tanggal, penulis, dan tombol bagikan */}
+         <div className="space-y-4">
+@@ -114,3 +127,3 @@ export default function NewsDetail() {
+ 
+-        {/* Featured Image */}
++        {/* Gambar utama berita (hanya tampil jika ada) */}
+         {berita.featured_image && (
+@@ -126,3 +139,3 @@ export default function NewsDetail() {
+ 
+-        {/* Article Excerpt */}
++        {/* Ringkasan berita (kotak hijau muda) */}
+         <div className="p-5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-stone-800 text-sm sm:text-base font-semibold leading-relaxed mb-6">
+@@ -131,3 +144,3 @@ export default function NewsDetail() {
+ 
+-        {/* Article Content Body */}
++        {/* Isi lengkap berita; whitespace-pre-line menjaga baris baru yang diketik admin */}
+         <div className="prose prose-stone max-w-none text-stone-800 leading-relaxed space-y-4 text-base sm:text-lg">
+diff --git a/src/pages/NotFound.tsx b/src/pages/NotFound.tsx
+index 3d20616..1d7abf9 100644
+--- a/src/pages/NotFound.tsx
++++ b/src/pages/NotFound.tsx
+@@ -1 +1,3 @@
++// HALAMAN 404: tampil jika pengunjung membuka alamat yang tidak ada di situs (rute "*" di App.tsx).
++// Diberi tanda noindex agar tidak ikut tercatat mesin pencari.
+ import { Home, Search } from "lucide-react";
+@@ -4,2 +6,5 @@ import { usePageMeta } from "../hooks/usePageMeta";
+ 
++/**
++ * Halaman "Halaman Tidak Ditemukan" dengan dua tombol: kembali ke Beranda atau cari layanan.
++ */
+ export default function NotFound() {
+diff --git a/src/pages/Profile.tsx b/src/pages/Profile.tsx
+index 00279f7..a875c2c 100644
+--- a/src/pages/Profile.tsx
++++ b/src/pages/Profile.tsx
+@@ -1 +1,3 @@
++// HALAMAN PROFIL KUA (alamat: /profil): gambaran umum & sejarah, wilayah kerja 13 desa, visi & misi, tugas & fungsi,
++// serta daftar pegawai. Profil & pegawai diambil dari Supabase (diedit lewat panel admin); desa dan tugas dari data lokal.
+ import { useState, useEffect } from "react";
+@@ -12,2 +14,5 @@ import { getRoleCategory } from "../utils/roleCategory";
+ 
++/**
++ * Halaman profil. Memuat profil & staf sekaligus (Promise.all) lalu menampilkan semua bagian.
++ */
+ export default function Profile() {
+@@ -20,5 +25,9 @@ export default function Profile() {
+ 
++  // Profil dari database (null = belum ada/gagal -> dipakai data lokal)
+   const [profil, setProfil] = useState<Profil | null>(null);
++  // Daftar pegawai aktif dari database
+   const [stafList, setStafList] = useState<Staf[]>([]);
++  // True selama data sedang dimuat
+   const [loading, setLoading] = useState(true);
++  // Pesan kesalahan jika gagal memuat (null = tidak ada masalah)
+   const [error, setError] = useState<string | null>(null);
+@@ -26,2 +35,3 @@ export default function Profile() {
+   useEffect(() => {
++    // Ambil profil dan staf secara bersamaan agar lebih cepat; error ditangkap supaya halaman tidak rusak
+     async function loadData() {
+@@ -45,2 +55,3 @@ export default function Profile() {
+ 
++  // Profil yang benar-benar ditampilkan: dari database jika ada, jika tidak memakai data lokal (profileData)
+   const displayProfil = profil || {
+@@ -59,3 +70,3 @@ export default function Profile() {
+     <div className="py-10 space-y-16">
+-      {/* Page Header */}
++      {/* Kepala halaman */}
+       <section className="bg-gradient-to-b from-emerald-50 to-white py-12 border-b border-stone-200/60">
+@@ -80,3 +91,3 @@ export default function Profile() {
+ 
+-      {/* Tentang & Sejarah */}
++      {/* Bagian 1: Tentang & Sejarah + kartu wilayah kerja */}
+       <section className="container-kua">
+@@ -103,3 +114,3 @@ export default function Profile() {
+ 
+-          {/* Wilayah Kerja 13 Desa Card */}
++          {/* Kartu daftar 13 desa wilayah kerja KUA */}
+           <div className="lg:col-span-5 bg-white border border-stone-200 rounded-3xl p-6 sm:p-7 shadow-sm space-y-4">
+@@ -128,3 +139,3 @@ export default function Profile() {
+ 
+-      {/* Visi & Misi */}
++      {/* Bagian 2: Visi & Misi */}
+       <section className="bg-stone-50/80 py-16 border-y border-stone-200/60">
+@@ -138,3 +149,3 @@ export default function Profile() {
+           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+-            {/* Visi Card */}
++            {/* Kartu visi (hijau tua) */}
+             <div className="lg:col-span-5 bg-gradient-to-br from-[#042918] to-[#0f5132] text-white p-8 rounded-3xl shadow-lg flex flex-col justify-between">
+@@ -157,3 +168,3 @@ export default function Profile() {
+ 
+-            {/* Misi List */}
++            {/* Daftar misi bernomor */}
+             <div className="lg:col-span-7 bg-white border border-stone-200 p-8 rounded-3xl shadow-sm space-y-4">
+@@ -180,3 +191,3 @@ export default function Profile() {
+ 
+-      {/* Tugas dan Fungsi */}
++      {/* Bagian 3: Tugas & Fungsi (dari data lokal) */}
+       <section className="container-kua">
+@@ -206,3 +217,3 @@ export default function Profile() {
+ 
+-      {/* Staff Members Section from CMS */}
++      {/* Bagian 4: Daftar pegawai (dari database); badge jabatan ditentukan getRoleCategory */}
+       <section className="container-kua">
+diff --git a/src/pages/Services.tsx b/src/pages/Services.tsx
+index 5986b39..bb523ee 100644
+--- a/src/pages/Services.tsx
++++ b/src/pages/Services.tsx
+@@ -1 +1,3 @@
++// HALAMAN LAYANAN (alamat: /layanan): daftar semua layanan KUA dari Supabase dengan kotak pencarian.
++// Mengklik kartu membuka detail (persyaratan & prosedur) dalam modal; di bagian bawah ada FAQ berbentuk akordeon.
+ import { useState, useEffect } from "react";
+@@ -11,2 +13,5 @@ import { usePageMeta } from "../hooks/usePageMeta";
+ 
++/**
++ * Halaman layanan. Alur: muat data -> cari/saring -> tampilkan kartu -> klik untuk detail.
++ */
+ export default function Services() {
+@@ -19,7 +24,12 @@ export default function Services() {
+ 
++  // Semua layanan aktif yang dimuat
+   const [layananList, setLayananList] = useState<Layanan[]>([]);
++  // True selama data sedang dimuat
+   const [loading, setLoading] = useState(true);
++  // Pesan kesalahan jika gagal memuat (null = tidak ada masalah)
+   const [error, setError] = useState<string | null>(null);
+ 
++  // Teks yang diketik di kotak pencarian
+   const [searchQuery, setSearchQuery] = useState("");
++  // Layanan yang sedang dibuka di modal (null = modal tertutup)
+   const [selectedService, setSelectedService] = useState<Layanan | null>(null);
+@@ -27,2 +37,3 @@ export default function Services() {
+   useEffect(() => {
++    // Muat layanan dari Supabase (atau data cadangan); error ditangkap agar halaman tidak rusak
+     async function loadData() {
+@@ -42,2 +53,3 @@ export default function Services() {
+ 
++  // Layanan yang judul atau deskripsinya mengandung teks pencarian (tidak membedakan huruf besar/kecil)
+   const filteredServices = layananList.filter(
+@@ -50,3 +62,3 @@ export default function Services() {
+     <div className="py-10 space-y-16">
+-      {/* Page Header */}
++      {/* Kepala halaman */}
+       <section className="bg-gradient-to-b from-emerald-50 to-white py-12 border-b border-stone-200/60">
+@@ -68,6 +80,6 @@ export default function Services() {
+ 
+-      {/* Filter & Search Bar */}
++      {/* Kotak pencarian + daftar kartu layanan */}
+       <section className="container-kua space-y-8">
+         <div className="flex items-center justify-end gap-4 p-4 bg-white border border-stone-200 rounded-2xl shadow-sm">
+-          {/* Search Box */}
++          {/* Kotak pencarian layanan */}
+           <div className="relative w-full sm:w-72">
+@@ -84,3 +96,3 @@ export default function Services() {
+ 
+-        {/* CMS Loading / Error / Content */}
++        {/* Status data: sedang memuat / gagal / siap ditampilkan */}
+         {loading && <LoadingState message="Memuat daftar layanan KUA..." />}
+@@ -114,3 +126,3 @@ export default function Services() {
+ 
+-      {/* Detail Modal for Selected Service */}
++      {/* Modal detail layanan: deskripsi, estimasi waktu, persyaratan, dan prosedur */}
+       <Modal
+@@ -133,3 +145,3 @@ export default function Services() {
+ 
+-            {/* Persyaratan */}
++            {/* Daftar dokumen & persyaratan (hanya jika ada) */}
+             {selectedService.requirements && selectedService.requirements.length > 0 && (
+@@ -150,3 +162,3 @@ export default function Services() {
+ 
+-            {/* Prosedur Tahapan */}
++            {/* Daftar tahapan prosedur bernomor (hanya jika ada) */}
+             {selectedService.procedure && selectedService.procedure.length > 0 && (
+@@ -172,3 +184,3 @@ export default function Services() {
+ 
+-      {/* FAQ: Persyaratan & Prosedur per Layanan */}
++      {/* FAQ akordeon: satu pertanyaan per layanan, jawabannya persyaratan & prosedur layanan itu */}
+       {!loading && !error && layananList.length > 0 && (
+diff --git a/src/pages/admin/AdminApp.tsx b/src/pages/admin/AdminApp.tsx
+index ef6e8b1..4360357 100644
+--- a/src/pages/admin/AdminApp.tsx
++++ b/src/pages/admin/AdminApp.tsx
+@@ -13,5 +13,9 @@ import GaleriAdmin from './GaleriAdmin';
+ /**
+- * Seluruh panel admin. Di-lazy-load dari App.tsx supaya kode admin
+- * tidak ikut bundle halaman publik.
+- * Dipasang di path "/admin/*", jadi semua path di bawah relatif terhadap /admin.
++ * Seluruh panel admin dan daftar alamatnya.
++ * Dimuat terpisah (lazy-load) dari App.tsx supaya kode admin tidak ikut membebani halaman publik.
++ * Dipasang di alamat "/admin/*", jadi semua path di bawah ini relatif terhadap /admin.
++ *
++ * Struktur:
++ *  - /admin/login           : halaman masuk (bebas diakses)
++ *  - semua halaman lainnya  : dibungkus AdminGuard (wajib login sebagai admin) lalu AdminLayout (sidebar & topbar)
+  */
+@@ -20,5 +24,9 @@ export default function AdminApp() {
+     <Routes>
++      {/* Halaman login: satu-satunya halaman admin yang boleh dibuka tanpa login */}
+       <Route path="login" element={<AdminLogin />} />
++      {/* Penjaga: pengunjung yang belum login / bukan admin dialihkan ke halaman login */}
+       <Route element={<AdminGuard />}>
++        {/* Kerangka tampilan admin (sidebar + topbar); isi halaman muncul di tempat <Outlet /> */}
+         <Route element={<AdminLayout />}>
++          {/* /admin -> Dashboard ringkasan */}
+           <Route index element={<Dashboard />} />
+@@ -32,2 +40,3 @@ export default function AdminApp() {
+       </Route>
++      {/* Alamat /admin/... lain yang tidak dikenal dialihkan ke Dashboard */}
+       <Route path="*" element={<Navigate to="/admin" replace />} />
+diff --git a/src/pages/admin/AdminGuard.tsx b/src/pages/admin/AdminGuard.tsx
+index b7017eb..07b2d32 100644
+--- a/src/pages/admin/AdminGuard.tsx
++++ b/src/pages/admin/AdminGuard.tsx
+@@ -1 +1,2 @@
++// PENJAGA HALAMAN ADMIN: memastikan hanya admin yang sudah login yang boleh membuka halaman /admin/*.
+ import { useEffect, useState } from 'react';
+@@ -5,2 +6,3 @@ import type { User } from '@supabase/supabase-js';
+ 
++// Tiga kemungkinan status: sedang memeriksa, diizinkan, atau ditolak
+ type GuardState = 'loading' | 'authorized' | 'unauthorized';
+@@ -8,4 +10,10 @@ type GuardState = 'loading' | 'authorized' | 'unauthorized';
+ /**
+- * Protects all /admin/* routes.
+- * Checks Supabase Auth session AND that the user exists in the `admins` table.
++ * Melindungi semua halaman /admin/*.
++ * Dua pengecekan: (1) ada sesi login Supabase yang valid, DAN (2) user tersebut terdaftar di tabel "admins".
++ * Akun yang berhasil login tetapi tidak ada di tabel admins tetap ditolak.
++ *
++ * Hasil:
++ *  - sedang memeriksa -> tampilkan "Memeriksa sesi..."
++ *  - ditolak          -> alihkan ke /admin/login
++ *  - diizinkan        -> tampilkan halaman yang diminta (<Outlet />)
+  */
+@@ -18,2 +26,6 @@ export default function AdminGuard() {
+ 
++    /**
++     * Memutuskan status berdasarkan user saat ini: tanpa user -> ditolak; ada user -> cek tabel admins.
++     * Flag "cancelled" mencegah update state jika komponen sudah ditutup.
++     */
+     async function check(user: User | null) {
+@@ -23,3 +35,3 @@ export default function AdminGuard() {
+       }
+-      // Verify the user is in the admins table
++      // Pastikan user terdaftar di tabel admins (aturan keamanan database mengizinkan admin membaca tabel ini)
+       const { data } = await supabase!
+@@ -33,2 +45,3 @@ export default function AdminGuard() {
+ 
++    // Cek sesi yang sudah ada saat halaman pertama dibuka (mis. setelah refresh)
+     supabase!.auth.getSession().then(({ data: { session } }) => {
+@@ -37,2 +50,3 @@ export default function AdminGuard() {
+ 
++    // Pantau perubahan status login (login/logout) agar penjaga langsung bereaksi, mis. otomatis keluar ke halaman login saat logout
+     const { data: listener } = supabase!.auth.onAuthStateChange((_event, session) => {
+@@ -43,2 +57,3 @@ export default function AdminGuard() {
+       cancelled = true;
++      // Pembersihan: berhenti memantau saat komponen ditutup
+       listener.subscription.unsubscribe();
+diff --git a/src/pages/admin/AdminLayout.tsx b/src/pages/admin/AdminLayout.tsx
+index 7aa7f85..b3455f8 100644
+--- a/src/pages/admin/AdminLayout.tsx
++++ b/src/pages/admin/AdminLayout.tsx
+@@ -1 +1,3 @@
++// KERANGKA TAMPILAN PANEL ADMIN: sidebar menu di kiri, bilah atas (breadcrumb) di atas, dan area isi halaman di tengah.
++// Di HP, sidebar menjadi menu geser yang dibuka lewat tombol hamburger.
+ import { useState } from 'react';
+@@ -10,2 +12,3 @@ import kuaLogo from '../../assets/kualogo.png';
+ 
++// Daftar menu sidebar: alamat (to), ikon, dan label. Untuk menambah halaman admin baru, tambahkan di sini dan di AdminApp.tsx.
+ const NAV = [
+@@ -20,6 +23,11 @@ const NAV = [
+ 
++/**
++ * Kerangka admin. Isi halaman aktif ditampilkan oleh <Outlet /> di bagian tengah.
++ */
+ export default function AdminLayout() {
+   const { pathname } = useLocation();
++  // Apakah menu geser (mobile) sedang terbuka
+   const [open, setOpen] = useState(false);
+ 
++  // Keluar dari panel admin. Setelah sesi berakhir, AdminGuard otomatis mengalihkan ke halaman login.
+   async function handleLogout() {
+@@ -28,2 +36,3 @@ export default function AdminLayout() {
+ 
++  // Menu yang sedang aktif menurut alamat saat ini ("/admin" harus persis sama agar Dashboard tidak aktif di semua halaman)
+   const activeItem = NAV.find((n) =>
+@@ -32,5 +41,8 @@ export default function AdminLayout() {
+ 
++  /**
++   * Isi sidebar: logo, daftar menu, serta tautan "Lihat situs" dan tombol "Keluar". Dipakai di versi desktop dan mobile.
++   */
+   const Sidebar = () => (
+     <aside className="flex flex-col h-full w-64 bg-white border-r border-slate-200">
+-      {/* Brand */}
++      {/* Logo & nama panel */}
+       <div className="flex items-center gap-3 px-5 h-16 border-b border-slate-200 shrink-0">
+@@ -43,3 +55,3 @@ export default function AdminLayout() {
+ 
+-      {/* Nav */}
++      {/* Daftar menu; menu aktif diberi warna & garis aksen hijau */}
+       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+@@ -68,3 +80,3 @@ export default function AdminLayout() {
+ 
+-      {/* Footer */}
++      {/* Bagian bawah sidebar: lihat situs publik & keluar */}
+       <div className="px-3 py-3 border-t border-slate-200 space-y-0.5 shrink-0">
+@@ -91,4 +103,5 @@ export default function AdminLayout() {
+     <div className="flex h-screen overflow-hidden bg-slate-50 font-sans">
++      {/* Tempat notifikasi (toast) muncul di pojok kanan atas, berlaku untuk semua halaman admin */}
+       <ToastContainer />
+-      {/* Desktop sidebar */}
++      {/* Sidebar tetap untuk layar lebar */}
+       <div className="hidden lg:flex shrink-0">
+@@ -97,3 +110,3 @@ export default function AdminLayout() {
+ 
+-      {/* Mobile drawer */}
++      {/* Sidebar geser untuk HP (muncul di atas latar gelap saat open = true) */}
+       {open && (
+@@ -107,5 +120,5 @@ export default function AdminLayout() {
+ 
+-      {/* Content area */}
++      {/* Area kanan: bilah atas + isi halaman */}
+       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+-        {/* Top bar */}
++        {/* Bilah atas: tombol hamburger (HP) dan penunjuk lokasi "Admin / Halaman" */}
+         <header className="h-16 shrink-0 bg-white border-b border-slate-200 px-4 lg:px-6 flex items-center gap-3">
+@@ -124,3 +137,3 @@ export default function AdminLayout() {
+ 
+-        {/* Page content */}
++        {/* Tempat halaman admin yang sedang dibuka ditampilkan; bisa discroll sendiri */}
+         <main className="flex-1 overflow-y-auto p-5 lg:p-8">
+diff --git a/src/pages/admin/AdminUI.tsx b/src/pages/admin/AdminUI.tsx
+index 01bcaf5..b0ab8a0 100644
+--- a/src/pages/admin/AdminUI.tsx
++++ b/src/pages/admin/AdminUI.tsx
+@@ -1 +1,3 @@
++// KOMPONEN BERSAMA PANEL ADMIN: potongan tampilan & fungsi yang dipakai ulang oleh semua halaman kelola
++// (Berita, Pengumuman, Layanan, Profil, Staf, Galeri) agar tampilannya seragam.
+ import React from 'react';
+@@ -4,4 +6,10 @@ import { showToast } from './toast';
+ 
+-// ── Mutation helper: tampilkan error Supabase (mis. RLS/duplikat slug) ──
++// ── Pembantu simpan/ubah/hapus: tampilkan notifikasi error Supabase (mis. ditolak RLS atau slug kembar) ──
+ 
++/**
++ * Menjalankan satu operasi tulis ke Supabase (simpan/ubah/hapus) dan menangani hasilnya.
++ * - Jika gagal : tampilkan toast merah berisi pesan error, kembalikan false.
++ * - Jika sukses: tampilkan toast hijau (hanya jika successMessage diberikan), kembalikan true.
++ * Pemanggil cukup memeriksa true/false untuk menentukan langkah berikutnya.
++ */
+ export async function run(
+@@ -19,4 +27,7 @@ export async function run(
+ 
+-// ── Page header: judul + deskripsi + tombol tambah ───────────
++// ── Kepala halaman: judul + deskripsi + tombol tambah ────────
+ 
++/**
++ * Kepala halaman: judul, deskripsi singkat, dan (opsional) tombol "tambah" di kanan.
++ */
+ export function PageHeader({
+@@ -51,4 +62,7 @@ export function PageHeader({
+ 
+-// ── Table primitives ──────────────────────────────────────────
++// ── Komponen tabel (dipakai halaman daftar Berita, Pengumuman, Layanan, Staf) ──
+ 
++/**
++ * Pembungkus tabel: kartu putih berbingkai; bisa digeser mendatar jika sempit.
++ */
+ export function Table({ children }: { children: React.ReactNode }) {
+@@ -63,2 +77,5 @@ export function Table({ children }: { children: React.ReactNode }) {
+ 
++/**
++ * Sel judul kolom tabel.
++ */
+ export function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+@@ -73,2 +90,5 @@ export function Th({ children, className = '' }: { children: React.ReactNode; cl
+ 
++/**
++ * Sel isi tabel.
++ */
+ export function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+@@ -77,2 +97,5 @@ export function Td({ children, className = '' }: { children: React.ReactNode; cl
+ 
++/**
++ * Baris tabel; berubah warna halus saat disorot kursor.
++ */
+ export function Tr({ children }: { children: React.ReactNode }) {
+@@ -81,4 +104,5 @@ export function Tr({ children }: { children: React.ReactNode }) {
+ 
+-// ── Status pill ────────────────────────────────────────────────
++// ── Lencana status (Published/Draft/Aktif/dst.) ───────────────
+ 
++// Warna lencana menurut nada: success (hijau), neutral (abu), warning (kuning)
+ const PILL_TONE = {
+@@ -89,2 +113,5 @@ const PILL_TONE = {
+ 
++/**
++ * Lencana status. Jika diberi onClick, lencana menjadi tombol (dipakai untuk mengubah Draft <-> Published dengan sekali klik).
++ */
+ export function StatusPill({
+@@ -109,4 +136,7 @@ export function StatusPill({
+ 
+-// ── Row actions ────────────────────────────────────────────────
++// ── Tombol aksi di tiap baris (edit & hapus) ───────────────────
+ 
++/**
++ * Dua tombol kecil di akhir baris: ikon pensil (edit) dan tempat sampah (hapus).
++ */
+ export function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete: () => void }) {
+@@ -132,4 +162,7 @@ export function RowActions({ onEdit, onDelete }: { onEdit: () => void; onDelete:
+ 
+-// ── Loading / Empty / Error states (dipakai di dalam Table atau mandiri) ──
++// ── Tampilan memuat / kosong / error ──────────────────────────
+ 
++/**
++ * Tampilan "sedang memuat data" (ikon berputar).
++ */
+ export function AdminLoading({ message = 'Memuat data...' }: { message?: string }) {
+@@ -143,2 +176,5 @@ export function AdminLoading({ message = 'Memuat data...' }: { message?: string
+ 
++/**
++ * Tampilan "belum ada data" untuk daftar yang kosong; label = nama jenis datanya.
++ */
+ export function AdminEmpty({ label }: { label: string }) {
+@@ -152,2 +188,5 @@ export function AdminEmpty({ label }: { label: string }) {
+ 
++/**
++ * Kotak merah berisi pesan kesalahan.
++ */
+ export function AdminError({ message }: { message: string }) {
+@@ -161,4 +200,7 @@ export function AdminError({ message }: { message: string }) {
+ 
+-// ── Confirm delete dialog ─────────────────────────────────────
++// ── Dialog konfirmasi hapus ───────────────────────────────────
+ 
++/**
++ * open = dialog tampil/tidak, label = nama data yang akan dihapus, onConfirm/onCancel = tombol Hapus/Batal.
++ */
+ interface ConfirmDeleteProps {
+@@ -170,2 +212,5 @@ interface ConfirmDeleteProps {
+ 
++/**
++ * Dialog konfirmasi sebelum data dihapus permanen, agar tidak terhapus karena salah klik.
++ */
+ export function ConfirmDelete({ open, label, onConfirm, onCancel }: ConfirmDeleteProps) {
+@@ -205,4 +250,7 @@ export function ConfirmDelete({ open, label, onConfirm, onCancel }: ConfirmDelet
+ 
+-// ── Form card + field helpers ─────────────────────────────────
++// ── Kartu form + komponen kolom isian ─────────────────────────
+ 
++/**
++ * Pembungkus halaman form tambah/edit: judul + kartu putih berisi isian.
++ */
+ export function FormCard({ title, children }: { title: string; children: React.ReactNode }) {
+@@ -216,2 +264,5 @@ export function FormCard({ title, children }: { title: string; children: React.R
+ 
++/**
++ * Satu kolom isian form: label di atas (dengan tanda * jika wajib) + kontrol isian (children).
++ */
+ export function Field({
+@@ -236,2 +287,3 @@ export function Field({
+ 
++// Kelas gaya standar untuk kotak isian satu baris
+ export const inputCls =
+@@ -239,4 +291,8 @@ export const inputCls =
+ 
++// Kelas gaya standar untuk kotak isian banyak baris (turunan inputCls)
+ export const textareaCls = `${inputCls} resize-y min-h-[100px]`;
+ 
++/**
++ * Tombol di bawah form: "Batal" dan tombol simpan (menampilkan ikon berputar & nonaktif saat loading).
++ */
+ export function FormActions({
+diff --git a/src/pages/admin/AnalyticsSection.tsx b/src/pages/admin/AnalyticsSection.tsx
+index cae732a..714f9f2 100644
+--- a/src/pages/admin/AnalyticsSection.tsx
++++ b/src/pages/admin/AnalyticsSection.tsx
+@@ -1 +1,4 @@
++// BAGIAN STATISTIK PENGUNJUNG di Dashboard admin: ringkasan pengunjung, grafik tren harian, halaman terpopuler, sumber lalu lintas,
++// dan jenis perangkat. Data diambil dari Google Analytics lewat fungsi server /api/analytics (lihat api/analytics.ts), yang hanya
++// bisa diakses admin yang login (token login dikirim di header Authorization). Grafik digambar manual dengan SVG tanpa library.
+ import { useEffect, useState, useCallback } from 'react';
+@@ -4,2 +7,5 @@ import { supabase } from '../../lib/supabase';
+ 
++/**
++ * Total angka ringkasan untuk periode yang dipilih (pengguna, tayangan halaman, sesi, pengguna baru)
++ */
+ interface Totals {
+@@ -11,2 +17,5 @@ interface Totals {
+ 
++/**
++ * Satu titik data harian untuk grafik tren
++ */
+ interface DailyPoint {
+@@ -19,2 +28,5 @@ interface DailyPoint {
+ 
++/**
++ * Satu halaman terpopuler: alamat, jumlah tayangan, jumlah pengguna
++ */
+ interface TopPage {
+@@ -25,2 +37,5 @@ interface TopPage {
+ 
++/**
++ * Satu sumber lalu lintas (mis. Organic Search, Direct) dan jumlah sesinya
++ */
+ interface TrafficSource {
+@@ -30,2 +45,5 @@ interface TrafficSource {
+ 
++/**
++ * Jumlah pengguna per jenis perangkat (desktop/mobile/tablet)
++ */
+ interface DeviceStat {
+@@ -35,2 +53,5 @@ interface DeviceStat {
+ 
++/**
++ * Bentuk lengkap jawaban dari /api/analytics. "configured" = false berarti kredensial Google belum diisi di server.
++ */
+ interface AnalyticsApiResponse {
+@@ -59,2 +80,5 @@ const PATH_LABELS: Record<string, string> = {
+ 
++/**
++ * Mengubah alamat halaman (mis. "/layanan") menjadi nama yang mudah dibaca ("Layanan"); alamat berita ditampilkan sebagai "Detail Berita: ...".
++ */
+ function formatPathLabel(path: string): string {
+@@ -65,8 +89,18 @@ function formatPathLabel(path: string): string {
+ 
++/**
++ * Komponen statistik. Alur: pilih periode (7/30/90 hari) -> ambil data dari server -> tampilkan loading / error / belum dikonfigurasi / data kosong / statistik lengkap.
++ */
+ export default function AnalyticsSection() {
+   const [days, setDays] = useState<7 | 30 | 90>(7); // Default 7 hari
++  // True selama data statistik diminta dari server
+   const [loading, setLoading] = useState<boolean>(true);
++  // Jawaban terakhir dari server (null = belum ada)
+   const [data, setData] = useState<AnalyticsApiResponse | null>(null);
++  // Pesan kesalahan yang ditampilkan (null = tidak ada)
+   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+ 
++  /**
++   * Meminta data statistik ke /api/analytics untuk periode yang dipilih.
++   * Token login admin dikirim agar server bisa memastikan peminta benar-benar admin (jika tidak -> 401).
++   */
+   const fetchAnalytics = useCallback(async (selectedDays: number) => {
+@@ -113,2 +147,3 @@ export default function AnalyticsSection() {
+ 
++  // Muat ulang data statistik dengan periode yang sedang dipilih
+   const handleRefresh = () => {
+@@ -117,2 +152,3 @@ export default function AnalyticsSection() {
+ 
++  // True jika server melaporkan kredensial Google Analytics belum dikonfigurasi
+   const isUnconfigured = data && !data.configured;
+@@ -123,2 +159,3 @@ export default function AnalyticsSection() {
+   const devices = data?.devices || [];
++  // True jika tidak ada pengunjung sama sekali pada periode ini
+   const isEmptyData = totals && totals.users === 0 && totals.views === 0;
+@@ -365,2 +402,6 @@ export default function AnalyticsSection() {
+  */
++/**
++ * Grafik garis tren harian (pengguna & tayangan halaman) yang digambar dengan SVG biasa.
++ * Sumbu Y menyesuaikan nilai tertinggi; label tanggal di sumbu X hanya ditampilkan setiap beberapa titik agar tidak berdesakan.
++ */
+ function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loading: boolean }) {
+@@ -382,2 +423,3 @@ function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loadin
+ 
++  // Mengubah urutan titik menjadi posisi horizontal (x) dalam area grafik
+   const getX = (index: number) => {
+@@ -387,2 +429,3 @@ function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loadin
+ 
++  // Mengubah nilai data menjadi posisi vertikal (y); nilai terbesar berada paling atas
+   const getY = (val: number) => {
+@@ -444,2 +487,5 @@ function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loadin
+  */
++/**
++ * Rincian sumber lalu lintas sebagai batang berpersentase.
++ */
+ function TrafficBreakdown({ trafficSources }: { trafficSources: TrafficSource[] }) {
+@@ -477,2 +523,5 @@ function TrafficBreakdown({ trafficSources }: { trafficSources: TrafficSource[]
+  */
++/**
++ * Rincian jenis perangkat pengunjung (dengan ikon & persentase).
++ */
+ function DeviceBreakdown({ devices }: { devices: DeviceStat[] }) {
+diff --git a/src/pages/admin/BeritaAdmin.tsx b/src/pages/admin/BeritaAdmin.tsx
+index ddb0a39..049406c 100644
+--- a/src/pages/admin/BeritaAdmin.tsx
++++ b/src/pages/admin/BeritaAdmin.tsx
+@@ -1 +1,3 @@
++// KELOLA BERITA (alamat: /admin/berita): daftar, tambah, ubah, hapus berita, serta alihkan status Draft <-> Published.
++// Hanya berita berstatus "published" yang tampil di situs publik. Halaman ini punya dua tampilan: daftar (list) dan form.
+ import React, { useEffect, useState } from 'react';
+@@ -12,4 +14,6 @@ import { Image as ImageIcon } from 'lucide-react';
+ 
++// Tampilan halaman: daftar berita atau form tambah/edit
+ type Mode = 'list' | 'form';
+ 
++// Isi awal form "Tambah Berita": kosong, kategori Berita, status Draft (belum tayang), tanggal hari ini
+ const EMPTY_FORM: Omit<Berita, 'id'> = {
+@@ -20,13 +24,26 @@ const EMPTY_FORM: Omit<Berita, 'id'> = {
+ 
++/**
++ * Halaman kelola berita.
++ */
+ export default function BeritaAdmin() {
++  // Tampilan aktif (daftar / form)
+   const [mode, setMode]           = useState<Mode>('list');
++  // Seluruh berita dari database (termasuk draft)
+   const [list, setList]           = useState<Berita[]>([]);
++  // True selama daftar dimuat
+   const [loading, setLoading]     = useState(true);
++  // True saat form sedang disimpan (tombol dinonaktifkan)
+   const [saving, setSaving]       = useState(false);
++  // Pesan error saat memuat daftar (null = tidak ada)
+   const [error, setError]         = useState<string | null>(null);
++  // Berita yang sedang diedit (null = mode tambah baru)
+   const [editing, setEditing]     = useState<Berita | null>(null);
++  // Isi form yang sedang diketik
+   const [form, setForm]           = useState<Omit<Berita, 'id'>>(EMPTY_FORM);
++  // Berita yang menunggu konfirmasi hapus (null = dialog tertutup)
+   const [deleteTarget, setDeleteTarget] = useState<Berita | null>(null);
++  // Fungsi & status unggah gambar ke Supabase Storage
+   const { uploading, upload }     = useImageUpload();
+ 
++  // Ambil semua berita dari database, terbaru di atas (admin boleh melihat draft karena aturan RLS)
+   async function load() {
+@@ -42,4 +59,6 @@ export default function BeritaAdmin() {
+ 
++  // Muat daftar saat halaman pertama dibuka
+   useEffect(() => { load(); }, []);
+ 
++  // Buka form kosong untuk menambah berita baru
+   function openAdd() {
+@@ -50,2 +69,3 @@ export default function BeritaAdmin() {
+ 
++  // Buka form berisi data berita yang dipilih untuk diedit (id dibuang karena tidak ikut diubah)
+   function openEdit(item: Berita) {
+@@ -57,2 +77,6 @@ export default function BeritaAdmin() {
+ 
++  /**
++   * Simpan form: jika sedang mengedit -> UPDATE, jika tidak -> INSERT.
++   * Judul & slug wajib diisi. Setelah sukses kembali ke daftar dan memuat ulang.
++   */
+   async function handleSave(e: React.FormEvent) {
+@@ -73,2 +97,3 @@ export default function BeritaAdmin() {
+ 
++  // Hapus berita yang sudah dikonfirmasi, lalu muat ulang daftar
+   async function handleDelete() {
+@@ -80,2 +105,3 @@ export default function BeritaAdmin() {
+ 
++  // Balik status: published -> draft, atau draft -> published (klik lencana status di tabel)
+   async function toggleStatus(item: Berita) {
+@@ -87,2 +113,4 @@ export default function BeritaAdmin() {
+ 
++  // Saat admin memilih file gambar: unggah ke Storage, lalu simpan alamat publiknya ke form.
++  // Jika gagal (mis. >2 MB atau bukan gambar), tampilkan toast error.
+   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+@@ -98,2 +126,3 @@ export default function BeritaAdmin() {
+ 
++  // TAMPILAN FORM tambah/edit berita
+   if (mode === 'form') {
+@@ -107,2 +136,3 @@ export default function BeritaAdmin() {
+           </Field>
++          {/* Slug = potongan alamat berita (/news/<slug>); dibuat otomatis dari judul dan hanya boleh huruf kecil, angka, dan tanda hubung */}
+           <Field label="Slug (URL)" required>
+@@ -142,2 +172,3 @@ export default function BeritaAdmin() {
+           </Field>
++          {/* Foto utama: bisa unggah file (tersimpan di Storage) atau tempel alamat gambar yang sudah ada */}
+           <Field label="Foto Utama">
+@@ -164,2 +195,3 @@ export default function BeritaAdmin() {
+     <div className="max-w-5xl">
++      {/* TAMPILAN DAFTAR: tabel semua berita; judul kolom: Judul, Kategori, Tanggal, Status, Aksi */}
+       <PageHeader title="Berita" description="Berita dan artikel yang tampil di halaman Informasi." addLabel="Tulis Berita" onAdd={openAdd} />
+diff --git a/src/pages/admin/Dashboard.tsx b/src/pages/admin/Dashboard.tsx
+index 30d3f16..279511b 100644
+--- a/src/pages/admin/Dashboard.tsx
++++ b/src/pages/admin/Dashboard.tsx
+@@ -1 +1,2 @@
++// DASHBOARD ADMIN (alamat: /admin): ringkasan jumlah konten, pintasan ke halaman kelola, dan statistik pengunjung (Google Analytics).
+ import { useEffect, useState } from 'react';
+@@ -6,2 +7,5 @@ import AnalyticsSection from './AnalyticsSection';
+ 
++/**
++ * Jumlah baris tiap tabel konten
++ */
+ interface CountState {
+@@ -14,2 +18,3 @@ interface CountState {
+ 
++// Definisi kartu statistik: kunci tabel, label, ikon, dan halaman tujuan saat diklik
+ const CARDS = [
+@@ -22,4 +27,9 @@ const CARDS = [
+ 
++/**
++ * Halaman dashboard. Jumlah data diambil sekali saat halaman dibuka.
++ */
+ export default function AdminDashboard() {
++  // Jumlah data tiap tabel (awal 0 sampai data selesai dimuat)
+   const [counts, setCounts] = useState<CountState>({ berita: 0, pengumuman: 0, layanan: 0, staf: 0, galeri: 0 });
++  // True selama jumlah data belum selesai dimuat (kartu menampilkan tanda "-")
+   const [loading, setLoading] = useState(true);
+@@ -27,2 +37,3 @@ export default function AdminDashboard() {
+   useEffect(() => {
++    // Hitung jumlah baris tiap tabel secara bersamaan. count: 'exact' + head: true = hanya minta jumlahnya, bukan isi datanya (hemat data).
+     async function fetchCounts() {
+@@ -51,3 +62,3 @@ export default function AdminDashboard() {
+ 
+-      {/* Stats row */}
++      {/* Baris kartu statistik: jumlah berita, pengumuman, layanan, staf, galeri */}
+       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+@@ -68,3 +79,3 @@ export default function AdminDashboard() {
+ 
+-      {/* Analytics Section */}
++      {/* Statistik pengunjung dari Google Analytics (lihat AnalyticsSection.tsx & api/analytics.ts) */}
+       <AnalyticsSection />
+@@ -72,3 +83,3 @@ export default function AdminDashboard() {
+       <div className="grid lg:grid-cols-5 gap-6">
+-        {/* Quick links */}
++        {/* Pintasan ke halaman kelola yang paling sering dipakai */}
+         <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-5">
+@@ -93,3 +104,3 @@ export default function AdminDashboard() {
+ 
+-        {/* Profil shortcut */}
++        {/* Pintasan ke edit Profil KUA (juga tempat sakelar Mode Maintenance) */}
+         <Link
+diff --git a/src/pages/admin/GaleriAdmin.tsx b/src/pages/admin/GaleriAdmin.tsx
+index 5b99ef6..a6f6fbf 100644
+--- a/src/pages/admin/GaleriAdmin.tsx
++++ b/src/pages/admin/GaleriAdmin.tsx
+@@ -1 +1,3 @@
++// KELOLA GALERI KEGIATAN (alamat: /admin/galeri): tambah, ubah, hapus foto dokumentasi kegiatan.
++// Tidak ada status draft: semua foto di tabel langsung tampil di situs (Beranda menampilkan 4 terbaru, halaman Kegiatan menampilkan semua).
+ import React, { useEffect, useState } from 'react';
+@@ -12,6 +14,9 @@ import { Image as ImageIcon } from 'lucide-react';
+ 
++// Tampilan halaman: daftar atau form tambah/edit
+ type Mode = 'list' | 'form';
+ 
++// Pilihan kategori foto; harus sama dengan tombol filter di halaman Kegiatan
+ const CATEGORIES = ['Kegiatan', 'Pelayanan', 'Acara', 'Lainnya'];
+ 
++// Isi awal form "Tambah Foto": kosong, kategori Kegiatan, tanggal hari ini
+ const EMPTY_FORM: Omit<Galeri, 'id'> = {
+@@ -21,13 +26,26 @@ const EMPTY_FORM: Omit<Galeri, 'id'> = {
+ 
++/**
++ * Halaman kelola galeri. Daftar ditampilkan sebagai grid foto (bukan tabel) karena kontennya visual.
++ */
+ export default function GaleriAdmin() {
++  // Tampilan aktif (daftar / form)
+   const [mode, setMode]         = useState<Mode>('list');
++  // Seluruh foto galeri dari database, terbaru di atas
+   const [list, setList]         = useState<Galeri[]>([]);
++  // True selama daftar dimuat
+   const [loading, setLoading]   = useState(true);
++  // True saat form sedang disimpan (tombol dinonaktifkan)
+   const [saving, setSaving]     = useState(false);
++  // Pesan error saat memuat daftar (null = tidak ada)
+   const [error, setError]       = useState<string | null>(null);
++  // Data yang sedang diedit (null = mode tambah baru)
+   const [editing, setEditing]   = useState<Galeri | null>(null);
++  // Isi form yang sedang diketik
+   const [form, setForm]         = useState<Omit<Galeri, 'id'>>(EMPTY_FORM);
++  // Data yang menunggu konfirmasi hapus (null = dialog tertutup)
+   const [deleteTarget, setDeleteTarget] = useState<Galeri | null>(null);
++  // Fungsi & status unggah foto ke Supabase Storage
+   const { uploading, upload }   = useImageUpload();
+ 
++  // Ambil semua data dari tabel "galeri" di Supabase
+   async function load() {
+@@ -41,5 +59,8 @@ export default function GaleriAdmin() {
+ 
++  // Muat daftar saat halaman pertama dibuka
+   useEffect(() => { load(); }, []);
+ 
++  // Buka form kosong untuk foto baru
+   function openAdd() { setEditing(null); setForm({ ...EMPTY_FORM }); setMode('form'); }
++  // Buka form berisi data foto yang dipilih
+   function openEdit(item: Galeri) {
+@@ -53,2 +74,5 @@ export default function GaleriAdmin() {
+ 
++  /**
++   * Simpan form: UPDATE jika sedang mengedit, INSERT jika baru. Judul wajib.
++   */
+   async function handleSave(e: React.FormEvent) {
+@@ -67,2 +91,3 @@ export default function GaleriAdmin() {
+ 
++  // Hapus foto yang sudah dikonfirmasi, lalu muat ulang daftar
+   async function handleDelete() {
+@@ -73,2 +98,3 @@ export default function GaleriAdmin() {
+ 
++  // Saat admin memilih foto: unggah ke Storage lalu simpan alamat publiknya ke form; gagal -> toast error
+   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+@@ -84,2 +110,3 @@ export default function GaleriAdmin() {
+ 
++  // TAMPILAN FORM tambah/edit
+   if (mode === 'form') {
+@@ -108,2 +135,3 @@ export default function GaleriAdmin() {
+           </Field>
++          {/* Gambar wajib: unggah file atau tempel alamat gambar */}
+           <Field label="Gambar" required>
+@@ -130,2 +158,3 @@ export default function GaleriAdmin() {
+     <div className="max-w-5xl">
++      {/* TAMPILAN DAFTAR: grid kartu foto dengan tombol edit & hapus */}
+       <PageHeader title="Galeri Kegiatan" description="Foto dokumentasi yang tampil di halaman Kegiatan." addLabel="Tambah Foto" onAdd={openAdd} />
+diff --git a/src/pages/admin/LayananAdmin.tsx b/src/pages/admin/LayananAdmin.tsx
+index 8702053..6536c8c 100644
+--- a/src/pages/admin/LayananAdmin.tsx
++++ b/src/pages/admin/LayananAdmin.tsx
+@@ -1 +1,3 @@
++// KELOLA LAYANAN (alamat: /admin/layanan): daftar, tambah, ubah, hapus layanan KUA + alihkan Aktif <-> Nonaktif.
++// Setiap layanan punya persyaratan & prosedur (diketik satu poin per baris) yang tampil di halaman Layanan.
+ import React, { useEffect, useState } from 'react';
+@@ -9,2 +11,3 @@ import {
+ 
++// Tampilan halaman: daftar atau form tambah/edit
+ type Mode = 'list' | 'form';
+@@ -13,2 +16,3 @@ type Mode = 'list' | 'form';
+ // akan tampil sebagai ikon generik di halaman publik.
++// Pilihan ikon layanan. Harus sama dengan daftar yang dikenali ServiceCard.tsx; nama lain akan tampil sebagai ikon generik.
+ const ICON_OPTIONS = [
+@@ -17,2 +21,3 @@ const ICON_OPTIONS = [
+ 
++// Isi awal form "Tambah Layanan": kosong, status aktif
+ const EMPTY_FORM: Omit<Layanan, 'id'> = {
+@@ -24,10 +29,21 @@ const EMPTY_FORM: Omit<Layanan, 'id'> = {
+ 
++/**
++ * Halaman kelola layanan.
++ */
+ export default function LayananAdmin() {
++  // Tampilan aktif (daftar / form)
+   const [mode, setMode]         = useState<Mode>('list');
++  // Seluruh layanan dari database (termasuk yang nonaktif)
+   const [list, setList]         = useState<Layanan[]>([]);
++  // True selama daftar dimuat
+   const [loading, setLoading]   = useState(true);
++  // True saat form sedang disimpan (tombol dinonaktifkan)
+   const [saving, setSaving]     = useState(false);
++  // Pesan error saat memuat daftar (null = tidak ada)
+   const [error, setError]       = useState<string | null>(null);
++  // Data yang sedang diedit (null = mode tambah baru)
+   const [editing, setEditing]   = useState<Layanan | null>(null);
++  // Isi form yang sedang diketik
+   const [form, setForm]         = useState<Omit<Layanan, 'id'>>(EMPTY_FORM);
++  // Data yang menunggu konfirmasi hapus (null = dialog tertutup)
+   const [deleteTarget, setDeleteTarget] = useState<Layanan | null>(null);
+@@ -35,5 +51,8 @@ export default function LayananAdmin() {
+   // Textarea helpers for arrays
++  // Isi kolom "Persyaratan" sebagai teks (satu persyaratan per baris); diubah jadi daftar saat disimpan
+   const [reqText, setReqText] = useState('');
++  // Isi kolom "Prosedur" sebagai teks (satu langkah per baris); diubah jadi daftar saat disimpan
+   const [procText, setProcText] = useState('');
+ 
++  // Ambil semua data dari tabel "layanan" di Supabase
+   async function load() {
+@@ -47,4 +66,6 @@ export default function LayananAdmin() {
+ 
++  // Muat daftar saat halaman pertama dibuka
+   useEffect(() => { load(); }, []);
+ 
++  // Buka form kosong; nomor urutan otomatis diisi urutan berikutnya setelah layanan terakhir
+   function openAdd() {
+@@ -56,2 +77,3 @@ export default function LayananAdmin() {
+ 
++  // Buka form berisi data layanan yang dipilih; daftar persyaratan/prosedur digabung kembali jadi teks per baris
+   function openEdit(item: Layanan) {
+@@ -65,2 +87,6 @@ export default function LayananAdmin() {
+ 
++  /**
++   * Simpan form: teks persyaratan & prosedur dipecah per baris, baris kosong dibuang, lalu disimpan sebagai daftar.
++   * UPDATE jika sedang mengedit, INSERT jika baru. Nama layanan & slug wajib.
++   */
+   async function handleSave(e: React.FormEvent) {
+@@ -84,2 +110,3 @@ export default function LayananAdmin() {
+ 
++  // Hapus data yang sudah dikonfirmasi, lalu muat ulang daftar
+   async function handleDelete() {
+@@ -90,2 +117,3 @@ export default function LayananAdmin() {
+ 
++  // Balik status: active <-> inactive (layanan nonaktif tidak tampil di situs publik)
+   async function toggleStatus(item: Layanan) {
+@@ -97,2 +125,3 @@ export default function LayananAdmin() {
+ 
++  // TAMPILAN FORM tambah/edit
+   if (mode === 'form') {
+@@ -107,2 +136,3 @@ export default function LayananAdmin() {
+             </Field>
++            {/* Slug = potongan alamat layanan, mis. "pendaftaran-nikah" */}
+             <Field label="Slug (URL)" required>
+@@ -122,2 +152,3 @@ export default function LayananAdmin() {
+             </Field>
++            {/* Pilihan ikon dibatasi agar selalu cocok dengan ikon yang tersedia di situs */}
+             <Field label="Ikon">
+@@ -129,2 +160,3 @@ export default function LayananAdmin() {
+           </div>
++          {/* Satu persyaratan per baris */}
+           <Field label="Persyaratan (satu per baris)">
+@@ -158,2 +190,3 @@ export default function LayananAdmin() {
+     <div className="max-w-5xl">
++      {/* TAMPILAN DAFTAR: tabel layanan berurutan menurut nomor urut, dengan status aktif/nonaktif */}
+       <PageHeader title="Layanan" description="Layanan yang tampil di Beranda dan halaman Layanan." addLabel="Tambah Layanan" onAdd={openAdd} />
+diff --git a/src/pages/admin/Login.tsx b/src/pages/admin/Login.tsx
+index 0982fd1..aaababf 100644
+--- a/src/pages/admin/Login.tsx
++++ b/src/pages/admin/Login.tsx
+@@ -1 +1,3 @@
++// HALAMAN LOGIN ADMIN (alamat: /admin/login): form email + kata sandi memakai Supabase Auth.
++// Setelah berhasil login, sistem juga memastikan akun tersebut terdaftar di tabel "admins" -- akun biasa ditolak.
+ import React, { useState } from 'react';
+@@ -5,9 +7,22 @@ import { Landmark, Loader2 } from 'lucide-react';
+ 
++/**
++ * Halaman login. Di layar lebar ada panel hijau di kiri (branding) dan form di kanan; di HP hanya form.
++ */
+ export default function AdminLogin() {
+   const navigate = useNavigate();
++  // Isi kolom email
+   const [email, setEmail]       = useState('');
++  // Isi kolom kata sandi
+   const [password, setPassword] = useState('');
++  // True saat proses login berjalan (tombol dinonaktifkan)
+   const [loading, setLoading]   = useState(false);
++  // Pesan kesalahan yang ditampilkan di bawah form (null = tidak ada)
+   const [error, setError]       = useState<string | null>(null);
+ 
++  /**
++   * Proses login, dalam 3 langkah:
++   * 1. Masuk ke Supabase Auth dengan email & kata sandi (gagal -> pesan "Email atau kata sandi salah").
++   * 2. Cek apakah user ada di tabel "admins" (tidak ada -> langsung keluar lagi + pesan "tidak memiliki akses admin").
++   * 3. Berhasil -> pindah ke Dashboard (replace: tombol Back tidak kembali ke halaman login).
++   */
+   async function handleSubmit(e: React.FormEvent) {
+@@ -28,3 +43,3 @@ export default function AdminLogin() {
+ 
+-    // Verify admin table membership
++    // Langkah 2: pastikan akun terdaftar sebagai admin
+     const { data: adminRow } = await supabase!
+@@ -45,2 +60,3 @@ export default function AdminLogin() {
+ 
++  // Jika Supabase belum dikonfigurasi (file .env belum diisi), tampilkan petunjuk alih-alih form yang tidak akan berfungsi
+   if (!supabase) {
+@@ -58,3 +74,3 @@ export default function AdminLogin() {
+     <>
+-      {/* noindex for admin pages */}
++      {/* Minta mesin pencari tidak mengindeks halaman admin */}
+       <meta name="robots" content="noindex,nofollow" />
+@@ -62,3 +78,3 @@ export default function AdminLogin() {
+       <div className="min-h-screen grid lg:grid-cols-2 bg-slate-50">
+-        {/* Brand panel (desktop only) */}
++        {/* Panel branding hijau (hanya layar lebar) */}
+         <div className="hidden lg:flex flex-col justify-between bg-[#0f5132] text-white p-10">
+@@ -81,3 +97,3 @@ export default function AdminLogin() {
+ 
+-        {/* Form panel */}
++        {/* Panel form login */}
+         <div className="flex items-center justify-center px-4 py-12">
+diff --git a/src/pages/admin/PengumumanAdmin.tsx b/src/pages/admin/PengumumanAdmin.tsx
+index 5709fcd..0071d53 100644
+--- a/src/pages/admin/PengumumanAdmin.tsx
++++ b/src/pages/admin/PengumumanAdmin.tsx
+@@ -1 +1,3 @@
++// KELOLA PENGUMUMAN (alamat: /admin/pengumuman): daftar, tambah, ubah, hapus pengumuman resmi + alihkan Draft <-> Published.
++// Pengumuman tampil di sidebar halaman Informasi hanya jika berstatus "published" dan belum melewati tanggal "Berlaku Hingga".
+ import React, { useEffect, useState } from 'react';
+@@ -9,4 +11,6 @@ import {
+ 
++// Tampilan halaman: daftar atau form tambah/edit
+ type Mode = 'list' | 'form';
+ 
++// Isi awal form "Buat Pengumuman": kosong, prioritas normal, status Draft, tanggal hari ini
+ const EMPTY_FORM: Omit<Pengumuman, 'id'> = {
+@@ -17,12 +21,24 @@ const EMPTY_FORM: Omit<Pengumuman, 'id'> = {
+ 
++/**
++ * Halaman kelola pengumuman.
++ */
+ export default function PengumumanAdmin() {
++  // Tampilan aktif (daftar / form)
+   const [mode, setMode]         = useState<Mode>('list');
++  // Seluruh pengumuman dari database (termasuk draft & kedaluwarsa)
+   const [list, setList]         = useState<Pengumuman[]>([]);
++  // True selama daftar dimuat
+   const [loading, setLoading]   = useState(true);
++  // True saat form sedang disimpan (tombol dinonaktifkan)
+   const [saving, setSaving]     = useState(false);
++  // Pesan error saat memuat daftar (null = tidak ada)
+   const [error, setError]       = useState<string | null>(null);
++  // Data yang sedang diedit (null = mode tambah baru)
+   const [editing, setEditing]   = useState<Pengumuman | null>(null);
++  // Isi form yang sedang diketik
+   const [form, setForm]         = useState<Omit<Pengumuman, 'id'>>(EMPTY_FORM);
++  // Data yang menunggu konfirmasi hapus (null = dialog tertutup)
+   const [deleteTarget, setDeleteTarget] = useState<Pengumuman | null>(null);
+ 
++  // Ambil semua data dari tabel "pengumuman" di Supabase
+   async function load() {
+@@ -36,5 +52,8 @@ export default function PengumumanAdmin() {
+ 
++  // Muat daftar saat halaman pertama dibuka
+   useEffect(() => { load(); }, []);
+ 
++  // Buka form kosong untuk pengumuman baru
+   function openAdd() { setEditing(null); setForm({ ...EMPTY_FORM }); setMode('form'); }
++  // Buka form berisi data pengumuman yang dipilih (id dibuang karena tidak ikut diubah)
+   function openEdit(item: Pengumuman) {
+@@ -43,2 +62,6 @@ export default function PengumumanAdmin() {
+ 
++  /**
++   * Simpan form: UPDATE jika sedang mengedit, INSERT jika baru. Judul wajib.
++   * Kolom "Berlaku Hingga" yang dikosongkan disimpan sebagai null (= tidak pernah kedaluwarsa).
++   */
+   async function handleSave(e: React.FormEvent) {
+@@ -58,2 +81,3 @@ export default function PengumumanAdmin() {
+ 
++  // Hapus data yang sudah dikonfirmasi, lalu muat ulang daftar
+   async function handleDelete() {
+@@ -64,2 +88,3 @@ export default function PengumumanAdmin() {
+ 
++  // Balik status: published <-> draft (klik lencana status di tabel)
+   async function toggleStatus(item: Pengumuman) {
+@@ -71,2 +96,3 @@ export default function PengumumanAdmin() {
+ 
++  // TAMPILAN FORM tambah/edit
+   if (mode === 'form') {
+@@ -84,2 +110,3 @@ export default function PengumumanAdmin() {
+           <div className="grid grid-cols-2 gap-4">
++            {/* Prioritas "important" membuat pengumuman disorot di situs */}
+             <Field label="Prioritas">
+@@ -104,2 +131,3 @@ export default function PengumumanAdmin() {
+             </Field>
++            {/* Setelah tanggal ini pengumuman otomatis tidak tampil lagi di situs publik */}
+             <Field label="Berlaku Hingga (opsional)">
+@@ -117,2 +145,3 @@ export default function PengumumanAdmin() {
+     <div className="max-w-5xl">
++      {/* TAMPILAN DAFTAR: tabel semua pengumuman beserta prioritas, masa berlaku, dan status */}
+       <PageHeader title="Pengumuman" description="Pengumuman resmi yang tampil di halaman Informasi." addLabel="Buat Pengumuman" onAdd={openAdd} />
+diff --git a/src/pages/admin/ProfilAdmin.tsx b/src/pages/admin/ProfilAdmin.tsx
+index 29250a8..8bd798f 100644
+--- a/src/pages/admin/ProfilAdmin.tsx
++++ b/src/pages/admin/ProfilAdmin.tsx
+@@ -1 +1,4 @@
++// KELOLA PROFIL KUA (alamat: /admin/profil): satu formulir untuk mengubah data kantor (nama, sejarah, visi-misi, alamat, telepon,
++// email, jam pelayanan). Data ini dipakai di banyak bagian situs publik. Di bagian atas ada sakelar MODE MAINTENANCE.
++// Tabel "profil" hanya boleh berisi SATU baris (singleton), jadi halaman ini mengedit baris yang ada, bukan menambah baru.
+ import React, { useEffect, useState } from 'react';
+@@ -8,2 +11,3 @@ import { profileData } from '../../data/profile';
+ 
++// Nilai awal form jika database belum punya data profil; diambil dari data lokal (data/profile.ts)
+ const DEFAULT_PROFIL: Profil = {
+@@ -21,11 +25,22 @@ const DEFAULT_PROFIL: Profil = {
+ 
++/**
++ * Halaman edit profil + sakelar maintenance.
++ */
+ export default function ProfilAdmin() {
++  // True selama profil dimuat
+   const [loading, setLoading] = useState(true);
++  // True saat form profil sedang disimpan
+   const [saving, setSaving]   = useState(false);
++  // Pesan error saat memuat profil (null = tidak ada)
+   const [error, setError]     = useState<string | null>(null);
++  // id baris profil di database (null = belum pernah disimpan, simpan pertama akan INSERT)
+   const [profilId, setProfilId] = useState<string | null>(null);
++  // Isi form profil yang sedang diketik
+   const [form, setForm]       = useState<Profil>(DEFAULT_PROFIL);
++  // Isi kolom "Misi" sebagai teks, satu misi per baris; diubah jadi daftar saat disimpan
+   const [missionText, setMissionText] = useState(profileData.missions.join('\n'));
++  // True saat sakelar maintenance sedang menyimpan (sakelar dinonaktifkan sebentar)
+   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
+ 
++  // Ambil baris profil dari database. Kolom yang kosong diisi nilai bawaan dari data lokal agar form tidak kosong melompong.
+   async function load() {
+@@ -55,4 +70,10 @@ export default function ProfilAdmin() {
+ 
++  // Muat profil saat halaman pertama dibuka
+   useEffect(() => { load(); }, []);
+ 
++  /**
++   * Simpan form profil. Misi dipecah per baris (baris kosong dibuang).
++   * Jika baris profil sudah ada -> UPDATE; jika belum -> INSERT lalu simpan id-nya.
++   * (Status maintenance TIDAK ikut disimpan di sini; sakelar punya penyimpanan sendiri.)
++   */
+   async function handleSave(e: React.FormEvent) {
+@@ -90,2 +111,7 @@ export default function ProfilAdmin() {
+ 
++  /**
++   * Menyalakan/mematikan MODE MAINTENANCE secara langsung (tanpa menunggu tombol Simpan).
++   * Saat aktif, seluruh halaman publik berganti jadi pesan "Web dalam Maintenance"; panel admin tetap bisa dibuka.
++   * Tidak bisa dipakai sebelum profil pertama kali disimpan (butuh id baris).
++   */
+   async function handleToggleMaintenance() {
+@@ -102,2 +128,3 @@ export default function ProfilAdmin() {
+ 
++  // Selama memuat atau jika error, tampilkan status tersebut menggantikan form
+   if (loading) return <AdminLoading />;
+@@ -140,2 +167,3 @@ export default function ProfilAdmin() {
+       <form onSubmit={handleSave} className="bg-white border border-slate-200 rounded-xl p-6 space-y-6">
++{/* Bagian 1: nama kantor, deskripsi, sejarah */}
+         <div className="space-y-4 border-b border-slate-100 pb-5">
+@@ -155,2 +183,3 @@ export default function ProfilAdmin() {
+         </div>
++{/* Bagian 2: visi dan daftar misi */}
+ 
+@@ -167,2 +196,3 @@ export default function ProfilAdmin() {
+         </div>
++{/* Bagian 3: alamat, telepon, email */}
+ 
+@@ -185,2 +215,3 @@ export default function ProfilAdmin() {
+         </div>
++{/* Bagian 4: jam pelayanan Senin-Kamis, Jumat, Sabtu-Minggu */}
+ 
+diff --git a/src/pages/admin/StafAdmin.tsx b/src/pages/admin/StafAdmin.tsx
+index 3ca68f2..80fb5da 100644
+--- a/src/pages/admin/StafAdmin.tsx
++++ b/src/pages/admin/StafAdmin.tsx
+@@ -1 +1,3 @@
++// KELOLA STAF/PEGAWAI (alamat: /admin/staf): daftar, tambah, ubah, hapus pegawai + alihkan Aktif <-> Nonaktif.
++// Pegawai aktif tampil di halaman Profil; NIP bersifat opsional (tampil publik jika diisi).
+ import React, { useEffect, useState } from 'react';
+@@ -12,4 +14,6 @@ import { Image as ImageIcon, UserCircle } from 'lucide-react';
+ 
++// Tampilan halaman: daftar atau form tambah/edit
+ type Mode = 'list' | 'form';
+ 
++// Isi awal form "Tambah Pegawai": kosong, status aktif
+ const EMPTY_FORM: Omit<Staf, 'id'> = {
+@@ -18,13 +22,26 @@ const EMPTY_FORM: Omit<Staf, 'id'> = {
+ 
++/**
++ * Halaman kelola pegawai.
++ */
+ export default function StafAdmin() {
++  // Tampilan aktif (daftar / form)
+   const [mode, setMode]         = useState<Mode>('list');
++  // Seluruh pegawai dari database (termasuk yang nonaktif)
+   const [list, setList]         = useState<Staf[]>([]);
++  // True selama daftar dimuat
+   const [loading, setLoading]   = useState(true);
++  // True saat form sedang disimpan (tombol dinonaktifkan)
+   const [saving, setSaving]     = useState(false);
++  // Pesan error saat memuat daftar (null = tidak ada)
+   const [error, setError]       = useState<string | null>(null);
++  // Data yang sedang diedit (null = mode tambah baru)
+   const [editing, setEditing]   = useState<Staf | null>(null);
++  // Isi form yang sedang diketik
+   const [form, setForm]         = useState<Omit<Staf, 'id'>>(EMPTY_FORM);
++  // Data yang menunggu konfirmasi hapus (null = dialog tertutup)
+   const [deleteTarget, setDeleteTarget] = useState<Staf | null>(null);
++  // Fungsi & status unggah foto ke Supabase Storage
+   const { uploading, upload }   = useImageUpload();
+ 
++  // Ambil semua data dari tabel "staf" di Supabase
+   async function load() {
+@@ -38,4 +55,6 @@ export default function StafAdmin() {
+ 
++  // Muat daftar saat halaman pertama dibuka
+   useEffect(() => { load(); }, []);
+ 
++  // Buka form kosong; nomor urut otomatis diisi urutan berikutnya
+   function openAdd() {
+@@ -46,2 +65,3 @@ export default function StafAdmin() {
+ 
++  // Buka form berisi data pegawai yang dipilih (id dibuang karena tidak ikut diubah)
+   function openEdit(item: Staf) {
+@@ -53,2 +73,6 @@ export default function StafAdmin() {
+ 
++  /**
++   * Simpan form: UPDATE jika sedang mengedit, INSERT jika baru. Nama wajib.
++   * NIP yang dikosongkan disimpan sebagai null.
++   */
+   async function handleSave(e: React.FormEvent) {
+@@ -68,2 +92,3 @@ export default function StafAdmin() {
+ 
++  // Hapus data yang sudah dikonfirmasi, lalu muat ulang daftar
+   async function handleDelete() {
+@@ -74,2 +99,3 @@ export default function StafAdmin() {
+ 
++  // Balik status aktif <-> nonaktif (pegawai nonaktif tidak tampil di situs)
+   async function toggleStatus(item: Staf) {
+@@ -81,2 +107,3 @@ export default function StafAdmin() {
+   
++  // Saat admin memilih foto: unggah ke Storage lalu simpan alamat publiknya ke form; gagal -> toast error
+   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+@@ -92,2 +119,3 @@ export default function StafAdmin() {
+ 
++  // TAMPILAN FORM tambah/edit
+   if (mode === 'form') {
+@@ -106,2 +134,3 @@ export default function StafAdmin() {
+           </div>
++          {/* NIP: hanya angka, maksimal 18 digit; ditampilkan publik di halaman Profil jika diisi */}
+           <Field label="NIP (opsional)">
+@@ -134,2 +163,3 @@ export default function StafAdmin() {
+           </div>
++          {/* Foto: unggah file atau tempel alamat gambar */}
+           <Field label="Foto Pegawai">
+@@ -160,2 +190,3 @@ export default function StafAdmin() {
+     <div className="max-w-5xl">
++      {/* TAMPILAN DAFTAR: tabel pegawai berurutan menurut nomor urut, dengan status aktif/nonaktif */}
+       <PageHeader title="Staf & Pegawai" description="Daftar pegawai yang tampil di halaman Profil." addLabel="Tambah Pegawai" onAdd={openAdd} />
+diff --git a/src/pages/admin/ToastContainer.tsx b/src/pages/admin/ToastContainer.tsx
+index 05d61f7..ca9f2dd 100644
+--- a/src/pages/admin/ToastContainer.tsx
++++ b/src/pages/admin/ToastContainer.tsx
+@@ -1 +1,2 @@
++// WADAH NOTIFIKASI: menampilkan semua toast aktif di pojok kanan atas layar admin. Dipasang sekali di AdminLayout.
+ import { useEffect, useState } from 'react';
+@@ -4,2 +5,5 @@ import { subscribeToasts, type ToastItem } from './toast';
+ 
++/**
++ * Berlangganan daftar notifikasi dari toast.ts; tidak menampilkan apa-apa jika daftar kosong.
++ */
+ export function ToastContainer() {
+@@ -7,2 +11,3 @@ export function ToastContainer() {
+ 
++  // Mulai berlangganan saat tampil; fungsi yang dikembalikan otomatis berhenti berlangganan saat ditutup
+   useEffect(() => subscribeToasts(setItems), []);
+diff --git a/src/pages/admin/toast.ts b/src/pages/admin/toast.ts
+index 6615400..f714655 100644
+--- a/src/pages/admin/toast.ts
++++ b/src/pages/admin/toast.ts
+@@ -1,2 +1,8 @@
++// Jenis notifikasi: success (hijau) atau error (merah)
++// NOTIFIKASI (TOAST) ADMIN: pesan kecil sukses/gagal yang muncul sebentar di pojok layar (menggantikan alert() bawaan browser).
++// Dibuat tanpa library tambahan: daftar pesan disimpan di variabel modul, dan komponen ToastContainer "berlangganan" untuk menampilkannya.
+ export type ToastType = 'success' | 'error';
++/**
++ * Satu notifikasi: id unik, jenis, dan isi pesan
++ */
+ export interface ToastItem {
+@@ -7,5 +13,4 @@ export interface ToastItem {
+ 
+-// Toast ringan tanpa dependency tambahan: state singleton di luar React,
+-// supaya helper non-komponen seperti run() bisa memicu toast langsung
+-// tanpa perlu hook.
++// Status bersama (di luar React) agar fungsi biasa seperti run() bisa memicu toast tanpa hook.
++// items = notifikasi yang sedang tampil, listeners = komponen yang ingin diberi tahu, nextId = penghitung id.
+ let items: ToastItem[] = [];
+@@ -14,2 +19,5 @@ let nextId = 1;
+ 
++/**
++ * Beritahu semua pendengar (ToastContainer) bahwa daftar notifikasi berubah
++ */
+ function emit() {
+@@ -18,2 +26,6 @@ function emit() {
+ 
++/**
++ * Mendaftarkan fungsi pendengar yang dipanggil setiap daftar notifikasi berubah.
++ * Mengembalikan fungsi untuk berhenti berlangganan (dipakai saat komponen ditutup).
++ */
+ export function subscribeToasts(listener: (items: ToastItem[]) => void): () => void {
+@@ -26,2 +38,6 @@ export function subscribeToasts(listener: (items: ToastItem[]) => void): () => v
+ 
++/**
++ * Menampilkan notifikasi baru, lalu otomatis menghapusnya setelah 4 detik.
++ * Bisa dipanggil dari mana saja (termasuk fungsi biasa seperti run() di AdminUI), bukan hanya dari komponen.
++ */
+ export function showToast(type: ToastType, message: string) {
+diff --git a/src/pages/admin/useImageUpload.ts b/src/pages/admin/useImageUpload.ts
+index 7b34c8d..cba9add 100644
+--- a/src/pages/admin/useImageUpload.ts
++++ b/src/pages/admin/useImageUpload.ts
+@@ -1 +1,3 @@
++// UNGGAH GAMBAR ke Supabase Storage (bucket "media"), dipakai form Berita, Staf, dan Galeri.
++// Batas ukuran (2 MB) dan jenis file (hanya gambar) dijaga oleh pengaturan bucket di database, bukan di kode ini.
+ import { useState } from 'react';
+@@ -4,9 +6,13 @@ import { supabase } from '../../lib/supabase';
+ /**
+- * Uploads a File to the `media` Supabase Storage bucket.
+- * Returns the public URL of the uploaded file, or throws on error.
++ * Mengunggah satu file ke bucket "media" di Supabase Storage.
++ * Mengembalikan alamat publik file tersebut, atau melempar error jika gagal
++ * (mis. file lebih dari 2 MB, bukan gambar, atau bukan admin).
+  */
+ export async function uploadMedia(file: File): Promise<string> {
++  // Ambil ekstensi file asli (jpg, png, webp, dst.); jika tidak ada, anggap jpg
+   const ext  = file.name.split('.').pop() ?? 'jpg';
++  // Nama file unik (waktu + angka acak) agar tidak pernah menimpa file lain
+   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+ 
++  // Kirim file ke bucket "media"; upsert: false = menolak jika nama sudah ada; cacheControl = browser boleh menyimpan 1 jam
+   const { error } = await supabase!.storage.from('media').upload(path, file, {
+@@ -17,2 +23,3 @@ export async function uploadMedia(file: File): Promise<string> {
+ 
++  // Minta alamat publik file (inilah yang disimpan di database dan dipakai untuk menampilkan gambar)
+   const { data } = supabase!.storage.from('media').getPublicUrl(path);
+@@ -22,4 +29,6 @@ export async function uploadMedia(file: File): Promise<string> {
+ /**
+- * Hook for image upload state management.
+- * Usage: const { uploading, upload } = useImageUpload();
++ * Hook untuk mengelola status unggah gambar di form.
++ * Pemakaian: const { uploading, upload } = useImageUpload();
++ *  - uploading : true selama file sedang diunggah (untuk menonaktifkan tombol / menampilkan "Mengunggah...")
++ *  - upload(file) : mengunggah file dan mengembalikan alamat publiknya; error diteruskan ke pemanggil
+  */
+diff --git a/src/utils/roleCategory.ts b/src/utils/roleCategory.ts
+index 3bf66cb..6fa5a59 100644
+--- a/src/utils/roleCategory.ts
++++ b/src/utils/roleCategory.ts
+@@ -1 +1,2 @@
++// Daftar kategori lencana pegawai yang tersedia
+ export type RoleCategory = "Kepala" | "Penghulu" | "Penyuluh" | "Pelaksana" | "Staf";
+@@ -3,4 +4,9 @@ export type RoleCategory = "Kepala" | "Penghulu" | "Penyuluh" | "Pelaksana" | "S
+ /**
+- * Menentukan kategori badge dari teks jabatan.
+- * Aman untuk null/undefined dan tidak peka huruf besar/kecil.
++ * Menentukan kategori lencana (badge) pegawai dari teks jabatannya, mis.:
++ *   "Kepala KUA ..."           -> Kepala
++ *   "Penghulu Ahli Pertama"    -> Penghulu
++ *   "Penyuluh Agama Islam ..." -> Penyuluh
++ *   "Pengolah Data ..."        -> Pelaksana
++ *   jabatan lain / kosong      -> Staf
++ * Aman untuk nilai kosong (null/undefined) dan tidak membedakan huruf besar/kecil.
+  */

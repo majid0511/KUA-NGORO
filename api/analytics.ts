@@ -1,12 +1,29 @@
+// FUNGSI SERVER (Vercel Serverless) UNTUK STATISTIK PENGUNJUNG: alamat /api/analytics.
+// Berjalan di server, BUKAN di browser, sehingga kredensial Google (client secret & refresh token) tidak pernah terkirim ke pengunjung.
+//
+// Alur satu permintaan:
+//   1. Pastikan peminta adalah admin yang login (verifyAdminUser) -> jika tidak, jawab 401.
+//   2. Baca kredensial Google dari environment variable Vercel (jika belum lengkap, jawab "belum dikonfigurasi").
+//   3. Tukar refresh token menjadi access token Google (getAccessTokenFromRefreshToken).
+//   4. Minta 4 laporan sekaligus ke Google Analytics Data API: tren harian, halaman terpopuler, sumber lalu lintas, perangkat.
+//   5. Rapikan hasilnya menjadi JSON sederhana untuk komponen AnalyticsSection.
+// Environment variable yang dibutuhkan: GA_PROPERTY_ID, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN,
+// serta VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY (untuk memeriksa login admin).
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createClient } from '@supabase/supabase-js';
 
+/**
+ * Bentuk objek permintaan (sebagian saja) yang dipakai fungsi ini
+ */
 interface VercelRequest extends IncomingMessage {
   query: Record<string, string | string[]>;
   headers: Record<string, string | string[] | undefined>;
   method?: string;
 }
 
+/**
+ * Bentuk objek jawaban (sebagian saja): status() mengatur kode HTTP, json() mengirim isi JSON
+ */
 interface VercelResponse extends ServerResponse {
   status: (statusCode: number) => VercelResponse;
   json: (data: unknown) => VercelResponse;
@@ -85,7 +102,7 @@ async function verifyAdminUser(req: VercelRequest): Promise<boolean> {
       return false;
     }
 
-    // Pastikan user terdaftar di tabel admins
+    // Pastikan user terdaftar di tabel "admins" (login saja belum cukup); ada = admin, tidak ada = bukan admin
     const { data: adminRecord } = await supabase
       .from('admins')
       .select('user_id')
@@ -99,12 +116,16 @@ async function verifyAdminUser(req: VercelRequest): Promise<boolean> {
   }
 }
 
+/**
+ * Pintu masuk fungsi server: dipanggil Vercel setiap ada permintaan GET ke /api/analytics?days=7|30|90.
+ */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Hanya menerima permintaan GET; metode lain ditolak (405)
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, error: 'Method not allowed' });
   }
 
-  // 1. Verifikasi Authentication Admin
+  // Langkah 1: pastikan peminta adalah admin yang login (jika tidak, hentikan di sini dengan kode 401)
   const isAuthorized = await verifyAdminUser(req);
   if (!isAuthorized) {
     return res.status(401).json({
@@ -113,7 +134,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  // 2. Ambil Environment Variables (OAuth 2.0)
+  // Langkah 2: ambil kredensial Google dari environment variable server (tidak pernah terlihat oleh browser)
   const propertyId = process.env.GA_PROPERTY_ID;
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -128,14 +149,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
+  // Periode laporan dalam hari dari alamat (?days=7|30|90); bila tidak valid dipakai 7 hari
   const daysParam = (req.query.days as string) || '7';
   const days = parseInt(daysParam, 10) || 7;
 
   try {
-    // 3. Ambil Google OAuth 2.0 access_token dari refresh token
+    // Langkah 3: tukar refresh token menjadi access token sementara dari Google
     const accessToken = await getAccessTokenFromRefreshToken(clientId, clientSecret, refreshToken);
 
-    // 4. Panggil GA Data API batchRunReports
+    // Langkah 4: minta empat laporan sekaligus ke Google Analytics Data API
+    // Alamat endpoint batchRunReports milik properti GA kita (GA_PROPERTY_ID)
     const reportUrl = `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:batchRunReports`;
 
     const reportRes = await fetch(reportUrl, {
@@ -196,10 +219,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // Jawaban mentah Google berisi daftar laporan sesuai urutan permintaan
     const rawData = await reportRes.json();
     const reports = rawData.reports || [];
 
-    // Parse Report 1: Daily trends & Totals
+    // Langkah 5a: olah laporan 1 -> data tren per hari + total keseluruhan
     const dailyReport = reports[0] || {};
     const dailyRows = dailyReport.rows || [];
 
@@ -220,6 +244,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalSessions += sessions;
       totalNewUsers += newUsers;
 
+      // Ubah tanggal Google (YYYYMMDD) menjadi "DD/MM" untuk label grafik
       const formattedDate = dateStr.length === 8
         ? `${dateStr.slice(6, 8)}/${dateStr.slice(4, 6)}`
         : dateStr;
@@ -233,7 +258,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     });
 
-    // Parse Report 2: Popular Pages
+    // Langkah 5b: olah laporan 2 -> halaman terpopuler
     const topPagesReport = reports[1] || {};
     const topPagesRows = topPagesReport.rows || [];
     const topPages = topPagesRows.map((row: { dimensionValues: { value: string }[]; metricValues: { value: string }[] }) => ({
@@ -242,7 +267,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       users: parseInt(row.metricValues[1]?.value || '0', 10),
     }));
 
-    // Parse Report 3: Traffic Sources
+    // Langkah 5c: olah laporan 3 -> sumber lalu lintas
     const trafficReport = reports[2] || {};
     const trafficRows = trafficReport.rows || [];
     const trafficSources = trafficRows.map((row: { dimensionValues: { value: string }[]; metricValues: { value: string }[] }) => ({
@@ -250,7 +275,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sessions: parseInt(row.metricValues[0]?.value || '0', 10),
     }));
 
-    // Parse Report 4: Devices
+    // Langkah 5d: olah laporan 4 -> jenis perangkat
     const deviceReport = reports[3] || {};
     const deviceRows = deviceReport.rows || [];
     const devices = deviceRows.map((row: { dimensionValues: { value: string }[]; metricValues: { value: string }[] }) => ({
@@ -274,6 +299,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       devices,
     });
   } catch (error) {
+    // Kesalahan tak terduga: dicatat di log server; browser hanya menerima pesan umum (detail teknis tidak dibocorkan)
     console.error('Analytics API exception:', error);
     return res.status(200).json({
       success: false,

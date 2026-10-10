@@ -1,3 +1,7 @@
+// KERANGKA UTAMA APLIKASI.
+// File ini menentukan: (1) halaman apa yang tampil untuk setiap alamat URL (routing),
+// (2) apakah situs sedang dalam mode maintenance, dan (3) kerangka tampilan situs publik
+// (navbar, jadwal sholat, isi halaman, footer). Panel admin (/admin) dipisahkan karena punya tampilan sendiri.
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Navbar } from "./components/layout/Navbar";
@@ -24,6 +28,10 @@ initGA();
 // Panel admin dimuat terpisah (tidak menambah bundle halaman publik)
 const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
 
+/**
+ * Komponen kecil tanpa tampilan: setiap kali pengunjung pindah halaman,
+ * layar otomatis kembali ke paling atas (bawaan browser tidak melakukannya pada aplikasi satu halaman).
+ */
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -32,8 +40,16 @@ function ScrollToTop() {
   return null;
 }
 
+/**
+ * Komponen akar. Urutan pengecekan:
+ * 1. Jika alamat diawali /admin -> tampilkan panel admin (selalu bisa diakses, bahkan saat maintenance).
+ * 2. Jika status maintenance belum diketahui -> layar kosong sebentar (mencegah isi situs berkedip).
+ * 3. Jika maintenance aktif -> tampilkan pesan "Web dalam Maintenance".
+ * 4. Selain itu -> tampilkan situs publik normal.
+ */
 export default function App() {
   const { pathname } = useLocation();
+  // Status maintenance: null = belum diketahui, true = aktif, false = tidak aktif.
   const [maintenance, setMaintenance] = useState<boolean | null>(null);
 
   // Track page view GA4 untuk rute publik
@@ -46,6 +62,8 @@ export default function App() {
   useEffect(() => {
     if (isAdminRoute) return;
     let cancelled = false;
+    // Tanya ke database (Supabase) apakah mode maintenance sedang aktif.
+    // Flag "cancelled" mencegah update state jika komponen sudah ditutup sebelum jawaban datang.
     isMaintenanceMode().then((on) => {
       if (!cancelled) setMaintenance(on);
     });
@@ -76,11 +94,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#fbfbf9] text-stone-900 font-sans relative">
+      {/* Reset posisi scroll saat pindah halaman */}
       <ScrollToTop />
+      {/* Menu navigasi bagian atas (muncul di semua halaman publik) */}
       <Navbar />
+      {/* Strip jadwal sholat harian di bawah navbar */}
       <PrayerTimesBar />
+      {/* Area isi halaman: berubah sesuai alamat URL yang sedang dibuka */}
       <main className="flex-1">
         <Routes>
+          {/* Beranda */}
           <Route path="/" element={<Home />} />
           
           {/* Main Indonesian routes */}
@@ -110,8 +133,11 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+      {/* Footer: kontak, tautan cepat, dan hak cipta */}
       <Footer />
+      {/* Tombol cepat (telepon/WhatsApp) yang menempel di bawah layar HP */}
       <MobileStickyBar />
+      {/* Pencatat statistik kunjungan dari Vercel Analytics */}
       <Analytics />
     </div>
   );

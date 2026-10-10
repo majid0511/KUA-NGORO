@@ -1,3 +1,5 @@
+// NAVBAR (menu atas situs publik): pita info resmi + logo & nama kantor + menu halaman + tombol "Hubungi KUA".
+// Di layar kecil menu diganti tombol hamburger yang membuka MobileDrawer. Nomor WhatsApp/telepon diambil dari profil di Supabase.
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, Phone, MessageSquare } from "lucide-react";
@@ -8,6 +10,10 @@ import { profileData } from "../../data/profile";
 import { getProfil } from "../../lib/cms/profil";
 import kuaLogo from "../../assets/kualogo.png";
 
+/**
+ * Mengubah nomor telepon (mis. "0851-3322-5303") menjadi format yang dipakai tautan WhatsApp wa.me:
+ * buang semua karakter selain angka, lalu awalan 0 diganti kode negara 62 (hasil: "6285133225303").
+ */
 function toWaNumber(phone: string): string {
   const digits = phone.replace(/\D/g, "");
 
@@ -17,15 +23,22 @@ function toWaNumber(phone: string): string {
   return digits;
 }
 
+/**
+ * Komponen menu atas. Mengubah gaya (lebih padat & berbayang) setelah halaman di-scroll lebih dari 20 piksel.
+ */
 export const Navbar: React.FC = () => {
+  // Apakah menu samping (drawer) di HP sedang terbuka
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const scrollPosition = useScrollPosition();
+  // True jika halaman sudah digulir > 20 piksel -> header tampil dengan gaya "scrolled"
   const isScrolled = scrollPosition > 20;
 
+  // Nomor WA & telepon yang ditampilkan; awalnya dari data lokal, lalu diganti data dari database jika ada
   const [waNumber, setWaNumber] = useState(profileData.whatsapp);
   const [phone, setPhone] = useState(profileData.phone);
 
   useEffect(() => {
+    // Ambil profil terbaru dari Supabase; jika nomor telepon terisi, pakai untuk tampilan & tautan WhatsApp
     getProfil().then((response) => {
       const profil = response.data;
 
@@ -38,7 +51,7 @@ export const Navbar: React.FC = () => {
 
   return (
     <>
-      {/* Top Banner Notice for Official Institution */}
+      {/* Pita atas: penanda bahwa ini situs resmi instansi + kontak WhatsApp (kontak disembunyikan di HP) */}
       <div className="bg-emerald-950 px-4 py-1.5 text-xs text-emerald-100">
         <div className="container-kua flex items-center justify-between">
           <div className="flex items-center gap-2 truncate">
@@ -67,7 +80,7 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Navigation Header */}
+      {/* Header utama: menempel di atas layar saat discroll (sticky) */}
       <header
         className={`sticky top-0 z-40 w-full transition-all duration-300 ${
           isScrolled
@@ -76,7 +89,7 @@ export const Navbar: React.FC = () => {
         }`}
       >
         <div className="container-kua flex items-center justify-between">
-          {/* Logo Brand */}
+          {/* Logo & nama kantor; mengkliknya kembali ke Beranda */}
           <Link
             to="/"
             className="group flex items-center gap-3 focus:outline-none"
@@ -93,12 +106,12 @@ export const Navbar: React.FC = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
+          {/* Menu halaman untuk layar lebar (disembunyikan di HP/tablet) */}
           <div className="hidden lg:block">
             <NavLinks />
           </div>
 
-          {/* Right Action CTA & Mobile Trigger */}
+          {/* Sisi kanan: tombol "Hubungi KUA" (layar lebar) dan tombol hamburger (HP) */}
           <div className="flex items-center gap-3">
             <Link
               to="/kontak"
@@ -108,7 +121,7 @@ export const Navbar: React.FC = () => {
               <span>Hubungi KUA</span>
             </Link>
 
-            {/* Mobile Hamburger Menu Button */}
+            {/* Tombol hamburger: membuka menu samping di layar kecil */}
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
@@ -121,7 +134,7 @@ export const Navbar: React.FC = () => {
         </div>
       </header>
 
-      {/* Mobile Drawer Navigation */}
+      {/* Menu samping untuk HP; terbuka/tertutup mengikuti mobileDrawerOpen */}
       <MobileDrawer
         isOpen={mobileDrawerOpen}
         onClose={() => setMobileDrawerOpen(false)}

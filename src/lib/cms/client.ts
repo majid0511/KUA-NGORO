@@ -2,21 +2,26 @@ import { supabase } from '../supabase';
 import type { CmsResponse } from './types';
 
 /**
- * Returns true when both Supabase env vars are present.
- * Used by pages to decide whether to show a "CMS not configured" note.
+ * Cek apakah Supabase sudah dikonfigurasi (URL & kunci ada di file .env).
+ * Jika belum, situs memakai data cadangan lokal.
  */
 export function isCmsConfigured(): boolean {
   return supabase !== null;
 }
 
 /**
- * Core fallback wrapper.
+ * Pembungkus inti: coba ambil data dari Supabase, dan pakai data cadangan jika perlu.
+ * Dipakai oleh semua fungsi pengambil data (getBerita, getLayanan, dst).
  *
- * Semantics (per spec):
- *  • CMS not configured  → return fallback, error: null
- *  • CMS returns data    → return CMS data, fromFallback: false
- *  • CMS returns empty   → return empty ([], null), fromFallback: false  ← NOT falling back
- *  • CMS throws          → return fallback, error message
+ * Aturan:
+ *  • Supabase belum dikonfigurasi -> pakai data cadangan, tanpa pesan error
+ *  • Supabase mengembalikan data   -> pakai data dari database
+ *  • Supabase mengembalikan KOSONG -> tetap kosong (TIDAK pakai cadangan; artinya admin memang belum mengisi)
+ *  • Supabase error / gagal        -> pakai data cadangan + pesan error
+ *
+ * Parameter:
+ *  - fetcher      : fungsi yang mengambil data dari Supabase (harus melempar error jika gagal)
+ *  - fallbackData : data cadangan lokal
  */
 export async function queryWithFallback<T>(
   fetcher: () => Promise<T>,
@@ -30,6 +35,7 @@ export async function queryWithFallback<T>(
     const data = await fetcher();
     return { data, fromFallback: false, error: null };
   } catch (err) {
+    // Catat error di konsol browser untuk keperluan debugging, lalu pakai data cadangan
     console.warn('[CMS Error] Fetch failed, using fallback data:', err);
     return {
       data: fallbackData,

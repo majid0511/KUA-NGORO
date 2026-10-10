@@ -1,9 +1,14 @@
+// KARTU BERITA/PENGUMUMAN: menampilkan foto, kategori, tanggal, penulis, judul, dan ringkasan satu berita.
 import React from "react";
 import { Link } from "react-router-dom";
 import { Calendar, ArrowRight, User } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { motion } from "framer-motion";
 
+/**
+ * Data satu berita. onClick (opsional): jika diberikan, tombol "Baca Selengkapnya" memanggil fungsi ini
+ * (mis. membuka modal); jika tidak, tombol menjadi tautan ke halaman Informasi.
+ */
 interface NewsCardProps {
   id: string;
   title: string;
@@ -15,6 +20,9 @@ interface NewsCardProps {
   onClick?: () => void;
 }
 
+/**
+ * Kartu berita dengan efek terangkat saat disorot kursor.
+ */
 export const NewsCard: React.FC<NewsCardProps> = ({
   id,
   title,
@@ -25,6 +33,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({
   imageUrl,
   onClick,
 }) => {
+  // Menentukan warna lencana menurut kategori: Pengumuman = emas, Berita = hijau, Artikel = biru, lainnya = abu
   const getBadgeVariant = (cat: string) => {
     switch (cat) {
       case "Pengumuman":
@@ -38,6 +47,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({
     }
   };
 
+  // Mengubah tanggal (mis. 2026-10-09) menjadi format Indonesia ("9 Oktober 2026"); jika gagal diubah, tampilkan apa adanya
   const formatDate = (dateStr: string) => {
     try {
       const d = new Date(dateStr);
@@ -94,6 +104,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({
         </div>
 
         <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-sm font-semibold text-[#0f5132]">
+          {/* Dua bentuk tombol "Baca Selengkapnya": tombol biasa (jika ada onClick) atau tautan ke /informasi */}
           {onClick ? (
             <button onClick={onClick} className="inline-flex items-center gap-1.5 hover:underline">
               <span>Baca Selengkapnya</span>

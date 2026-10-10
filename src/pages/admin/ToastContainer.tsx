@@ -1,10 +1,15 @@
+// WADAH NOTIFIKASI: menampilkan semua toast aktif di pojok kanan atas layar admin. Dipasang sekali di AdminLayout.
 import { useEffect, useState } from 'react';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { subscribeToasts, type ToastItem } from './toast';
 
+/**
+ * Berlangganan daftar notifikasi dari toast.ts; tidak menampilkan apa-apa jika daftar kosong.
+ */
 export function ToastContainer() {
   const [items, setItems] = useState<ToastItem[]>([]);
 
+  // Mulai berlangganan saat tampil; fungsi yang dikembalikan otomatis berhenti berlangganan saat ditutup
   useEffect(() => subscribeToasts(setItems), []);
 
   if (items.length === 0) return null;

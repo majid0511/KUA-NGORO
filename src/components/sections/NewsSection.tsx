@@ -1,3 +1,4 @@
+// BAGIAN INFORMASI TERBARU di Beranda: menampilkan 3 berita/pengumuman terbaru dari Supabase + tautan ke arsip lengkap (/informasi).
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
@@ -8,12 +9,18 @@ import { getBerita } from "../../lib/cms";
 import type { Berita } from "../../lib/cms/types";
 import { LoadingState, EmptyState } from "../ui/CmsState";
 
+/**
+ * Komponen bagian berita: memuat data, lalu menampilkan loading / kosong / grid 3 kartu berita.
+ */
 export const NewsSection: React.FC = () => {
+  // Seluruh berita yang berhasil dimuat
   const [news, setNews] = useState<Berita[]>([]);
+  // True selama data masih dimuat
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    // Muat berita; "cancelled" mencegah update state jika komponen sudah ditutup
     getBerita().then((res) => {
       if (!cancelled && res.data) setNews(res.data);
       if (!cancelled) setLoading(false);
@@ -23,6 +30,7 @@ export const NewsSection: React.FC = () => {
     };
   }, []);
 
+  // Hanya 3 berita terbaru (data sudah diurutkan terbaru-di-atas oleh getBerita)
   const latestNews = news.slice(0, 3);
 
   return (

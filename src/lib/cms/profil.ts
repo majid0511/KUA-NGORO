@@ -3,7 +3,9 @@ import { queryWithFallback, isCmsConfigured } from './client';
 import type { Profil, CmsResponse } from './types';
 import { profileData } from '../../data/profile';
 
-// ── Fallback ──────────────────────────────────────────────────
+// ── Data cadangan ─────────────────────────────────────────────
+// Profil lokal (src/data/profile.ts) diubah ke bentuk Profil. Mode maintenance selalu false di cadangan,
+// supaya situs tidak pernah "terkunci" hanya karena database tidak terjangkau.
 const fallbackProfil: Profil = {
   office_name:  profileData.name,
   description:  profileData.aboutFull,
@@ -17,11 +19,12 @@ const fallbackProfil: Profil = {
   maintenance_mode: false,
 };
 
-// ── Fetcher ───────────────────────────────────────────────────
+// ── Pengambil data ────────────────────────────────────────────
 
 /**
- * Returns the singleton profil row.
- * If no row exists in Supabase, returns null (not a fallback — EmptyState shown).
+ * Mengambil profil kantor (hanya ada satu baris di tabel "profil").
+ * Jika baris belum ada, atau ada kolom yang kosong, bagian yang kosong diisi dari data cadangan lokal
+ * sehingga halaman tidak pernah tampil bolong.
  */
 export async function getProfil(): Promise<CmsResponse<Profil>> {
   return queryWithFallback(async () => {
@@ -31,6 +34,7 @@ export async function getProfil(): Promise<CmsResponse<Profil>> {
       .maybeSingle();
 
     if (error) throw new Error(error.message);
+    // Belum ada baris profil di database -> pakai profil cadangan sepenuhnya
     if (!data) return fallbackProfil;
 
     return {
@@ -38,6 +42,7 @@ export async function getProfil(): Promise<CmsResponse<Profil>> {
       description:  data.description || fallbackProfil.description,
       history:      data.history || fallbackProfil.history,
       vision:       data.vision || fallbackProfil.vision,
+      // Misi berupa daftar; pakai cadangan jika kosong atau bukan daftar
       mission:      (Array.isArray(data.mission) && data.mission.length > 0) ? data.mission : fallbackProfil.mission,
       address:      data.address || fallbackProfil.address,
       phone:        data.phone || fallbackProfil.phone,

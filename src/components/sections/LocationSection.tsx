@@ -1,3 +1,5 @@
+// BAGIAN LOKASI di Beranda: peta Google Maps tertanam + alamat, telepon, email, dan jam pelayanan kantor,
+// serta tombol "Buka di Google Maps". Data kontak diambil dari profil di Supabase; jika kosong, memakai data lokal.
 import React, { useEffect, useState } from "react";
 import { MapPin, Phone, Mail, Clock, ExternalLink, Navigation } from "lucide-react";
 import { profileData } from "../../data/profile";
@@ -5,7 +7,11 @@ import { Button } from "../ui/Button";
 import { getProfil } from "../../lib/cms";
 import type { Profil } from "../../lib/cms/types";
 
+/**
+ * Komponen lokasi kantor (peta di kiri, informasi di kanan pada layar lebar; peta di atas pada HP).
+ */
 export const LocationSection: React.FC = () => {
+  // Profil dari database (null selama belum dimuat atau gagal)
   const [profil, setProfil] = useState<Profil | null>(null);
 
   useEffect(() => {
@@ -18,6 +24,7 @@ export const LocationSection: React.FC = () => {
     };
   }, []);
 
+  // Setiap data: pakai nilai dari database jika terisi, jika tidak pakai data lokal (profileData)
   const address = profil?.address || profileData.address;
   const phone = profil?.phone || profileData.phone;
   const email = profil?.email || profileData.email;
@@ -41,9 +48,9 @@ export const LocationSection: React.FC = () => {
           </p>
         </div>
 
-        {/* Desktop: Map 55% + Information 45% / Mobile: Map above Info */}
+        {/* Layar lebar: peta ~58% + informasi ~42% berdampingan. HP: peta di atas, informasi di bawah */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch rounded-3xl overflow-hidden border border-stone-200 shadow-md bg-stone-50">
-          {/* Map Section (55% desktop -> 7 cols) */}
+          {/* Peta Google Maps (iframe) */}
           <div className="lg:col-span-7 min-h-[340px] sm:min-h-[420px] relative bg-stone-200 overflow-hidden">
             <iframe
               title="Peta Lokasi KUA Kecamatan Ngoro"
@@ -58,7 +65,7 @@ export const LocationSection: React.FC = () => {
             />
           </div>
 
-          {/* Information Section (45% desktop -> 5 cols) */}
+          {/* Panel informasi: alamat, telepon, email, jam operasional, dan tombol Maps */}
           <div className="lg:col-span-5 p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-6 bg-white">
             <div>
               <h3 className="text-xl font-bold text-stone-900 mb-6 pb-4 border-b border-stone-100 flex items-center gap-2">

@@ -1,3 +1,8 @@
+/**
+ * Satu langkah dalam alur pendaftaran nikah (nomor, judul, penjelasan, dan rincian poin-poinnya).
+ */
+// DATA HALAMAN LAYANAN PERNIKAHAN: langkah-langkah pendaftaran nikah, daftar dokumen persyaratan, dan biaya.
+// Diedit langsung di file ini; dipakai oleh halaman Marriage dan bagian alur nikah di Beranda.
 export interface MarriageStep {
   step: string;
   title: string;
@@ -6,6 +11,9 @@ export interface MarriageStep {
   details: string[];
 }
 
+/**
+ * Satu dokumen persyaratan nikah: kode formulir (mis. N1), nama, instansi penerbit, fungsi, dan untuk siapa wajib.
+ */
 export interface DocumentItem {
   code: string;
   title: string;
@@ -14,6 +22,9 @@ export interface DocumentItem {
   requiredFor: string;
 }
 
+/**
+ * Alur pendaftaran nikah dari awal sampai akad, ditampilkan sebagai garis waktu.
+ */
 export const marriageSteps: MarriageStep[] = [
   {
     step: "01",
@@ -73,6 +84,9 @@ export const marriageSteps: MarriageStep[] = [
   }
 ];
 
+/**
+ * Daftar periksa (checklist) dokumen yang harus disiapkan calon pengantin.
+ */
 export const documentChecklist: DocumentItem[] = [
   {
     code: "Model N1",
@@ -118,6 +132,10 @@ export const documentChecklist: DocumentItem[] = [
   }
 ];
 
+/**
+ * Biaya nikah: nikah di Balai KUA (gratis) dan nikah di luar KUA (PNBP resmi).
+ * Sesuai PP No. 59 Tahun 2018 - jika aturan berubah, perbarui angka di sini.
+ */
 export const marriageFees = {
   inOffice: {
     amount: "Rp 0,- (GRATIS)",

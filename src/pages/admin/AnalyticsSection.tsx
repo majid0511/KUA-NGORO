@@ -1,7 +1,13 @@
+// BAGIAN STATISTIK PENGUNJUNG di Dashboard admin: ringkasan pengunjung, grafik tren harian, halaman terpopuler, sumber lalu lintas,
+// dan jenis perangkat. Data diambil dari Google Analytics lewat fungsi server /api/analytics (lihat api/analytics.ts), yang hanya
+// bisa diakses admin yang login (token login dikirim di header Authorization). Grafik digambar manual dengan SVG tanpa library.
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, Users, Eye, Activity, UserPlus, AlertCircle, BarChart3, Monitor, Smartphone, Tablet, Share2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
+/**
+ * Total angka ringkasan untuk periode yang dipilih (pengguna, tayangan halaman, sesi, pengguna baru)
+ */
 interface Totals {
   users: number;
   views: number;
@@ -9,6 +15,9 @@ interface Totals {
   newUsers: number;
 }
 
+/**
+ * Satu titik data harian untuk grafik tren
+ */
 interface DailyPoint {
   date: string;
   rawDate: string;
@@ -17,22 +26,34 @@ interface DailyPoint {
   newUsers: number;
 }
 
+/**
+ * Satu halaman terpopuler: alamat, jumlah tayangan, jumlah pengguna
+ */
 interface TopPage {
   path: string;
   views: number;
   users: number;
 }
 
+/**
+ * Satu sumber lalu lintas (mis. Organic Search, Direct) dan jumlah sesinya
+ */
 interface TrafficSource {
   channel: string;
   sessions: number;
 }
 
+/**
+ * Jumlah pengguna per jenis perangkat (desktop/mobile/tablet)
+ */
 interface DeviceStat {
   category: string;
   users: number;
 }
 
+/**
+ * Bentuk lengkap jawaban dari /api/analytics. "configured" = false berarti kredensial Google belum diisi di server.
+ */
 interface AnalyticsApiResponse {
   success?: boolean;
   configured: boolean;
@@ -57,18 +78,31 @@ const PATH_LABELS: Record<string, string> = {
   '/kontak': 'Kontak',
 };
 
+/**
+ * Mengubah alamat halaman (mis. "/layanan") menjadi nama yang mudah dibaca ("Layanan"); alamat berita ditampilkan sebagai "Detail Berita: ...".
+ */
 function formatPathLabel(path: string): string {
   if (PATH_LABELS[path]) return PATH_LABELS[path];
   if (path.startsWith('/news/')) return `Detail Berita: ${path.replace('/news/', '')}`;
   return path;
 }
 
+/**
+ * Komponen statistik. Alur: pilih periode (7/30/90 hari) -> ambil data dari server -> tampilkan loading / error / belum dikonfigurasi / data kosong / statistik lengkap.
+ */
 export default function AnalyticsSection() {
   const [days, setDays] = useState<7 | 30 | 90>(7); // Default 7 hari
+  // True selama data statistik diminta dari server
   const [loading, setLoading] = useState<boolean>(true);
+  // Jawaban terakhir dari server (null = belum ada)
   const [data, setData] = useState<AnalyticsApiResponse | null>(null);
+  // Pesan kesalahan yang ditampilkan (null = tidak ada)
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  /**
+   * Meminta data statistik ke /api/analytics untuk periode yang dipilih.
+   * Token login admin dikirim agar server bisa memastikan peminta benar-benar admin (jika tidak -> 401).
+   */
   const fetchAnalytics = useCallback(async (selectedDays: number) => {
     setLoading(true);
     setErrorMsg(null);
@@ -111,16 +145,19 @@ export default function AnalyticsSection() {
     fetchAnalytics(days);
   }, [days, fetchAnalytics]);
 
+  // Muat ulang data statistik dengan periode yang sedang dipilih
   const handleRefresh = () => {
     fetchAnalytics(days);
   };
 
+  // True jika server melaporkan kredensial Google Analytics belum dikonfigurasi
   const isUnconfigured = data && !data.configured;
   const totals = data?.totals;
   const dailyData = data?.dailyData || [];
   const topPages = data?.topPages || [];
   const trafficSources = data?.trafficSources || [];
   const devices = data?.devices || [];
+  // True jika tidak ada pengunjung sama sekali pada periode ini
   const isEmptyData = totals && totals.users === 0 && totals.views === 0;
 
   return (
@@ -363,6 +400,10 @@ export default function AnalyticsSection() {
 /**
  * Lightweight SVG Chart Component
  */
+/**
+ * Grafik garis tren harian (pengguna & tayangan halaman) yang digambar dengan SVG biasa.
+ * Sumbu Y menyesuaikan nilai tertinggi; label tanggal di sumbu X hanya ditampilkan setiap beberapa titik agar tidak berdesakan.
+ */
 function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loading: boolean }) {
   if (loading || dailyData.length === 0) {
     return (
@@ -380,11 +421,13 @@ function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loadin
   const maxViews = Math.max(...dailyData.map((d) => d.views), 5);
   const maxVal = Math.max(maxUsers, maxViews);
 
+  // Mengubah urutan titik menjadi posisi horizontal (x) dalam area grafik
   const getX = (index: number) => {
     if (dailyData.length <= 1) return width / 2;
     return padding + (index / (dailyData.length - 1)) * (width - padding * 2);
   };
 
+  // Mengubah nilai data menjadi posisi vertikal (y); nilai terbesar berada paling atas
   const getY = (val: number) => {
     return height - padding - (val / maxVal) * (height - padding * 2);
   };
@@ -442,6 +485,9 @@ function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loadin
 /**
  * Breakdown Traffic Sources Component
  */
+/**
+ * Rincian sumber lalu lintas sebagai batang berpersentase.
+ */
 function TrafficBreakdown({ trafficSources }: { trafficSources: TrafficSource[] }) {
   const total = trafficSources.reduce((acc, curr) => acc + curr.sessions, 0);
 
@@ -474,6 +520,9 @@ function TrafficBreakdown({ trafficSources }: { trafficSources: TrafficSource[] 
 
 /**
  * Breakdown Device Component
+ */
+/**
+ * Rincian jenis perangkat pengunjung (dengan ikon & persentase).
  */
 function DeviceBreakdown({ devices }: { devices: DeviceStat[] }) {
   const total = devices.reduce((acc, curr) => acc + curr.users, 0);

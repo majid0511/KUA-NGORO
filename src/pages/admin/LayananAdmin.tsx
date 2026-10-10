@@ -1,3 +1,5 @@
+// KELOLA LAYANAN (alamat: /admin/layanan): daftar, tambah, ubah, hapus layanan KUA + alihkan Aktif <-> Nonaktif.
+// Setiap layanan punya persyaratan & prosedur (diketik satu poin per baris) yang tampil di halaman Layanan.
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { Layanan } from '../../lib/cms/types';
@@ -7,14 +9,17 @@ import {
   FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
 
+// Tampilan halaman: daftar atau form tambah/edit
 type Mode = 'list' | 'form';
 
 // Harus sama dengan daftar yang dikenali ServiceCard.tsx — nama di luar ini
 // akan tampil sebagai ikon generik di halaman publik.
+// Pilihan ikon layanan. Harus sama dengan daftar yang dikenali ServiceCard.tsx; nama lain akan tampil sebagai ikon generik.
 const ICON_OPTIONS = [
   'HeartHandshake', 'Building2', 'Landmark', 'ShieldCheck', 'BookOpen', 'Users',
 ] as const;
 
+// Isi awal form "Tambah Layanan": kosong, status aktif
 const EMPTY_FORM: Omit<Layanan, 'id'> = {
   title: '', slug: '', description: '',
   requirements: [], procedure: [],
@@ -22,20 +27,34 @@ const EMPTY_FORM: Omit<Layanan, 'id'> = {
   status: 'active', order: 0,
 };
 
+/**
+ * Halaman kelola layanan.
+ */
 export default function LayananAdmin() {
+  // Tampilan aktif (daftar / form)
   const [mode, setMode]         = useState<Mode>('list');
+  // Seluruh layanan dari database (termasuk yang nonaktif)
   const [list, setList]         = useState<Layanan[]>([]);
+  // True selama daftar dimuat
   const [loading, setLoading]   = useState(true);
+  // True saat form sedang disimpan (tombol dinonaktifkan)
   const [saving, setSaving]     = useState(false);
+  // Pesan error saat memuat daftar (null = tidak ada)
   const [error, setError]       = useState<string | null>(null);
+  // Data yang sedang diedit (null = mode tambah baru)
   const [editing, setEditing]   = useState<Layanan | null>(null);
+  // Isi form yang sedang diketik
   const [form, setForm]         = useState<Omit<Layanan, 'id'>>(EMPTY_FORM);
+  // Data yang menunggu konfirmasi hapus (null = dialog tertutup)
   const [deleteTarget, setDeleteTarget] = useState<Layanan | null>(null);
 
   // Textarea helpers for arrays
+  // Isi kolom "Persyaratan" sebagai teks (satu persyaratan per baris); diubah jadi daftar saat disimpan
   const [reqText, setReqText] = useState('');
+  // Isi kolom "Prosedur" sebagai teks (satu langkah per baris); diubah jadi daftar saat disimpan
   const [procText, setProcText] = useState('');
 
+  // Ambil semua data dari tabel "layanan" di Supabase
   async function load() {
     setLoading(true);
     const { data, error } = await supabase!
@@ -45,8 +64,10 @@ export default function LayananAdmin() {
     setLoading(false);
   }
 
+  // Muat daftar saat halaman pertama dibuka
   useEffect(() => { load(); }, []);
 
+  // Buka form kosong; nomor urutan otomatis diisi urutan berikutnya setelah layanan terakhir
   function openAdd() {
     setEditing(null);
     setForm({ ...EMPTY_FORM, order: list.length + 1 });
@@ -54,6 +75,7 @@ export default function LayananAdmin() {
     setMode('form');
   }
 
+  // Buka form berisi data layanan yang dipilih; daftar persyaratan/prosedur digabung kembali jadi teks per baris
   function openEdit(item: Layanan) {
     setEditing(item);
     const { id: _, ...rest } = item;
@@ -63,6 +85,10 @@ export default function LayananAdmin() {
     setMode('form');
   }
 
+  /**
+   * Simpan form: teks persyaratan & prosedur dipecah per baris, baris kosong dibuang, lalu disimpan sebagai daftar.
+   * UPDATE jika sedang mengedit, INSERT jika baru. Nama layanan & slug wajib.
+   */
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim() || !form.slug.trim()) return;
@@ -82,12 +108,14 @@ export default function LayananAdmin() {
     setMode('list'); load();
   }
 
+  // Hapus data yang sudah dikonfirmasi, lalu muat ulang daftar
   async function handleDelete() {
     if (!deleteTarget) return;
     if (!(await run(supabase!.from('layanan').delete().eq('id', deleteTarget.id)))) return;
     setDeleteTarget(null); load();
   }
 
+  // Balik status: active <-> inactive (layanan nonaktif tidak tampil di situs publik)
   async function toggleStatus(item: Layanan) {
     if (!(await run(supabase!.from('layanan')
       .update({ status: item.status === 'active' ? 'inactive' : 'active' })
@@ -95,6 +123,7 @@ export default function LayananAdmin() {
     load();
   }
 
+  // TAMPILAN FORM tambah/edit
   if (mode === 'form') {
     return (
       <FormCard title={`${editing ? 'Edit' : 'Tambah'} Layanan`}>
@@ -105,6 +134,7 @@ export default function LayananAdmin() {
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value,
                   slug: f.slug || e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '') }))} />
             </Field>
+            {/* Slug = potongan alamat layanan, mis. "pendaftaran-nikah" */}
             <Field label="Slug (URL)" required>
               <input className={inputCls} required value={form.slug}
                 onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '') }))} />
@@ -120,6 +150,7 @@ export default function LayananAdmin() {
                 placeholder="Cth: 1 - 10 hari kerja"
                 onChange={(e) => setForm((f) => ({ ...f, estimated_time: e.target.value }))} />
             </Field>
+            {/* Pilihan ikon dibatasi agar selalu cocok dengan ikon yang tersedia di situs */}
             <Field label="Ikon">
               <select className={inputCls} value={form.icon}
                 onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}>
@@ -127,6 +158,7 @@ export default function LayananAdmin() {
               </select>
             </Field>
           </div>
+          {/* Satu persyaratan per baris */}
           <Field label="Persyaratan (satu per baris)">
             <textarea className={textareaCls} placeholder="- Fotokopi KTP..."
               value={reqText} onChange={(e) => setReqText(e.target.value)} />
@@ -156,6 +188,7 @@ export default function LayananAdmin() {
 
   return (
     <div className="max-w-5xl">
+      {/* TAMPILAN DAFTAR: tabel layanan berurutan menurut nomor urut, dengan status aktif/nonaktif */}
       <PageHeader title="Layanan" description="Layanan yang tampil di Beranda dan halaman Layanan." addLabel="Tambah Layanan" onAdd={openAdd} />
       {loading ? <AdminLoading /> : error ? <AdminError message={error} /> : list.length === 0 ? (
         <AdminEmpty label="layanan" />

@@ -1,3 +1,5 @@
+// BAGIAN UTAMA (HERO) di Beranda: sambutan paling atas berisi judul "KUA Kecamatan Ngoro", ajakan bertindak (tombol),
+// foto kantor, dan lencana status "Pelayanan Buka/Tutup" yang dihitung otomatis dari jam kerja.
 import React from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { ArrowRight, Phone, ShieldCheck, MapPin, CheckCircle } from "lucide-react";
@@ -5,7 +7,14 @@ import { motion, type Variants } from "framer-motion";
 import fotoDepan from "../../assets/fotodepan.webp";
 
 // Jam layanan mengikuti src/data/profile.ts (WIB). Hari libur nasional belum terdeteksi.
+/**
+ * Menentukan apakah kantor sedang buka SEKARANG berdasarkan jam kerja zona Asia/Jakarta (WIB),
+ * sehingga hasilnya sama untuk pengunjung di zona waktu mana pun.
+ * Jam kerja: Senin-Kamis 07.30-16.00, Jumat 07.30-16.30, Sabtu-Minggu tutup.
+ * Catatan: hari libur nasional belum terdeteksi.
+ */
 const isServiceOpen = (now: Date = new Date()): boolean => {
+  // Ambil nama hari & jam/menit saat ini menurut WIB
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Jakarta",
     weekday: "short",
@@ -15,20 +24,27 @@ const isServiceOpen = (now: Date = new Date()): boolean => {
   }).formatToParts(now);
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   const day = get("weekday");
+  // Ubah jam:menit menjadi total menit sejak tengah malam agar mudah dibandingkan (450 = 07.30, 960 = 16.00, 990 = 16.30)
   const minutes = Number(get("hour")) * 60 + Number(get("minute"));
   if (["Mon", "Tue", "Wed", "Thu"].includes(day)) return minutes >= 450 && minutes < 960; // 07.30 - 16.00
   if (day === "Fri") return minutes >= 450 && minutes < 990; // 07.30 - 16.30
   return false; // Sabtu - Minggu
 };
 
+/**
+ * Komponen hero. Isi kiri muncul bertahap (kata demi kata) saat halaman dimuat; kartu foto di kanan.
+ */
 export const HeroSection: React.FC = () => {
+  // Status buka/tutup kantor; dihitung ulang tiap menit oleh useEffect di bawah
   const [open, setOpen] = React.useState(isServiceOpen);
   React.useEffect(() => {
     const id = setInterval(() => setOpen(isServiceOpen()), 60_000);
     return () => clearInterval(id);
   }, []);
+  // Kata-kata judul yang dimunculkan satu per satu (efek animasi)
   const headlineWords = ["KUA", "Kecamatan", "Ngoro"];
 
+  // Pengaturan animasi (framer-motion): wadah memunculkan anak-anaknya berurutan dengan jeda 0,12 detik
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
@@ -40,6 +56,7 @@ export const HeroSection: React.FC = () => {
     },
   };
 
+  // Animasi tiap kata judul: naik dari bawah dengan efek pegas
   const wordVariants: Variants = {
     hidden: { y: "115%", opacity: 0 },
     visible: {
@@ -54,6 +71,7 @@ export const HeroSection: React.FC = () => {
     },
   };
 
+  // Animasi elemen lain: memudar masuk sambil naik sedikit
   const itemFadeUp: Variants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
@@ -67,20 +85,20 @@ export const HeroSection: React.FC = () => {
     <section className="relative overflow-hidden bg-gradient-to-b from-emerald-50/60 via-white to-stone-50/50 pt-8 pb-16 lg:pt-14 lg:pb-24 border-b border-stone-200/60">
       <div className="container-kua">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          {/* Left Column Text & CTAs */}
+          {/* Kolom kiri: lencana, judul, deskripsi, tombol, dan tiga poin keunggulan */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
             className="lg:col-span-7 space-y-6 sm:space-y-7 text-center lg:text-left"
           >
-            {/* 1. Eyebrow Badge */}
+            {/* 1. Lencana kecil di atas judul */}
             <motion.div variants={itemFadeUp} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-emerald-200 text-[#0f5132] text-xs sm:text-sm font-semibold tracking-wide shadow-xs">
               <ShieldCheck className="w-4 h-4 text-emerald-700" />
               <span>KANTOR URUSAN AGAMA • KABUPATEN JOMBANG</span>
             </motion.div>
 
-            {/* 2. Headline with Clip-Path Word Reveal */}
+            {/* 2. Judul besar; tiap kata muncul bergantian dari bawah */}
             <div className="overflow-hidden">
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-stone-900 tracking-tight leading-[1.15]">
                 {headlineWords.map((word, idx) => (
@@ -100,7 +118,7 @@ export const HeroSection: React.FC = () => {
               </h1>
             </div>
 
-            {/* 3. Supporting Text */}
+            {/* 3. Kalimat pendukung di bawah judul */}
             <motion.p
               variants={itemFadeUp}
               className="text-base sm:text-lg lg:text-xl text-stone-600 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-normal"
@@ -108,7 +126,7 @@ export const HeroSection: React.FC = () => {
               Informasi resmi, pendaftaran nikah online, dan bimbingan pelayanan keagamaan yang akuntabel, mudah diakses, dan dekat untuk seluruh masyarakat Kecamatan Ngoro.
             </motion.p>
 
-            {/* 4. Action CTA Buttons */}
+            {/* 4. Dua tombol aksi: Lihat Layanan & Hubungi KUA */}
             <motion.div
               variants={itemFadeUp}
               className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5 pt-2"
@@ -130,7 +148,7 @@ export const HeroSection: React.FC = () => {
               </RouterLink>
             </motion.div>
 
-            {/* Quick Micro Features */}
+            {/* Tiga poin keunggulan singkat */}
             <motion.div
               variants={itemFadeUp}
               className="pt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-left border-t border-stone-200/60 max-w-lg mx-auto lg:mx-0"
@@ -150,7 +168,7 @@ export const HeroSection: React.FC = () => {
             </motion.div>
           </motion.div>
 
-          {/* Right Column Visual Image Card */}
+          {/* Kolom kanan: kartu foto kantor dengan dua lencana melayang */}
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -158,7 +176,7 @@ export const HeroSection: React.FC = () => {
             className="lg:col-span-5 relative"
           >
             <div className="relative mx-auto max-w-md lg:max-w-none">
-              {/* Main Image Container */}
+              {/* Foto kantor + gradasi gelap + keterangan alamat di atasnya */}
               <div className="relative rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-stone-100 aspect-[4/3] sm:aspect-[14/10]">
                 <img
                   src= {fotoDepan}
@@ -181,7 +199,7 @@ export const HeroSection: React.FC = () => {
                 </div>
               </div>
 
-              {/* Floating Stat Badge */}
+              {/* Lencana melayang kiri-bawah: "13 Desa" wilayah kerja */}
               <div className="absolute -bottom-6 -left-4 sm:-left-6 bg-white border border-stone-200 p-4 rounded-2xl shadow-xl flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-emerald-100 text-[#0f5132] flex items-center justify-center font-bold text-xl">
                   13
@@ -192,7 +210,7 @@ export const HeroSection: React.FC = () => {
                 </div>
               </div>
 
-              {/* Floating Status Badge */}
+              {/* Lencana melayang kanan-atas: status Pelayanan Buka (hijau, berdenyut) / Tutup (abu-abu) */}
               <div
                 className={`absolute -top-4 -right-4 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 border text-xs font-semibold ${
                   open ? "bg-emerald-950 border-emerald-800" : "bg-stone-800 border-stone-600"

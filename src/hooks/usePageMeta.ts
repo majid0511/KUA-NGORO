@@ -1,10 +1,18 @@
 import { useEffect } from "react";
 
-// Ganti dengan domain produksi (mis. https://kua-ngoro.vercel.app atau domain sendiri)
-// setelah deploy, supaya og:url dan canonical menunjuk ke alamat yang benar.
+// Alamat situs yang sebenarnya. WAJIB diganti dengan domain produksi (mis. https://kua-ngoro.vercel.app
+// atau domain sendiri) setelah deploy, supaya og:url dan canonical menunjuk ke alamat yang benar.
 export const SITE_URL = "https://kua-ngoro-ngoro.vercel.app";
+// Nama situs, ditempelkan di belakang judul tab browser: "Judul Halaman | KUA Kecamatan Ngoro"
 const SITE_NAME = "KUA Kecamatan Ngoro";
 
+/**
+ * Data yang diberikan tiap halaman:
+ * - title       : judul halaman
+ * - description : ringkasan (tampil di hasil pencarian Google & saat tautan dibagikan)
+ * - path        : alamat halaman, mis. "/layanan"
+ * - noindex     : true = minta mesin pencari TIDAK mengindeks halaman ini (dipakai di halaman 404)
+ */
 interface PageMeta {
   title: string;
   description: string;
@@ -12,6 +20,9 @@ interface PageMeta {
   noindex?: boolean;
 }
 
+/**
+ * Mengisi (atau membuat jika belum ada) satu tag <meta> di <head>, mis. description atau og:title.
+ */
 function setMeta(name: string, content: string, attr: "name" | "property" = "name") {
   let el = document.querySelector(`meta[${attr}="${name}"]`);
   if (!el) {
@@ -22,6 +33,9 @@ function setMeta(name: string, content: string, attr: "name" | "property" = "nam
   el.setAttribute("content", content);
 }
 
+/**
+ * Mengisi (atau membuat jika belum ada) satu tag <link> di <head>, dipakai untuk alamat "canonical".
+ */
 function setLink(rel: string, href: string) {
   let el = document.querySelector(`link[rel="${rel}"]`);
   if (!el) {
@@ -33,10 +47,12 @@ function setLink(rel: string, href: string) {
 }
 
 /**
- * Mengatur <title>, meta description, Open Graph, canonical, dan robots
- * per halaman. Situs ini SPA (client-side render), jadi mesin pencari
- * perlu menjalankan JS untuk membaca ini — cukup untuk Google, tapi
- * bukan pengganti server-side rendering untuk crawler yang lebih ketat.
+ * Hook untuk mengatur info SEO tiap halaman: judul tab, deskripsi, Open Graph (pratinjau saat tautan
+ * dibagikan ke WhatsApp/sosmed), canonical, dan aturan robots.
+ * Dipanggil di bagian atas setiap halaman publik.
+ *
+ * Catatan: situs ini dirender di browser (SPA), jadi mesin pencari perlu menjalankan JavaScript untuk
+ * membaca ini. Google bisa, tetapi crawler yang lebih ketat belum tentu.
  */
 export function usePageMeta({ title, description, path, noindex }: PageMeta) {
   useEffect(() => {

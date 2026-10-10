@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
+// ID pengukuran Google Analytics dari file .env (boleh kosong = fitur analytics mati)
 const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID as string | undefined;
 
+// Memberitahu TypeScript bahwa objek window punya properti dataLayer & gtag (disuntikkan oleh skrip Google)
 declare global {
   interface Window {
     dataLayer: unknown[];
@@ -11,7 +13,9 @@ declare global {
 }
 
 /**
- * Inisialisasi skrip Google Analytics 4 jika VITE_GA_MEASUREMENT_ID dikonfigurasi.
+ * Menyalakan Google Analytics 4 (statistik pengunjung).
+ * Hanya aktif jika variabel VITE_GA_MEASUREMENT_ID diisi di file .env; jika kosong, tidak melakukan apa-apa.
+ * Dipanggil sekali saat aplikasi dimulai (lihat App.tsx).
  */
 export function initGA() {
   if (!GA_MEASUREMENT_ID || typeof window === 'undefined') return;
@@ -26,6 +30,7 @@ export function initGA() {
   document.head.appendChild(script);
 
   window.dataLayer = window.dataLayer || [];
+  // Fungsi standar Google: mengantre perintah ke dataLayer untuk diproses skrip GA
   function gtag(...args: unknown[]) {
     window.dataLayer.push(args);
   }
@@ -38,7 +43,9 @@ export function initGA() {
 }
 
 /**
- * Hook untuk melacak perpindahan halaman di React Router (SPA).
+ * Hook yang mengirim catatan "halaman dilihat" ke Google Analytics setiap kali alamat URL berubah.
+ * Perlu dikirim manual karena situs ini aplikasi satu halaman (SPA): browser tidak memuat ulang halaman
+ * saat pindah menu, sehingga GA tidak mendeteksinya otomatis.
  */
 export function useGaTracker() {
   const location = useLocation();

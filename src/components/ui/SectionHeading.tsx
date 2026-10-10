@@ -1,6 +1,12 @@
+// KOMPONEN JUDUL BAGIAN: label kecil (eyebrow) + judul besar + deskripsi, dengan animasi muncul saat discroll ke layar.
+// Dipakai di hampir semua bagian/halaman agar gaya judul seragam.
 import React from "react";
 import { motion } from "framer-motion";
 
+/**
+ * eyebrow = label kecil di atas judul, title = judul utama, description = kalimat penjelas,
+ * centered = rata tengah, children = konten tambahan di bawah deskripsi.
+ */
 interface SectionHeadingProps {
   eyebrow?: string;
   title: string;
@@ -10,6 +16,9 @@ interface SectionHeadingProps {
   children?: React.ReactNode;
 }
 
+/**
+ * Menampilkan blok judul; animasi hanya berjalan sekali (viewport once) saat 40% bagian sudah terlihat.
+ */
 export const SectionHeading: React.FC<SectionHeadingProps> = ({
   eyebrow,
   title,

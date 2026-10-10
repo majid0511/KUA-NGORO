@@ -1,8 +1,13 @@
+// KARTU KEGIATAN: menampilkan satu foto dokumentasi kegiatan (foto, kategori, tanggal, judul, ringkasan).
+// Mengkliknya memanggil onPreview, biasanya untuk membuka foto dalam modal berukuran besar.
 import React from "react";
 import { Calendar, MapPin, ZoomIn } from "lucide-react";
 import { Badge } from "../ui/Badge";
 import { motion } from "framer-motion";
 
+/**
+ * Data satu kegiatan. location opsional; onPreview = fungsi yang dipanggil saat kartu diklik.
+ */
 interface ActivityCardProps {
   id: string;
   title: string;
@@ -14,6 +19,9 @@ interface ActivityCardProps {
   onPreview?: () => void;
 }
 
+/**
+ * Kartu foto kegiatan dengan efek terangkat saat disorot kursor dan ikon zoom di atas foto.
+ */
 export const ActivityCard: React.FC<ActivityCardProps> = ({
   title,
   category,
@@ -34,11 +42,12 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
         <img
           src={imageUrl}
           alt={title}
+          // Gambar baru diunduh saat hampir terlihat di layar (menghemat kuota & mempercepat halaman)
           loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
-        {/* Subtle overlay on hover */}
+        {/* Lapisan gelap tipis + ikon zoom yang muncul saat kartu disorot kursor */}
         <div className="absolute inset-0 bg-stone-900/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
           <div className="w-10 h-10 rounded-full bg-white/90 text-[#0f5132] flex items-center justify-center shadow-lg">
             <ZoomIn className="w-5 h-5" />
@@ -46,6 +55,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
         </div>
 
         <div className="absolute top-3 left-3 z-10">
+          {/* Lencana kategori di pojok kiri atas foto */}
           <Badge variant="green">{category}</Badge>
         </div>
       </div>

@@ -1,3 +1,8 @@
+/**
+ * Satu kelompok FAQ: nama kategori + daftar pasangan pertanyaan & jawabannya.
+ */
+// DATA PERTANYAAN UMUM (FAQ) seputar layanan KUA, dikelompokkan per kategori.
+// Ditampilkan sebagai akordeon (klik untuk membuka jawaban) di halaman Layanan Pernikahan. Diedit langsung di file ini.
 export interface FaqCategory {
   id: string;
   category: string;
@@ -7,6 +12,9 @@ export interface FaqCategory {
   }[];
 }
 
+/**
+ * Seluruh isi FAQ yang ditampilkan di situs.
+ */
 export const faqData: FaqCategory[] = [
   {
     id: "pernikahan",

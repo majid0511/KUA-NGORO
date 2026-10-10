@@ -1,3 +1,5 @@
+// BAGIAN KEGIATAN di Beranda: menampilkan 4 foto dokumentasi kegiatan terbaru dari tabel "galeri" di Supabase.
+// Mengklik foto membuka detailnya dalam modal. Jika galeri kosong, tampil pesan "belum ada dokumentasi".
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
@@ -9,13 +11,20 @@ import type { Galeri } from "../../lib/cms/types";
 import { Modal } from "../ui/Modal";
 import { LoadingState, EmptyState } from "../ui/CmsState";
 
+/**
+ * Komponen bagian kegiatan: memuat data galeri, lalu menampilkan loading / kosong / grid kartu.
+ */
 export const ActivitiesSection: React.FC = () => {
+  // Seluruh foto galeri yang berhasil dimuat
   const [items, setItems] = useState<Galeri[]>([]);
+  // True selama data masih dimuat (menampilkan indikator loading)
   const [loading, setLoading] = useState(true);
+  // Foto yang sedang dibuka di modal (null = modal tertutup)
   const [selected, setSelected] = useState<Galeri | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    // Muat galeri; "cancelled" mencegah update state jika komponen sudah ditutup
     getGaleri().then((res) => {
       if (!cancelled && res.data) setItems(res.data);
       if (!cancelled) setLoading(false);
@@ -25,6 +34,7 @@ export const ActivitiesSection: React.FC = () => {
     };
   }, []);
 
+  // Hanya 4 foto pertama (terbaru) yang ditampilkan di Beranda
   const featured = items.slice(0, 4);
 
   return (
@@ -75,7 +85,7 @@ export const ActivitiesSection: React.FC = () => {
           </div>
         )}
 
-        {/* Lightbox Detail Modal */}
+        {/* Modal detail foto: gambar besar, kategori, tanggal, dan deskripsi */}
         <Modal
           isOpen={!!selected}
           onClose={() => setSelected(null)}

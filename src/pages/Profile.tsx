@@ -1,3 +1,5 @@
+// HALAMAN PROFIL KUA (alamat: /profil): gambaran umum & sejarah, wilayah kerja 13 desa, visi & misi, tugas & fungsi,
+// serta daftar pegawai. Profil & pegawai diambil dari Supabase (diedit lewat panel admin); desa dan tugas dari data lokal.
 import { useState, useEffect } from "react";
 import { Landmark, Shield, Target, MapPin, CheckCircle } from "lucide-react";
 import { SectionHeading } from "../components/ui/SectionHeading";
@@ -10,6 +12,9 @@ import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { getRoleCategory } from "../utils/roleCategory";
 
+/**
+ * Halaman profil. Memuat profil & staf sekaligus (Promise.all) lalu menampilkan semua bagian.
+ */
 export default function Profile() {
   usePageMeta({
     title: "Profil KUA",
@@ -18,12 +23,17 @@ export default function Profile() {
     path: "/profil",
   });
 
+  // Profil dari database (null = belum ada/gagal -> dipakai data lokal)
   const [profil, setProfil] = useState<Profil | null>(null);
+  // Daftar pegawai aktif dari database
   const [stafList, setStafList] = useState<Staf[]>([]);
+  // True selama data sedang dimuat
   const [loading, setLoading] = useState(true);
+  // Pesan kesalahan jika gagal memuat (null = tidak ada masalah)
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Ambil profil dan staf secara bersamaan agar lebih cepat; error ditangkap supaya halaman tidak rusak
     async function loadData() {
       setLoading(true);
       setError(null);
@@ -43,6 +53,7 @@ export default function Profile() {
     loadData();
   }, []);
 
+  // Profil yang benar-benar ditampilkan: dari database jika ada, jika tidak memakai data lokal (profileData)
   const displayProfil = profil || {
     office_name: profileData.name,
     description: profileData.aboutFull,
@@ -57,7 +68,7 @@ export default function Profile() {
 
   return (
     <div className="py-10 space-y-16">
-      {/* Page Header */}
+      {/* Kepala halaman */}
       <section className="bg-gradient-to-b from-emerald-50 to-white py-12 border-b border-stone-200/60">
         <div className="container-kua">
           <div className="max-w-3xl">
@@ -78,7 +89,7 @@ export default function Profile() {
       {loading && <LoadingState message="Memuat profil KUA..." />}
       {error && <ErrorState message={error} />}
 
-      {/* Tentang & Sejarah */}
+      {/* Bagian 1: Tentang & Sejarah + kartu wilayah kerja */}
       <section className="container-kua">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           <div className="lg:col-span-7 space-y-6">
@@ -101,7 +112,7 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Wilayah Kerja 13 Desa Card */}
+          {/* Kartu daftar 13 desa wilayah kerja KUA */}
           <div className="lg:col-span-5 bg-white border border-stone-200 rounded-3xl p-6 sm:p-7 shadow-sm space-y-4">
             <h3 className="text-lg font-bold text-stone-900 flex items-center gap-2.5 pb-3 border-b border-stone-100">
               <MapPin className="w-5 h-5 text-[#0f5132]" />
@@ -126,7 +137,7 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* Visi & Misi */}
+      {/* Bagian 2: Visi & Misi */}
       <section className="bg-stone-50/80 py-16 border-y border-stone-200/60">
         <div className="container-kua space-y-10">
           <SectionHeading
@@ -136,7 +147,7 @@ export default function Profile() {
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Visi Card */}
+            {/* Kartu visi (hijau tua) */}
             <div className="lg:col-span-5 bg-gradient-to-br from-[#042918] to-[#0f5132] text-white p-8 rounded-3xl shadow-lg flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold mb-6">
@@ -155,7 +166,7 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Misi List */}
+            {/* Daftar misi bernomor */}
             <div className="lg:col-span-7 bg-white border border-stone-200 p-8 rounded-3xl shadow-sm space-y-4">
               <h3 className="text-xl font-bold text-stone-900 mb-4 pb-3 border-b border-stone-100">
                 Misi Utama Pelayanan:
@@ -178,7 +189,7 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* Tugas dan Fungsi */}
+      {/* Bagian 3: Tugas & Fungsi (dari data lokal) */}
       <section className="container-kua">
         <SectionHeading
           eyebrow="TUGAS WENANG"
@@ -204,7 +215,7 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* Staff Members Section from CMS */}
+      {/* Bagian 4: Daftar pegawai (dari database); badge jabatan ditentukan getRoleCategory */}
       <section className="container-kua">
         <SectionHeading
           eyebrow="SUMBER DAYA MANUSIA"

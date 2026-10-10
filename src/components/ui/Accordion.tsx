@@ -1,7 +1,12 @@
+// KOMPONEN AKORDEON: daftar judul yang bisa diklik untuk membuka/menutup isinya (dipakai untuk FAQ & persyaratan layanan).
+// Hanya satu item yang terbuka dalam satu waktu.
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+/**
+ * Properti satu item akordeon: id, judul, isi (children), status terbuka, dan fungsi yang dipanggil saat judul diklik.
+ */
 export interface AccordionItemProps {
   id: string;
   title: string;
@@ -10,6 +15,9 @@ export interface AccordionItemProps {
   onToggle?: () => void;
 }
 
+/**
+ * Satu baris akordeon: tombol judul (dengan panah yang berputar) + isi yang membuka/menutup dengan animasi.
+ */
 export const AccordionItem: React.FC<AccordionItemProps> = ({
   title,
   children,
@@ -22,6 +30,7 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
         type="button"
         onClick={onToggle}
         className="w-full px-5 py-4 text-left font-semibold text-stone-900 flex items-center justify-between gap-4 hover:bg-stone-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+        // Memberi tahu pembaca layar (aksesibilitas) apakah bagian ini sedang terbuka
         aria-expanded={isOpen}
       >
         <span className="text-base sm:text-lg text-stone-900 font-medium">
@@ -34,6 +43,7 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
         />
       </button>
 
+      {/* Animasi tinggi saat isi muncul/hilang; initial={false} = tidak dianimasikan saat halaman pertama dimuat */}
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
@@ -52,6 +62,9 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
   );
 };
 
+/**
+ * Properti akordeon: daftar item {id, judul, isi}. (allowMultiple belum dipakai.)
+ */
 export interface AccordionProps {
   items: {
     id: string;
@@ -61,9 +74,14 @@ export interface AccordionProps {
   allowMultiple?: boolean;
 }
 
+/**
+ * Akordeon lengkap. Item pertama terbuka secara bawaan; mengklik item yang sedang terbuka akan menutupnya.
+ */
 export const Accordion: React.FC<AccordionProps> = ({ items }) => {
+  // id item yang sedang terbuka (null = semua tertutup)
   const [openId, setOpenId] = useState<string | null>(items[0]?.id || null);
 
+  // Klik item: jika sudah terbuka -> tutup, jika belum -> buka (dan otomatis menutup yang lain)
   const handleToggle = (id: string) => {
     setOpenId(openId === id ? null : id);
   };
