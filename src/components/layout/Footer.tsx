@@ -5,11 +5,12 @@ import { Link } from "react-router-dom";
 import {
   ExternalLink,
   ArrowUp,
-  GraduationCap,
   ShieldCheck,
 } from "lucide-react";
 import { profileData } from "../../data/profile";
 import kualogo from "../../assets/kualogo.png";
+// Semua tulisan "project magang" dikumpulkan di satu file (lihat petunjuk melepasnya di dalam file tersebut)
+import { DeveloperCreditCard, InternshipFooterNote } from "./InternshipCredit";
 
 /**
  * Komponen footer, terdiri dari 4 kolom informasi + baris hak cipta di paling bawah.
@@ -150,34 +151,8 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Kolom 4: kredit pengembang (proyek magang mahasiswa IAI At-Tahdzib) */}
-          <div className="space-y-3 lg:col-span-3">
-            <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-300 sm:text-sm">
-              <GraduationCap className="h-4 w-4 text-emerald-400" />
-              <span>Developer Credit</span>
-            </h4>
-
-            <div className="space-y-2 rounded-2xl border border-emerald-800/80 bg-emerald-900/40 p-4 text-xs">
-              <p className="leading-relaxed text-emerald-200/80">
-                Website developed as an internship project by
-              </p>
-
-              <div className="space-y-0.5">
-                <p className="text-xs font-bold leading-snug text-white sm:text-sm">
-                  Mahasiswa Program Studi Hukum Keluarga (Syariah) est. 2024
-                </p>
-                <p className="text-xs font-semibold text-emerald-300">
-                  IAI At-Tahdzib Jombang
-                </p>
-              </div>
-
-              <div className="pt-2">
-                <span className="inline-block rounded-md border border-emerald-700/50 bg-emerald-800/60 px-2.5 py-1 font-mono text-[11px] font-semibold text-emerald-200">
-                  Internship Project • 2026
-                </span>
-              </div>
-            </div>
-          </div>
+          {/* Kolom 4: kredit pengembang (proyek magang) - isinya ada di InternshipCredit.tsx */}
+          <DeveloperCreditCard />
         </div>
 
         {/* Baris paling bawah: hak cipta + tombol kembali ke atas */}
@@ -187,9 +162,8 @@ export const Footer: React.FC = () => {
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 text-center sm:gap-4 sm:text-right">
-            <span className="text-xs font-semibold text-emerald-400/80">
-              KUA Ngoro Website • Internship Project • 2026
-            </span>
+            {/* Tulisan "Internship Project" (isinya ada di InternshipCredit.tsx) */}
+            <InternshipFooterNote />
 
             <button
               type="button"
