@@ -30,20 +30,23 @@ export function initGA() {
   document.head.appendChild(script);
 
   window.dataLayer = window.dataLayer || [];
-  // Fungsi standar Google: mengantre perintah ke dataLayer untuk diproses skrip GA
-  function gtag(...args: unknown[]) {
-    window.dataLayer.push(args);
-  }
-  window.gtag = gtag;
+  // Fungsi standar Google: mengantre perintah ke dataLayer untuk diproses skrip GA.
+  // PENTING: harus memakai objek "arguments", BUKAN array dari (...args). Skrip gtag.js hanya mengenali perintah
+  // yang dikirim sebagai objek arguments; array biasa diabaikan diam-diam (tidak ada error, tapi tidak ada data terkirim).
+  window.gtag = function gtag() {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer.push(arguments);
+  };
 
-  gtag('js', new Date());
-  gtag('config', GA_MEASUREMENT_ID, {
+  window.gtag('js', new Date());
+  window.gtag('config', GA_MEASUREMENT_ID, {
     send_page_view: false, // Page view dikirim manual saat rute berubah
   });
 }
 
 /**
- * Hook yang mengirim catatan "halaman dilihat" ke Google Analytics setiap kali alamat URL berubah.
+ * Hook yang mengirim catatan "halaman dilihat" ke Google Analytics setiap kali alamat URL berubah
+ * (kecuali halaman /admin).
  * Perlu dikirim manual karena situs ini aplikasi satu halaman (SPA): browser tidak memuat ulang halaman
  * saat pindah menu, sehingga GA tidak mendeteksinya otomatis.
  */
@@ -52,6 +55,9 @@ export function useGaTracker() {
 
   useEffect(() => {
     if (!GA_MEASUREMENT_ID || typeof window === 'undefined' || !window.gtag) return;
+
+    // Kunjungan ke panel admin tidak dihitung, supaya statistik hanya berisi pengunjung publik
+    if (location.pathname === '/admin' || location.pathname.startsWith('/admin/')) return;
 
     // Kirim event page_view setiap rute berubah
     window.gtag('event', 'page_view', {
