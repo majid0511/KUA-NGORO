@@ -8,7 +8,7 @@ import {
   AdminLoading, AdminEmpty, AdminError, ConfirmDelete,
   FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
-import { useImageUpload } from './useImageUpload';
+import { useImageUpload, deleteMediaIfUnused } from './useImageUpload';
 import { showToast } from './toast';
 import { Image as ImageIcon, UserCircle } from 'lucide-react';
 
@@ -41,7 +41,7 @@ export default function StafAdmin() {
   // Data yang menunggu konfirmasi hapus (null = dialog tertutup)
   const [deleteTarget, setDeleteTarget] = useState<Staf | null>(null);
   // Fungsi & status unggah foto ke Supabase Storage
-  const { uploading, upload }   = useImageUpload();
+  const { uploading, upload, discardUnsaved } = useImageUpload();
 
   // Ambil semua data dari tabel "staf" di Supabase
   async function load() {
@@ -87,6 +87,11 @@ export default function StafAdmin() {
     );
     setSaving(false);
     if (!ok) return;
+    // Bersihkan file foto: unggahan yang tidak jadi dipakai, dan foto lama yang sudah diganti
+    await discardUnsaved(form.photo);
+    if (editing?.photo && editing.photo !== form.photo) {
+      await deleteMediaIfUnused(editing.photo);
+    }
     setMode('list'); load();
   }
 
@@ -94,6 +99,7 @@ export default function StafAdmin() {
   async function handleDelete() {
     if (!deleteTarget) return;
     if (!(await run(supabase!.from('staf').delete().eq('id', deleteTarget.id)))) return;
+    await deleteMediaIfUnused(deleteTarget.photo); // hapus juga file fotonya dari Storage
     setDeleteTarget(null); load();
   }
 
@@ -180,7 +186,7 @@ export default function StafAdmin() {
                 onChange={(e) => setForm((f) => ({ ...f, photo: e.target.value }))} />
             </div>
           </Field>
-          <FormActions loading={saving || uploading} onCancel={() => setMode('list')} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
+          <FormActions loading={saving || uploading} onCancel={() => { void discardUnsaved(); setMode('list'); }} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
         </form>
       </FormCard>
     );

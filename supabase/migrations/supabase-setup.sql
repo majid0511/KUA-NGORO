@@ -265,11 +265,18 @@ on conflict (id) do update
       file_size_limit    = excluded.file_size_limit,
       allowed_mime_types = excluded.allowed_mime_types;
 
--- Tulis/ubah/hapus file hanya untuk admin. Sengaja TIDAK ada policy select:
--- file tetap terbaca lewat URL publik, tapi isi bucket tidak bisa di-list anon.
+-- Tulis/ubah/hapus/lihat-daftar file hanya untuk admin. Pengunjung (anon) TIDAK punya policy select:
+-- file tetap terbaca lewat URL publik, tapi isi bucket tidak bisa di-list oleh pengunjung.
+drop policy if exists "media_admin_select" on storage.objects;
 drop policy if exists "media_admin_insert" on storage.objects;
 drop policy if exists "media_admin_update" on storage.objects;
 drop policy if exists "media_admin_delete" on storage.objects;
+
+-- Admin boleh melihat daftar file: dibutuhkan agar penghapusan file lewat API (remove) benar-benar
+-- menghapus. Tanpa policy ini, penghapusan diam-diam tidak mengenai baris apa pun.
+create policy "media_admin_select" on storage.objects
+  for select to authenticated
+  using (bucket_id = 'media' and public.is_admin());
 
 create policy "media_admin_insert" on storage.objects
   for insert to authenticated

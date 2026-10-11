@@ -8,7 +8,7 @@ import {
   ConfirmDelete, RowActions,
   FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
-import { useImageUpload } from './useImageUpload';
+import { useImageUpload, deleteMediaIfUnused } from './useImageUpload';
 import { showToast } from './toast';
 import { Image as ImageIcon } from 'lucide-react';
 
@@ -45,7 +45,7 @@ export default function GaleriAdmin() {
   // Data yang menunggu konfirmasi hapus (null = dialog tertutup)
   const [deleteTarget, setDeleteTarget] = useState<Galeri | null>(null);
   // Fungsi & status unggah foto ke Supabase Storage
-  const { uploading, upload }   = useImageUpload();
+  const { uploading, upload, discardUnsaved } = useImageUpload();
 
   // Ambil semua data dari tabel "galeri" di Supabase
   async function load() {
@@ -86,6 +86,11 @@ export default function GaleriAdmin() {
     );
     setSaving(false);
     if (!ok) return;
+    // Bersihkan file gambar: unggahan yang tidak jadi dipakai, dan gambar lama yang sudah diganti
+    await discardUnsaved(form.image);
+    if (editing?.image && editing.image !== form.image) {
+      await deleteMediaIfUnused(editing.image);
+    }
     setMode('list'); load();
   }
 
@@ -93,6 +98,7 @@ export default function GaleriAdmin() {
   async function handleDelete() {
     if (!deleteTarget) return;
     if (!(await run(supabase!.from('galeri').delete().eq('id', deleteTarget.id)))) return;
+    await deleteMediaIfUnused(deleteTarget.image); // hapus juga file gambarnya dari Storage
     setDeleteTarget(null); load();
   }
 
@@ -148,7 +154,7 @@ export default function GaleriAdmin() {
                 onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))} />
             </div>
           </Field>
-          <FormActions loading={saving || uploading} onCancel={() => setMode('list')} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
+          <FormActions loading={saving || uploading} onCancel={() => { void discardUnsaved(); setMode('list'); }} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
         </form>
       </FormCard>
     );

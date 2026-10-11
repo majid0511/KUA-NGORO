@@ -8,7 +8,7 @@ import {
   AdminLoading, AdminEmpty, AdminError, ConfirmDelete,
   FormCard, Field, inputCls, textareaCls, FormActions, run,
 } from './AdminUI';
-import { useImageUpload } from './useImageUpload';
+import { useImageUpload, deleteMediaIfUnused } from './useImageUpload';
 import { showToast } from './toast';
 import { Image as ImageIcon } from 'lucide-react';
 
@@ -43,7 +43,7 @@ export default function BeritaAdmin() {
   // Berita yang menunggu konfirmasi hapus (null = dialog tertutup)
   const [deleteTarget, setDeleteTarget] = useState<Berita | null>(null);
   // Fungsi & status unggah gambar ke Supabase Storage
-  const { uploading, upload }     = useImageUpload();
+  const { uploading, upload, discardUnsaved } = useImageUpload();
 
   // Ambil semua berita dari database, terbaru di atas (admin boleh melihat draft karena aturan RLS)
   async function load() {
@@ -91,6 +91,11 @@ export default function BeritaAdmin() {
     );
     setSaving(false);
     if (!ok) return;
+    // Bersihkan file gambar: unggahan yang tidak jadi dipakai, dan gambar lama yang sudah diganti
+    await discardUnsaved(form.featured_image);
+    if (editing?.featured_image && editing.featured_image !== form.featured_image) {
+      await deleteMediaIfUnused(editing.featured_image);
+    }
     setMode('list');
     load();
   }
@@ -99,6 +104,7 @@ export default function BeritaAdmin() {
   async function handleDelete() {
     if (!deleteTarget) return;
     if (!(await run(supabase!.from('berita').delete().eq('id', deleteTarget.id)))) return;
+    await deleteMediaIfUnused(deleteTarget.featured_image); // hapus juga file gambarnya dari Storage
     setDeleteTarget(null);
     load();
   }
@@ -185,7 +191,7 @@ export default function BeritaAdmin() {
                 onChange={(e) => setForm((f) => ({ ...f, featured_image: e.target.value }))} />
             </div>
           </Field>
-          <FormActions loading={saving || uploading} onCancel={() => setMode('list')} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
+          <FormActions loading={saving || uploading} onCancel={() => { void discardUnsaved(); setMode('list'); }} submitLabel={editing ? 'Perbarui' : 'Simpan'} />
         </form>
       </FormCard>
     );
