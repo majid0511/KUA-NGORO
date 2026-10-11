@@ -1,8 +1,12 @@
 import { useEffect } from "react";
 
-// Alamat situs yang sebenarnya. WAJIB diganti dengan domain produksi (mis. https://kua-ngoro.vercel.app
-// atau domain sendiri) setelah deploy, supaya og:url dan canonical menunjuk ke alamat yang benar.
-export const SITE_URL = "https://kua-ngoro-ngoro.vercel.app";
+// Alamat situs untuk og:url dan canonical. Tidak perlu ditulis manual lagi:
+//  1. jika VITE_SITE_URL diisi (mis. di Vercel), itu yang dipakai -> disarankan agar alamat produksi selalu pasti;
+//  2. jika tidak, otomatis memakai alamat yang sedang dibuka di browser (selalu benar, termasuk setelah ganti domain).
+export const SITE_URL = (
+  (import.meta.env.VITE_SITE_URL as string | undefined) ||
+  (typeof window !== "undefined" ? window.location.origin : "")
+).replace(/\/+$/, "");
 // Nama situs, ditempelkan di belakang judul tab browser: "Judul Halaman | KUA Kecamatan Ngoro"
 const SITE_NAME = "KUA Kecamatan Ngoro";
 
