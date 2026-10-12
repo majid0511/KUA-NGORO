@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Newspaper, Bell, Landmark, User, Users, Image, ArrowRight } from 'lucide-react';
+// import AnalyticsSection from './AnalyticsSection';
 
 /**
  * Jumlah baris tiap tabel konten
@@ -75,6 +76,9 @@ export default function AdminDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Statistik pengunjung dari Google Analytics (lihat AnalyticsSection.tsx & api/analytics.ts) */}
+      {/* <AnalyticsSection /> */}
 
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Pintasan ke halaman kelola yang paling sering dipakai */}
