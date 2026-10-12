@@ -1,28 +1,27 @@
-// DASHBOARD ADMIN (alamat: /admin): ringkasan jumlah konten, pintasan ke halaman kelola, dan statistik pengunjung (Google Analytics).
+// DASHBOARD ADMIN (alamat: /admin): ringkasan jumlah konten dan pintasan ke halaman kelola.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Newspaper, Bell, Landmark, User, Users, Image, ArrowRight } from 'lucide-react';
-import AnalyticsSection from './AnalyticsSection';
 
 /**
  * Jumlah baris tiap tabel konten
  */
 interface CountState {
-  berita:     number;
+  berita: number;
   pengumuman: number;
-  layanan:    number;
-  staf:       number;
-  galeri:     number;
+  layanan: number;
+  staf: number;
+  galeri: number;
 }
 
 // Definisi kartu statistik: kunci tabel, label, ikon, dan halaman tujuan saat diklik
 const CARDS = [
-  { key: 'berita',     label: 'Berita',     icon: Newspaper, to: '/admin/berita' },
-  { key: 'pengumuman', label: 'Pengumuman', icon: Bell,      to: '/admin/pengumuman' },
-  { key: 'layanan',    label: 'Layanan',    icon: Landmark,  to: '/admin/layanan' },
-  { key: 'staf',       label: 'Staf',       icon: Users,     to: '/admin/staf' },
-  { key: 'galeri',     label: 'Galeri',     icon: Image,     to: '/admin/galeri' },
+  { key: 'berita', label: 'Berita', icon: Newspaper, to: '/admin/berita' },
+  { key: 'pengumuman', label: 'Pengumuman', icon: Bell, to: '/admin/pengumuman' },
+  { key: 'layanan', label: 'Layanan', icon: Landmark, to: '/admin/layanan' },
+  { key: 'staf', label: 'Staf', icon: Users, to: '/admin/staf' },
+  { key: 'galeri', label: 'Galeri', icon: Image, to: '/admin/galeri' },
 ] as const;
 
 /**
@@ -31,7 +30,7 @@ const CARDS = [
 export default function AdminDashboard() {
   // Jumlah data tiap tabel (awal 0 sampai data selesai dimuat)
   const [counts, setCounts] = useState<CountState>({ berita: 0, pengumuman: 0, layanan: 0, staf: 0, galeri: 0 });
-  // True selama jumlah data belum selesai dimuat (kartu menampilkan tanda "-")
+  // True selama jumlah data belum selesai dimuat (kartu menampilkan tanda "–")
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,11 +41,11 @@ export default function AdminDashboard() {
         tables.map((t) => supabase!.from(t).select('id', { count: 'exact', head: true }))
       );
       setCounts({
-        berita:     results[0].count ?? 0,
+        berita: results[0].count ?? 0,
         pengumuman: results[1].count ?? 0,
-        layanan:    results[2].count ?? 0,
-        staf:       results[3].count ?? 0,
-        galeri:     results[4].count ?? 0,
+        layanan: results[2].count ?? 0,
+        staf: results[3].count ?? 0,
+        galeri: results[4].count ?? 0,
       });
       setLoading(false);
     }
@@ -57,7 +56,7 @@ export default function AdminDashboard() {
     <div className="max-w-5xl space-y-6">
       <div>
         <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Ringkasan konten dan statistik website KUA Kecamatan Ngoro.</p>
+        <p className="text-sm text-slate-500 mt-0.5">Ringkasan konten website KUA Kecamatan Ngoro.</p>
       </div>
 
       {/* Baris kartu statistik: jumlah berita, pengumuman, layanan, staf, galeri */}
@@ -77,18 +76,15 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Statistik pengunjung dari Google Analytics (lihat AnalyticsSection.tsx & api/analytics.ts) */}
-      <AnalyticsSection />
-
       <div className="grid lg:grid-cols-5 gap-6">
         {/* Pintasan ke halaman kelola yang paling sering dipakai */}
         <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-5">
           <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Pintasan</h2>
           <div className="divide-y divide-slate-100">
             {[
-              { to: '/admin/berita',     label: 'Kelola berita' },
+              { to: '/admin/berita', label: 'Kelola berita' },
               { to: '/admin/pengumuman', label: 'Kelola pengumuman' },
-              { to: '/admin/galeri',     label: 'Kelola galeri' },
+              { to: '/admin/galeri', label: 'Kelola galeri' },
             ].map(({ to, label }) => (
               <Link
                 key={to}
