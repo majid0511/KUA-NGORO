@@ -19,11 +19,6 @@ import NotFound from "./pages/NotFound";
 import { MaintenanceScreen } from "./components/MaintenanceScreen";
 import { isMaintenanceMode } from "./lib/cms/profil";
 import { PrayerTimesBar } from "./components/PrayerTimesBar";
-import { initGA, useGaTracker } from "./lib/analyticsTracker";
-import { Analytics } from "@vercel/analytics/react";
-
-// Inisialisasi GA4 jika VITE_GA_MEASUREMENT_ID dikonfigurasi
-initGA();
 
 // Panel admin dimuat terpisah (tidak menambah bundle halaman publik)
 const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
@@ -51,9 +46,6 @@ export default function App() {
   const { pathname } = useLocation();
   // Status maintenance: null = belum diketahui, true = aktif, false = tidak aktif.
   const [maintenance, setMaintenance] = useState<boolean | null>(null);
-
-  // Track page view GA4 untuk rute publik
-  useGaTracker();
 
   // Panel admin selalu bisa diakses, termasuk saat mode maintenance aktif,
   // supaya admin tetap bisa masuk dan mematikannya kembali.
@@ -105,7 +97,7 @@ export default function App() {
         <Routes>
           {/* Beranda */}
           <Route path="/" element={<Home />} />
-          
+
           {/* Main Indonesian routes */}
           <Route path="/profil" element={<Profile />} />
           <Route path="/layanan" element={<Services />} />
@@ -137,8 +129,6 @@ export default function App() {
       <Footer />
       {/* Tombol cepat (telepon/WhatsApp) yang menempel di bawah layar HP */}
       <MobileStickyBar />
-      {/* Pencatat statistik kunjungan dari Vercel Analytics */}
-      <Analytics />
     </div>
   );
 }
