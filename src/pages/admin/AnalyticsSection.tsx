@@ -1,5 +1,5 @@
 // BAGIAN STATISTIK PENGUNJUNG di Dashboard admin: ringkasan pengunjung, grafik tren harian, halaman terpopuler, sumber lalu lintas,
-// dan jenis perangkat. Data diambil dari Google Analytics lewat fungsi server /api/analytics (lihat api/analytics.ts), yang hanya
+// dan jenis perangkat. Data diambil dari Vercel Web Analytics lewat fungsi server /api/analytics (lihat api/analytics.ts), yang hanya
 // bisa diakses admin yang login (token login dikirim di header Authorization). Grafik digambar manual dengan SVG tanpa library.
 import { useEffect, useState, useCallback } from 'react';
 import { RefreshCw, Users, Eye, Activity, UserPlus, AlertCircle, BarChart3, Monitor, Smartphone, Tablet, Share2 } from 'lucide-react';
@@ -11,8 +11,6 @@ import { supabase } from '../../lib/supabase';
 interface Totals {
   users: number;
   views: number;
-  sessions: number;
-  newUsers: number;
 }
 
 /**
@@ -23,7 +21,6 @@ interface DailyPoint {
   rawDate: string;
   users: number;
   views: number;
-  newUsers: number;
 }
 
 /**
@@ -40,7 +37,7 @@ interface TopPage {
  */
 interface TrafficSource {
   channel: string;
-  sessions: number;
+  visitors: number;
 }
 
 /**
@@ -52,7 +49,7 @@ interface DeviceStat {
 }
 
 /**
- * Bentuk lengkap jawaban dari /api/analytics. "configured" = false berarti kredensial Google belum diisi di server.
+ * Bentuk lengkap jawaban dari /api/analytics. "configured" = false berarti token/Project ID Vercel belum diisi di server.
  */
 interface AnalyticsApiResponse {
   success?: boolean;
@@ -150,7 +147,7 @@ export default function AnalyticsSection() {
     fetchAnalytics(days);
   };
 
-  // True jika server melaporkan kredensial Google Analytics belum dikonfigurasi
+  // True jika server melaporkan token/Project ID Vercel belum dikonfigurasi
   const isUnconfigured = data && !data.configured;
   const totals = data?.totals;
   const dailyData = data?.dailyData || [];
@@ -169,7 +166,7 @@ export default function AnalyticsSection() {
             <BarChart3 size={20} className="text-[#0f5132]" />
             <h2 className="text-base font-bold text-slate-900">Analytics Website</h2>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">Statistik kunjungan masyarakat ke portal KUA Ngoro (GA4).</p>
+          <p className="text-xs text-slate-500 mt-0.5">Statistik kunjungan masyarakat ke portal KUA Ngoro (Vercel Web Analytics).</p>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
@@ -207,7 +204,7 @@ export default function AnalyticsSection() {
       {loading && !data && (
         <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-3">
           <RefreshCw size={24} className="animate-spin text-[#0f5132]" />
-          <p className="text-xs font-medium">Memuat data Google Analytics 4...</p>
+          <p className="text-xs font-medium">Memuat data Vercel Web Analytics...</p>
         </div>
       )}
 
@@ -218,7 +215,7 @@ export default function AnalyticsSection() {
           <div className="flex-1">
             <p className="font-semibold">{errorMsg}</p>
             <p className="mt-1 text-amber-700">
-              Pastikan kredensial Google OAuth 2.0 di server telah dikonfigurasi dengan benar.
+              Periksa token & Project ID Vercel di environment server, atau coba periode yang lebih pendek.
             </p>
           </div>
           <button
@@ -235,17 +232,16 @@ export default function AnalyticsSection() {
         <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-2">
           <div className="flex items-center gap-2 text-slate-800 font-semibold">
             <AlertCircle size={16} className="text-blue-600" />
-            <span>Google Analytics 4 OAuth 2.0 Belum Dikonfigurasi</span>
+            <span>Vercel Web Analytics Belum Dikonfigurasi</span>
           </div>
           <p>
-            Data analytics tidak dapat ditampilkan karena kredensial Google OAuth 2.0 belum diisi di environment server (Vercel).
+            Data analytics tidak dapat ditampilkan karena token Vercel dan Project ID belum diisi di environment server (Vercel).
           </p>
           <div className="p-3 bg-white border border-slate-200 rounded-lg text-[11px] font-mono text-slate-700 space-y-1">
             <p className="font-sans font-semibold text-slate-800">Environment variables yang diperlukan di Vercel:</p>
-            <p>• GA_PROPERTY_ID=557572449</p>
-            <p>• GOOGLE_CLIENT_ID=Client ID OAuth 2.0 GCP</p>
-            <p>• GOOGLE_CLIENT_SECRET=Client Secret OAuth 2.0 GCP</p>
-            <p>• GOOGLE_REFRESH_TOKEN=Refresh Token OAuth 2.0 GA4</p>
+            <p>• WEB_ANALYTICS_TOKEN=Token akses Vercel (Account Settings → Tokens)</p>
+            <p>• WEB_ANALYTICS_PROJECT_ID=ID project (prj_...)</p>
+            <p>• WEB_ANALYTICS_TEAM_ID=ID team (team_...), hanya jika project milik team</p>
           </div>
         </div>
       )}
@@ -268,29 +264,29 @@ export default function AnalyticsSection() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="flex items-center justify-between text-slate-500 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Active Users</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">Pengunjung</span>
                 <Users size={16} className="text-[#0f5132]" />
               </div>
               <p className="text-2xl font-bold text-slate-900">
                 {loading ? '–' : totals?.users.toLocaleString('id-ID') ?? 0}
               </p>
-              <p className="text-[11px] text-slate-500 mt-1">Pengguna aktif ({days} hari)</p>
+              <p className="text-[11px] text-slate-500 mt-1">Pengunjung unik per hari, dijumlahkan ({days} hari)</p>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="flex items-center justify-between text-slate-500 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Sessions</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">Rata-rata Harian</span>
                 <Activity size={16} className="text-purple-600" />
               </div>
               <p className="text-2xl font-bold text-slate-900">
-                {loading ? '–' : totals?.sessions.toLocaleString('id-ID') ?? 0}
+                {loading ? '–' : (totals ? Math.round(totals.users / days) : 0).toLocaleString('id-ID')}
               </p>
-              <p className="text-[11px] text-slate-500 mt-1">Total sesi kunjungan</p>
+              <p className="text-[11px] text-slate-500 mt-1">Pengunjung per hari</p>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="flex items-center justify-between text-slate-500 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">Page Views</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">Tayangan Halaman</span>
                 <Eye size={16} className="text-blue-600" />
               </div>
               <p className="text-2xl font-bold text-slate-900">
@@ -301,13 +297,13 @@ export default function AnalyticsSection() {
 
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80">
               <div className="flex items-center justify-between text-slate-500 mb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider">New Users</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">Halaman/Pengunjung</span>
                 <UserPlus size={16} className="text-emerald-600" />
               </div>
               <p className="text-2xl font-bold text-slate-900">
-                {loading ? '–' : totals?.newUsers.toLocaleString('id-ID') ?? 0}
+                {loading ? '–' : (totals && totals.users > 0 ? (totals.views / totals.users).toFixed(1) : '0')}
               </p>
-              <p className="text-[11px] text-slate-500 mt-1">Pengunjung baru</p>
+              <p className="text-[11px] text-slate-500 mt-1">Rata-rata halaman dibuka</p>
             </div>
           </div>
 
@@ -319,7 +315,7 @@ export default function AnalyticsSection() {
               </h3>
               <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#0f5132]" /> Active Users
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#0f5132]" /> Pengunjung
                 </span>
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Page Views
@@ -489,7 +485,7 @@ function SvgTrendChart({ dailyData, loading }: { dailyData: DailyPoint[]; loadin
  * Rincian sumber lalu lintas sebagai batang berpersentase.
  */
 function TrafficBreakdown({ trafficSources }: { trafficSources: TrafficSource[] }) {
-  const total = trafficSources.reduce((acc, curr) => acc + curr.sessions, 0);
+  const total = trafficSources.reduce((acc, curr) => acc + curr.visitors, 0);
 
   if (trafficSources.length === 0 || total === 0) {
     return <p className="text-xs text-slate-400 py-2">Data sumber traffic belum tersedia.</p>;
@@ -498,12 +494,12 @@ function TrafficBreakdown({ trafficSources }: { trafficSources: TrafficSource[] 
   return (
     <div className="space-y-2.5">
       {trafficSources.map((item, i) => {
-        const percent = Math.round((item.sessions / total) * 100);
+        const percent = Math.round((item.visitors / total) * 100);
         return (
           <div key={i} className="space-y-1">
             <div className="flex items-center justify-between text-xs font-medium text-slate-700">
               <span className="truncate max-w-[140px]">{item.channel}</span>
-              <span className="font-bold text-slate-900">{percent}% ({item.sessions})</span>
+              <span className="font-bold text-slate-900">{percent}% ({item.visitors})</span>
             </div>
             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
               <div

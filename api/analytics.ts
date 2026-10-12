@@ -1,14 +1,21 @@
 // FUNGSI SERVER (Vercel Serverless) UNTUK STATISTIK PENGUNJUNG: alamat /api/analytics.
-// Berjalan di server, BUKAN di browser, sehingga kredensial Google (client secret & refresh token) tidak pernah terkirim ke pengunjung.
+// Berjalan di server, BUKAN di browser, sehingga token Vercel tidak pernah terkirim ke pengunjung.
+//
+// Sumber data: Vercel Web Analytics API (https://api.vercel.com/v1/query/web-analytics/...), angkanya sama dengan
+// tab Analytics di dashboard Vercel. Tidak memakai cookie dan tidak butuh kunci Google.
 //
 // Alur satu permintaan:
 //   1. Pastikan peminta adalah admin yang login (verifyAdminUser) -> jika tidak, jawab 401.
-//   2. Baca kredensial Google dari environment variable Vercel (jika belum lengkap, jawab "belum dikonfigurasi").
-//   3. Tukar refresh token menjadi access token Google (getAccessTokenFromRefreshToken).
-//   4. Minta 4 laporan sekaligus ke Google Analytics Data API: tren harian, halaman terpopuler, sumber lalu lintas, perangkat.
-//   5. Rapikan hasilnya menjadi JSON sederhana untuk komponen AnalyticsSection.
-// Environment variable yang dibutuhkan: GA_PROPERTY_ID, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN,
-// serta VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY (untuk memeriksa login admin).
+//   2. Baca token & ID project dari environment variable Vercel (jika belum lengkap, jawab "belum dikonfigurasi").
+//   3. Minta 4 laporan sekaligus ke Vercel: tren harian, halaman terpopuler, sumber lalu lintas, perangkat.
+//   4. Rapikan hasilnya menjadi JSON sederhana untuk komponen AnalyticsSection.
+//
+// Environment variable yang dibutuhkan (di Vercel -> Project -> Settings -> Environment Variables):
+//   WEB_ANALYTICS_TOKEN       : token akses Vercel (Account Settings -> Tokens)
+//   WEB_ANALYTICS_PROJECT_ID  : ID project (prj_...)
+//   WEB_ANALYTICS_TEAM_ID     : ID team (team_...) -- HANYA jika project milik team; kosongkan untuk akun pribadi
+//   VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY : untuk memeriksa login admin
+
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createClient } from '@supabase/supabase-js';
 
@@ -29,40 +36,6 @@ interface VercelResponse extends ServerResponse {
   json: (data: unknown) => VercelResponse;
 }
 
-/**
- * Tukarkan GOOGLE_REFRESH_TOKEN menjadi Google OAuth 2.0 access_token.
- */
-async function getAccessTokenFromRefreshToken(
-  clientId: string,
-  clientSecret: string,
-  refreshToken: string
-): Promise<string> {
-  const params = new URLSearchParams({
-    client_id: clientId,
-    client_secret: clientSecret,
-    refresh_token: refreshToken,
-    grant_type: 'refresh_token',
-  });
-
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString(),
-  });
-
-  if (!res.ok) {
-    const errorBody = await res.text();
-    console.error('Google OAuth Token Refresh Error:', errorBody);
-    throw new Error('OAuth token refresh failed');
-  }
-
-  const data = (await res.json()) as { access_token: string };
-  if (!data.access_token) {
-    throw new Error('No access_token returned from Google OAuth');
-  }
-
-  return data.access_token;
-}
 
 /**
  * Verifikasi apakah request berasal dari Admin yang terautentikasi via Supabase Auth.
@@ -116,6 +89,73 @@ async function verifyAdminUser(req: VercelRequest): Promise<boolean> {
   }
 }
 
+
+/** Alamat dasar endpoint "aggregate" Web Analytics (data kunjungan otomatis: pageviews & visitors). */
+const VISITS_AGGREGATE_URL = 'https://api.vercel.com/v1/query/web-analytics/visits/aggregate';
+
+/** Error dari Vercel API, membawa kode status HTTP agar bisa diterjemahkan ke pesan yang mudah dipahami admin. */
+class VercelApiError extends Error {
+  status: number;
+  constructor(status: number, detail: string) {
+    super(`Vercel API ${status}: ${detail}`);
+    this.status = status;
+  }
+}
+
+/** Satu baris hasil dari Vercel: kolom dimensi (mis. country) + angka pageviews & visitors. */
+type VercelRow = Record<string, unknown>;
+
+/**
+ * Memanggil endpoint aggregate Vercel dengan parameter tertentu dan mengembalikan daftar barisnya.
+ * Token dikirim lewat header Authorization (tidak pernah di alamat URL).
+ */
+async function queryVisits(
+  token: string,
+  base: Record<string, string>,
+  extra: Record<string, string>
+): Promise<VercelRow[]> {
+  const url = `${VISITS_AGGREGATE_URL}?${new URLSearchParams({ ...base, ...extra }).toString()}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    const detail = (await res.text()).slice(0, 300);
+    throw new VercelApiError(res.status, detail);
+  }
+  const json = (await res.json()) as { data?: unknown };
+  return Array.isArray(json.data) ? (json.data as VercelRow[]) : [];
+}
+
+/** Mengubah nilai apa pun dari Vercel menjadi angka (nilai tidak valid dianggap 0). */
+const num = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/** Format tanggal YYYY-MM-DD (UTC), sesuai yang diminta parameter since/until Vercel. */
+const ymd = (d: Date): string => d.toISOString().slice(0, 10);
+
+/**
+ * Mengambil nilai dimensi dari satu baris. Vercel mengelompokkan sisa nilai yang melebihi "limit" menjadi "Others".
+ * Nilai kosong (mis. pengunjung tanpa referrer) dianggap kunjungan langsung.
+ */
+function dimensionValue(row: VercelRow, key: string): string {
+  const v = row[key];
+  return v === null || v === undefined ? '' : String(v);
+}
+
+/** Urutkan baris dari pengunjung terbanyak ke tersedikit. */
+const byVisitorsDesc = (a: VercelRow, b: VercelRow) => num(b.visitors) - num(a.visitors);
+
+/** Terjemahkan kegagalan Vercel API menjadi pesan untuk admin (tanpa membocorkan detail teknis atau token). */
+function describeVercelError(err: unknown): string {
+  if (err instanceof VercelApiError) {
+    if (err.status === 401 || err.status === 403) return 'Token Vercel ditolak atau tidak punya akses ke project ini.';
+    if (err.status === 404) return 'Project tidak ditemukan. Periksa WEB_ANALYTICS_PROJECT_ID dan WEB_ANALYTICS_TEAM_ID.';
+    if (err.status === 400) return 'Permintaan ditolak Vercel (mungkin periode melebihi batas paket). Coba periode yang lebih pendek.';
+    if (err.status === 429) return 'Terlalu banyak permintaan ke Vercel. Coba lagi sebentar.';
+  }
+  return 'Analytics temporarily unavailable';
+}
+
 /**
  * Pintu masuk fungsi server: dipanggil Vercel setiap ada permintaan GET ke /api/analytics?days=7|30|90.
  */
@@ -134,177 +174,107 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  // Langkah 2: ambil kredensial Google dari environment variable server (tidak pernah terlihat oleh browser)
-  const propertyId = process.env.GA_PROPERTY_ID;
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+  // Langkah 2: ambil token & ID project dari environment variable server (tidak pernah terlihat oleh browser)
+  const token = process.env.WEB_ANALYTICS_TOKEN;
+  const projectId = process.env.WEB_ANALYTICS_PROJECT_ID;
+  const teamId = process.env.WEB_ANALYTICS_TEAM_ID; // boleh kosong (akun pribadi)
 
-  // Jika env variables belum lengkap:
-  if (!propertyId || !clientId || !clientSecret || !refreshToken) {
+  if (!token || !projectId) {
     return res.status(200).json({
       success: true,
       configured: false,
-      message: 'Kredensial Google OAuth 2.0 / Property ID belum dikonfigurasi di server.',
+      message: 'Token Vercel / Project ID untuk Web Analytics belum dikonfigurasi di server.',
     });
   }
 
-  // Periode laporan dalam hari dari alamat (?days=7|30|90); bila tidak valid dipakai 7 hari
+  // Periode laporan dalam hari dari alamat (?days=7|30|90); nilai tidak valid -> 7 hari, maksimal 90
   const daysParam = (req.query.days as string) || '7';
-  const days = parseInt(daysParam, 10) || 7;
+  const days = Math.min(Math.max(parseInt(daysParam, 10) || 7, 1), 90);
+
+  // Rentang tanggal: dari "days" hari lalu sampai hari ini (UTC)
+  const today = new Date();
+  const since = ymd(new Date(today.getTime() - days * 24 * 60 * 60 * 1000));
+  const until = ymd(today);
+
+  // Parameter yang sama untuk keempat laporan
+  const base: Record<string, string> = { projectId, since, until };
+  if (teamId) base.teamId = teamId;
 
   try {
-    // Langkah 3: tukar refresh token menjadi access token sementara dari Google
-    const accessToken = await getAccessTokenFromRefreshToken(clientId, clientSecret, refreshToken);
+    // Langkah 3: minta empat laporan sekaligus (paralel) supaya cepat
+    const [dailyRows, pageRows, sourceRows, deviceRows] = await Promise.all([
+      queryVisits(token, base, { by: 'day' }),
+      queryVisits(token, base, { by: 'requestPath', limit: '8' }),
+      queryVisits(token, base, { by: 'referrerHostname', limit: '6' }),
+      queryVisits(token, base, { by: 'deviceType', limit: '6' }),
+    ]);
 
-    // Langkah 4: minta empat laporan sekaligus ke Google Analytics Data API
-    // Alamat endpoint batchRunReports milik properti GA kita (GA_PROPERTY_ID)
-    const reportUrl = `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:batchRunReports`;
-
-    const reportRes = await fetch(reportUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        requests: [
-          // Report 1: Overview & Daily Trend
-          {
-            dateRanges: [{ startDate: `${days}daysAgo`, endDate: 'today' }],
-            dimensions: [{ name: 'date' }],
-            metrics: [
-              { name: 'activeUsers' },
-              { name: 'screenPageViews' },
-              { name: 'sessions' },
-              { name: 'newUsers' },
-            ],
-            orderBys: [{ dimension: { dimensionName: 'date' } }],
-          },
-          // Report 2: Popular Pages
-          {
-            dateRanges: [{ startDate: `${days}daysAgo`, endDate: 'today' }],
-            dimensions: [{ name: 'pagePath' }],
-            metrics: [
-              { name: 'screenPageViews' },
-              { name: 'activeUsers' },
-            ],
-            limit: 7,
-            orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
-          },
-          // Report 3: Traffic Sources
-          {
-            dateRanges: [{ startDate: `${days}daysAgo`, endDate: 'today' }],
-            dimensions: [{ name: 'sessionDefaultChannelGroup' }],
-            metrics: [{ name: 'sessions' }],
-            limit: 6,
-            orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-          },
-          // Report 4: Devices
-          {
-            dateRanges: [{ startDate: `${days}daysAgo`, endDate: 'today' }],
-            dimensions: [{ name: 'deviceCategory' }],
-            metrics: [{ name: 'activeUsers' }],
-          },
-        ],
-      }),
-    });
-
-    if (!reportRes.ok) {
-      console.error('GA Data API Error Status:', reportRes.status);
-      return res.status(200).json({
-        success: false,
-        configured: true,
-        error: 'Analytics temporarily unavailable',
-      });
+    // Langkah 4a: tren harian. Hari tanpa kunjungan mungkin tidak dikirim Vercel, jadi diisi 0 agar grafik utuh.
+    const dailyByDate = new Map<string, { users: number; views: number }>();
+    for (const row of dailyRows) {
+      const key = dimensionValue(row, 'timestamp').slice(0, 10); // YYYY-MM-DD
+      if (key) dailyByDate.set(key, { users: num(row.visitors), views: num(row.pageviews) });
     }
-
-    // Jawaban mentah Google berisi daftar laporan sesuai urutan permintaan
-    const rawData = await reportRes.json();
-    const reports = rawData.reports || [];
-
-    // Langkah 5a: olah laporan 1 -> data tren per hari + total keseluruhan
-    const dailyReport = reports[0] || {};
-    const dailyRows = dailyReport.rows || [];
 
     let totalUsers = 0;
     let totalViews = 0;
-    let totalSessions = 0;
-    let totalNewUsers = 0;
+    const dailyData: { date: string; rawDate: string; users: number; views: number }[] = [];
+    for (let t = new Date(`${since}T00:00:00.000Z`).getTime(); t <= new Date(`${until}T00:00:00.000Z`).getTime(); t += 24 * 60 * 60 * 1000) {
+      const key = ymd(new Date(t)); // YYYY-MM-DD
+      const point = dailyByDate.get(key) ?? { users: 0, views: 0 };
+      totalUsers += point.users;
+      totalViews += point.views;
+      dailyData.push({
+        date: `${key.slice(8, 10)}/${key.slice(5, 7)}`, // label grafik "DD/MM"
+        rawDate: key.replace(/-/g, ''), // YYYYMMDD
+        users: point.users,
+        views: point.views,
+      });
+    }
 
-    const dailyData = dailyRows.map((row: { dimensionValues: { value: string }[]; metricValues: { value: string }[] }) => {
-      const dateStr = row.dimensionValues[0]?.value || '';
-      const users = parseInt(row.metricValues[0]?.value || '0', 10);
-      const views = parseInt(row.metricValues[1]?.value || '0', 10);
-      const sessions = parseInt(row.metricValues[2]?.value || '0', 10);
-      const newUsers = parseInt(row.metricValues[3]?.value || '0', 10);
+    // Langkah 4b: halaman terpopuler (baris "Others" dibuang karena bukan satu halaman)
+    const topPages = pageRows
+      .filter((row) => dimensionValue(row, 'requestPath') !== 'Others')
+      .sort((a, b) => num(b.pageviews) - num(a.pageviews))
+      .slice(0, 7)
+      .map((row) => ({
+        path: dimensionValue(row, 'requestPath') || '/',
+        views: num(row.pageviews),
+        users: num(row.visitors),
+      }));
 
-      totalUsers += users;
-      totalViews += views;
-      totalSessions += sessions;
-      totalNewUsers += newUsers;
-
-      // Ubah tanggal Google (YYYYMMDD) menjadi "DD/MM" untuk label grafik
-      const formattedDate = dateStr.length === 8
-        ? `${dateStr.slice(6, 8)}/${dateStr.slice(4, 6)}`
-        : dateStr;
-
+    // Langkah 4c: sumber lalu lintas berdasarkan situs perujuk (referrer); kosong = langsung
+    const trafficSources = [...sourceRows].sort(byVisitorsDesc).map((row) => {
+      const host = dimensionValue(row, 'referrerHostname');
       return {
-        date: formattedDate,
-        rawDate: dateStr,
-        users,
-        views,
-        newUsers,
+        channel: host === 'Others' ? 'Lainnya' : host || 'Langsung',
+        visitors: num(row.visitors),
       };
     });
 
-    // Langkah 5b: olah laporan 2 -> halaman terpopuler
-    const topPagesReport = reports[1] || {};
-    const topPagesRows = topPagesReport.rows || [];
-    const topPages = topPagesRows.map((row: { dimensionValues: { value: string }[]; metricValues: { value: string }[] }) => ({
-      path: row.dimensionValues[0]?.value || '/',
-      views: parseInt(row.metricValues[0]?.value || '0', 10),
-      users: parseInt(row.metricValues[1]?.value || '0', 10),
-    }));
-
-    // Langkah 5c: olah laporan 3 -> sumber lalu lintas
-    const trafficReport = reports[2] || {};
-    const trafficRows = trafficReport.rows || [];
-    const trafficSources = trafficRows.map((row: { dimensionValues: { value: string }[]; metricValues: { value: string }[] }) => ({
-      channel: row.dimensionValues[0]?.value || 'Direct',
-      sessions: parseInt(row.metricValues[0]?.value || '0', 10),
-    }));
-
-    // Langkah 5d: olah laporan 4 -> jenis perangkat
-    const deviceReport = reports[3] || {};
-    const deviceRows = deviceReport.rows || [];
-    const devices = deviceRows.map((row: { dimensionValues: { value: string }[]; metricValues: { value: string }[] }) => ({
-      category: row.dimensionValues[0]?.value || 'other',
-      users: parseInt(row.metricValues[0]?.value || '0', 10),
+    // Langkah 4d: jenis perangkat
+    const devices = [...deviceRows].sort(byVisitorsDesc).map((row) => ({
+      category: dimensionValue(row, 'deviceType').toLowerCase() || 'other',
+      users: num(row.visitors),
     }));
 
     return res.status(200).json({
       success: true,
       configured: true,
       periodDays: days,
-      totals: {
-        users: totalUsers,
-        views: totalViews,
-        sessions: totalSessions,
-        newUsers: totalNewUsers,
-      },
+      totals: { users: totalUsers, views: totalViews },
       dailyData,
       topPages,
       trafficSources,
       devices,
     });
   } catch (error) {
-    // Kesalahan tak terduga: dicatat di log server; browser hanya menerima pesan umum (detail teknis tidak dibocorkan)
+    // Kesalahan dicatat di log server; browser hanya menerima pesan yang aman (tanpa token / detail teknis)
     console.error('Analytics API exception:', error);
     return res.status(200).json({
       success: false,
       configured: true,
-      error: 'Analytics temporarily unavailable',
+      error: describeVercelError(error),
     });
   }
 }
