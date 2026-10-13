@@ -9,15 +9,13 @@
 Website **KUA Kecamatan Ngoro** adalah portal layanan publik berbasis web yang dibangun menggunakan stack modern:
 - **Frontend**: React 19, Vite, TypeScript, Tailwind CSS v4, React Router v7, Lucide Icons.
 - **Backend CMS & Auth**: Supabase (Database PostgreSQL, Authentication, RLS Policies, Storage).
-- **Backend Analytics**: Vercel Serverless Function & Google Analytics Data API v1beta (Google OAuth 2.0).
 - **Hosting / Infrastructure**: Vercel.
 
 ### 1.2 Tujuan Pengujian
 1. Memastikan seluruh fungsi pada **Halaman Publik** berjalan normal, bebas error, dan informatif bagi masyarakat.
 2. Memastikan **Panel Admin (`/admin`)** aman, hanya dapat diakses oleh admin terotentikasi, dan fitur CRUD (Create, Read, Update, Delete) berjalan 100% pada database Supabase.
-3. Memastikan **Dashboard Analytics** GA4 dapat menampilkan data statistik secara akurat tanpa membocorkan kredensial server.
-4. Memastikan **Responsivitas UI** pada perangkat Mobile, Tablet, dan Desktop.
-5. Memastikan **Fail-safe & Fallback mechanism** bekerja jika terjadi gangguan koneksi Supabase/API.
+3. Memastikan **Responsivitas UI** pada perangkat Mobile, Tablet, dan Desktop.
+4. Memastikan **Fail-safe & Fallback mechanism** bekerja jika terjadi gangguan koneksi Supabase/API.
 
 ---
 
@@ -35,7 +33,7 @@ Website **KUA Kecamatan Ngoro** adalah portal layanan publik berbasis web yang d
 ├─────────────────────┤                                           ├─────────────────────┤
 │ 1. Home / Beranda   │                                           │ 1. Login Auth       │
 │ 2. Profil KUA       │                                           │ 2. Admin Guard      │
-│ 3. Layanan & Nikah  │                                           │ 3. Dashboard GA4    │
+│ 3. Layanan & Nikah  │                                           │ 3. Dashboard Ringkas│
 │ 4. Informasi/Berita │                                           │ 4. CRUD 6 Konten    │
 │ 5. Galeri & Kegiatan│                                           │ 5. Toggle Status    │
 │ 6. Kontak & Lokasi  │                                           │ 6. Maintenance Mode │
@@ -88,18 +86,6 @@ Website **KUA Kecamatan Ngoro** adalah portal layanan publik berbasis web yang d
 
 ---
 
-### D. Pengujian Dashboard Analytics GA4 (Google OAuth 2.0)
-
-| Test ID | Fitur / Komponen | Skenario Pengujian | Langkah-Langkah Pengujian | Ekspektasi Hasil | Status |
-|---|---|---|---|---|---|
-| **ANA-01** | Vercel Function API | Verifikasi endpoint `/api/analytics` | Panggil GET `/api/analytics` tanpa Authorization header. | API merespons `401 Unauthorized` (Akses ditolak untuk menjaga privasi data). | `[ ] Pass` |
-| **ANA-02** | Data Analytics UI | Menampilkan data statistik GA4 | Login sebagai admin, buka halaman `/admin`. | Komponen *Analytics Website* memuat 4 Stat Cards, Grafik SVG 7/30/90 Hari, Top Pages, Sumber Traffic, & Perangkat. | `[ ] Pass` |
-| **ANA-03** | Filter Periode | Mengubah periode 7 / 30 / 90 Hari | Klik tombol pilihan "7 Hari", "30 Hari", atau "90 Hari". | Data grafik dan angka statistik diperbarui sesuai periode yang dipilih. | `[ ] Pass` |
-| **ANA-04** | Tombol Refresh | Memperbarui data analytics | Klik tombol `↻ Refresh`. | Ikon berputar (loading) dan data terbaru dari GA Data API diambil ulang tanpa reload halaman. | `[ ] Pass` |
-| **ANA-05** | Unconfigured State | Penanganan jika env GA4 belum diisi | Hapus/kosongkan sementara env GA4 di Vercel. | Dashboard menampilkan pesan edukatif bahwa GA4 belum dikonfigurasi, tanpa merusak halaman admin lainnya. | `[ ] Pass` |
-
----
-
 ## 🐞 4. PANDUAN PELAPORAN BUG (BUG REPORTING GUIDE)
 
 Jika Tester menemukan kegagalan (*Fail*) saat melakukan pengujian, buat laporan bug dengan format standar berikut:
@@ -137,5 +123,5 @@ Website dinyatakan **SIAP RILIS (READY FOR PRODUCTION)** apabila memenuhi kriter
 1. **Critical & Major Bugs = 0** (Tidak ada error yang membuat sistem crash atau kebocoran keamanan).
 2. **Pass Rate Test Cases ≥ 95%**.
 3. **Build Status**: Perintah `npm run build` berjalan sukses tanpa error TypeScript.
-4. **Linter Status**: Perintah `npx oxlint src api` terbebas dari kesalahan kritis.
+4. **Linter Status**: Perintah `npx oxlint src` terbebas dari kesalahan kritis.
 5. **SEO & Accessibility**: Tidak ada broken links pada halaman publik.
