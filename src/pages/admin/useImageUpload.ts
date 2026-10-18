@@ -10,14 +10,34 @@
 import { useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 
+// Ekstensi yang dipakai untuk tiap jenis gambar yang diizinkan bucket
+const EXT_BY_MIME: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
+
+/**
+ * Menentukan ekstensi nama file yang aman. Urutan: (1) dari jenis file (MIME) yang diizinkan bucket -- paling bisa
+ * dipercaya, (2) dari nama file asli (hanya huruf/angka), (3) "jpg". Nama tanpa titik (mis. "foto") tidak lagi
+ * menjadi ekstensi.
+ */
+function extensionFor(file: File): string {
+  const byMime = EXT_BY_MIME[file.type];
+  if (byMime) return byMime;
+  const dot = file.name.lastIndexOf('.');
+  const byName = dot > -1 ? file.name.slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+  return byName || 'jpg';
+}
+
 /**
  * Mengunggah satu file ke bucket "media" di Supabase Storage.
  * Mengembalikan alamat publik file tersebut, atau melempar error jika gagal
  * (mis. file lebih dari 2 MB, bukan gambar, atau bukan admin).
  */
 export async function uploadMedia(file: File): Promise<string> {
-  // Ambil ekstensi file asli (jpg, png, webp, dst.); jika tidak ada, anggap jpg
-  const ext  = file.name.split('.').pop() ?? 'jpg';
+  const ext = extensionFor(file);
   // Nama file unik (waktu + angka acak) agar tidak pernah menimpa file lain
   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
@@ -43,11 +63,18 @@ const MEDIA_MARKER = '/storage/v1/object/public/media/';
 export function mediaPathFromUrl(url?: string | null): string | null {
   if (!url) return null;
   const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  if (!base || !url.startsWith(base)) return null;
-  const i = url.indexOf(MEDIA_MARKER);
-  if (i === -1) return null;
-  const path = decodeURIComponent(url.slice(i + MEDIA_MARKER.length).split('?')[0]);
-  return path || null;
+  if (!base) return null;
+  try {
+    const u = new URL(url);
+    // Asal (https://nama-project.supabase.co) harus PERSIS sama; "abc.supabase.co.situs-lain.com" ditolak
+    if (u.origin !== new URL(base).origin) return null;
+    if (!u.pathname.startsWith(MEDIA_MARKER)) return null;
+    // pathname sudah tanpa "?query"; decode %20 dst. Alamat rusak (mis. "%" tidak valid) -> dianggap bukan milik kita
+    const path = decodeURIComponent(u.pathname.slice(MEDIA_MARKER.length));
+    return path || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -81,7 +108,7 @@ export async function deleteMediaIfUnused(url?: string | null): Promise<void> {
 
 /**
  * Hook untuk mengelola status unggah gambar di form.
- * Pemakaian: const { uploading, upload } = useImageUpload();
+ * Pemakaian: const { uploading, upload, discardUnsaved } = useImageUpload();
  *  - uploading : true selama file sedang diunggah (untuk menonaktifkan tombol / menampilkan "Mengunggah...")
  *  - upload(file) : mengunggah file dan mengembalikan alamat publiknya; error diteruskan ke pemanggil
  *  - discardUnsaved(keepUrl) : menghapus file yang diunggah di form ini tetapi tidak jadi dipakai.
