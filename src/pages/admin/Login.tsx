@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Landmark, Loader2 } from 'lucide-react';
+import kualogo from '../../assets/kualogo.png';
 
 /**
  * Halaman login. Di layar lebar ada panel hijau di kiri (branding) dan form di kanan; di HP hanya form.
@@ -79,10 +80,8 @@ export default function AdminLogin() {
         {/* Panel branding hijau (hanya layar lebar) */}
         <div className="hidden lg:flex flex-col justify-between bg-[#0f5132] text-white p-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
-              <Landmark className="w-5 h-5" />
-            </div>
-            <span className="font-bold">KUA Kecamatan Ngoro</span>
+            <img src={kualogo} alt="Logo KUA" className="w-10 h-10" />
+            <span className="font-bold">KUA kecamatan Ngoro</span>
           </div>
           <div>
             <p className="text-2xl font-extrabold leading-snug max-w-sm">

@@ -1,7 +1,7 @@
 // HALAMAN KONTAK (alamat: /kontak): alamat, telepon, WhatsApp, email, jam pelayanan, formulir pesan, dan peta lokasi.
 // Data kontak diambil dari profil di Supabase; jika kosong, memakai data lokal.
 import React, { useEffect, useState } from "react";
-import { MapPin, Phone, Mail, Clock, MessageSquare, Send, CheckCircle2 } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, MessageSquare, Send } from "lucide-react";
 import { profileData } from "../data/profile";
 import { Button } from "../components/ui/Button";
 import { usePageMeta } from "../hooks/usePageMeta";
@@ -49,25 +49,24 @@ export default function Contact() {
     message: "",
   });
 
-  // True setelah tombol "Kirim Pesan" ditekan -> formulir diganti layar konfirmasi
-  const [submitted, setSubmitted] = useState(false);
+  // True setelah formulir lolos validasi dan pesan siap dibuka di WhatsApp.
+  const [readyToSend, setReadyToSend] = useState(false);
 
   /**
-   * CATATAN PENTING: formulir ini TIDAK menyimpan atau mengirim pesan ke server mana pun.
-   * "Kirim Pesan" hanya memvalidasi nama & pesan terisi lalu menampilkan layar konfirmasi.
-   * Pesan baru benar-benar terkirim ketika pengunjung menekan "Lanjutkan ke WhatsApp" (handleWhatsAppSend).
+   * Formulir ini tidak mengirim pesan ke server. Tombol ini hanya memvalidasi isian
+   * lalu menampilkan langkah untuk membuka WhatsApp dan mengirim pesan di sana.
    */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.message) return;
-    setSubmitted(true);
+    setReadyToSend(true);
   };
 
   /**
-   * Membuka WhatsApp (tab baru) ke nomor KUA dengan isi pesan yang sudah terisi otomatis dari formulir
-   * (nama, telepon, topik, pesan). encodeURIComponent memastikan karakter khusus aman di dalam alamat URL.
+   * Membuka WhatsApp (tab baru) dengan draf pesan yang sudah diisi dari formulir.
+   * Pengunjung tetap harus menekan tombol Kirim di WhatsApp agar pesan benar-benar terkirim.
    */
-  const handleWhatsAppSend = () => {
+  const openWhatsAppDraft = () => {
     const text = `Halo KUA Ngoro,%0ANama: ${encodeURIComponent(formData.name)}%0ATelepon: ${encodeURIComponent(formData.phone)}%0ATopik: ${encodeURIComponent(formData.topic)}%0APesan: ${encodeURIComponent(formData.message)}`;
     window.open(`https://wa.me/${whatsappNum}?text=${text}`, "_blank");
   };
@@ -179,19 +178,19 @@ export default function Contact() {
               Kirimkan pertanyaan Anda mengenai pelayanan KUA. Tim kami akan merespons pertanyaan Anda.
             </p>
 
-            {/* Jika sudah "terkirim": tampilkan konfirmasi + tombol lanjut ke WhatsApp; jika belum: tampilkan formulir */}
-            {submitted ? (
-              <div className="p-8 text-center bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
+            {/* Setelah isian lolos validasi, tampilkan langkah untuk mengirim lewat WhatsApp. */}
+            {readyToSend ? (
+              <div role="status" className="p-8 text-center bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
                 <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-6 h-6" />
+                  <Send className="w-6 h-6" />
                 </div>
-                <h4 className="text-lg font-bold text-stone-900">Pesan Berhasil Terkirim</h4>
+                <h4 className="text-lg font-bold text-stone-900">Pesan Siap Dikirim</h4>
                 <p className="text-xs sm:text-sm text-stone-600">
-                  Terima kasih <strong>{formData.name}</strong>. Anda juga dapat langsung menghubungi via WhatsApp untuk respon cepat.
+                  Pesan belum terkirim. Lanjutkan ke WhatsApp, lalu tekan Kirim di sana untuk menyampaikannya.
                 </p>
                 <div className="pt-3">
-                  <Button onClick={handleWhatsAppSend} rightIcon={<MessageSquare className="w-4 h-4" />}>
-                    Lanjutkan ke WhatsApp
+                  <Button onClick={openWhatsAppDraft} rightIcon={<MessageSquare className="w-4 h-4" />}>
+                    Buka WhatsApp untuk Mengirim
                   </Button>
                 </div>
               </div>
@@ -259,17 +258,17 @@ export default function Contact() {
 
                 <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
                   <Button type="submit" rightIcon={<Send className="w-4 h-4" />} className="w-full sm:w-auto">
-                    Kirim Pesan
+                    Siapkan Pesan
                   </Button>
 
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={handleWhatsAppSend}
+                    onClick={openWhatsAppDraft}
                     rightIcon={<MessageSquare className="w-4 h-4" />}
                     className="w-full sm:w-auto"
                   >
-                    Kirim via WhatsApp
+                    Buka WhatsApp
                   </Button>
                 </div>
               </form>

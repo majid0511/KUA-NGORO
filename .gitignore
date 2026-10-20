@@ -36,9 +36,5 @@ immpecabble.env
 .env.*
 .env.example
 testing.md
-playwright.config.ts
-tests/e2e/analytics.spec.ts
-tests/e2e/backend.spec.ts
-tests/e2e/website.spec.ts
 test-results
 playwright-report

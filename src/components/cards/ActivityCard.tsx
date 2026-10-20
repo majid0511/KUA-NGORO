@@ -36,7 +36,16 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
       whileHover={{ y: -3 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
       onClick={onPreview}
-      className="group relative bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 flex flex-col h-full"
+      onKeyDown={(event) => {
+        if (!onPreview || (event.key !== "Enter" && event.key !== " ")) return;
+        event.preventDefault();
+        onPreview();
+      }}
+      role={onPreview ? "button" : undefined}
+      tabIndex={onPreview ? 0 : undefined}
+      aria-label={onPreview ? `Buka foto kegiatan: ${title}` : undefined}
+      aria-haspopup={onPreview ? "dialog" : undefined}
+      className="group relative bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md cursor-pointer transition-all duration-200 flex flex-col h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f5132] focus-visible:ring-offset-2"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-stone-100">
         <img
