@@ -80,7 +80,9 @@ export default function AdminLogin() {
         {/* Panel branding hijau (hanya layar lebar) */}
         <div className="hidden lg:flex flex-col justify-between bg-[#0f5132] text-white p-10">
           <div className="flex items-center gap-3">
-            <img src={kualogo} alt="Logo KUA" className="w-10 h-10" />
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+              <img src={kualogo} alt="Logo KUA" className="w-6 h-6" />
+            </div>
             <span className="font-bold">KUA kecamatan Ngoro</span>
           </div>
           <div>
@@ -99,7 +101,7 @@ export default function AdminLogin() {
           <div className="w-full max-w-sm">
             <div className="lg:hidden flex flex-col items-center mb-8">
               <div className="w-12 h-12 rounded-xl bg-[#0f5132] flex items-center justify-center mb-3">
-                <Landmark className="w-6 h-6 text-white" />
+                <img src={kualogo} alt="Logo KUA" className="w-8 h-8" />
               </div>
               <h1 className="text-lg font-bold text-slate-900">KUA Kecamatan Ngoro</h1>
             </div>
