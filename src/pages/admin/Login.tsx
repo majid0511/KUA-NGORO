@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { Landmark, Loader2 } from 'lucide-react';
+import { Eye, EyeOff,Landmark, Loader2 } from 'lucide-react';
 import kualogo from '../../assets/kualogo.png';
 
 /**
@@ -16,6 +16,7 @@ export default function AdminLogin() {
   // Isi kolom kata sandi
   const [password, setPassword] = useState('');
   // True saat proses login berjalan (tombol dinonaktifkan)
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading]   = useState(false);
   // Pesan kesalahan yang ditampilkan di bawah form (null = tidak ada)
   const [error, setError]       = useState<string | null>(null);
@@ -130,16 +131,25 @@ export default function AdminLogin() {
                 <label htmlFor="password" className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
                   Kata sandi
                 </label>
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5132]/30 focus:border-[#0f5132] transition"
-                />
+                <div className="relative">
+                  <input
+                    id="password" 
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5132]/30 focus:border-[#0f5132] transition"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {error && (
