@@ -133,7 +133,16 @@ export default function Marriage() {
               return (
                 <div
                   key={doc.code}
+                  role="checkbox"
+                  aria-checked={isChecked}
+                  tabIndex={0}
                   onClick={() => toggleDoc(doc.code)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      toggleDoc(doc.code);
+                    }
+                  }}
                   className={`p-5 rounded-2xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
                     isChecked
                       ? "bg-emerald-50 border-emerald-500 shadow-sm"

@@ -197,11 +197,13 @@ export default function Contact() {
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                  <label htmlFor="kontak-nama" className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
                     Nama Lengkap *
                   </label>
                   <input
                     type="text"
+                    id="kontak-nama"
+                    autoComplete="name"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -212,11 +214,13 @@ export default function Contact() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                    <label htmlFor="kontak-hp" className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
                       Nomor HP / WhatsApp
                     </label>
                     <input
                       type="tel"
+                      id="kontak-hp"
+                      autoComplete="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                       placeholder="08123456789"
@@ -225,10 +229,11 @@ export default function Contact() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                    <label htmlFor="kontak-topik" className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
                       Topik Layanan
                     </label>
                     <select
+                      id="kontak-topik"
                       value={formData.topic}
                       onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
                       className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5132]"
@@ -243,10 +248,11 @@ export default function Contact() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                  <label htmlFor="kontak-pesan" className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
                     Pesan Pertanyaan *
                   </label>
                   <textarea
+                    id="kontak-pesan"
                     rows={4}
                     required
                     value={formData.message}

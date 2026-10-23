@@ -36,7 +36,7 @@ export const ContactCtaSection: React.FC = () => {
             href={`https://wa.me/${profileData.whatsapp}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-emerald-600 text-white hover:bg-emerald-500 border border-emerald-400/30 px-7 py-3.5 rounded-xl font-bold text-base transition shadow-md"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-emerald-700 text-white hover:bg-emerald-800 border border-emerald-400/30 px-7 py-3.5 rounded-xl font-bold text-base transition shadow-md"
           >
             <MessageSquare className="w-5 h-5 text-white" />
             <span>Konsultasi WhatsApp</span>
