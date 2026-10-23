@@ -44,7 +44,7 @@ export default function Profile() {
         ]);
         if (profilRes.data) setProfil(profilRes.data);
         if (stafRes.data) setStafList(stafRes.data);
-      } catch (_err) {
+      } catch {
         setError("Profil belum dapat dimuat. Silakan coba kembali.");
       } finally {
         setLoading(false);

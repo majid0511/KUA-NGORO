@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 
-Sitemap: https://kua-ngoro-ngoro.vercel.app/sitemap.xml
+Sitemap: https://kuangoro.vercel.app/sitemap.xml

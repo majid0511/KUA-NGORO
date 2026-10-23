@@ -29,7 +29,7 @@ export function MaintenanceScreen() {
             href={`https://wa.me/${profileData.whatsapp}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition duration-300 hover:bg-emerald-600"
+            className="inline-block rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition duration-300 hover:bg-emerald-800"
           >
             WhatsApp KUA Ngoro
           </a>

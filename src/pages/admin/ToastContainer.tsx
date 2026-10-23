@@ -20,7 +20,7 @@ export function ToastContainer() {
         <div
           key={t.id}
           className={`toast-enter pointer-events-auto flex items-start gap-2.5 rounded-lg shadow-lg px-4 py-3 text-sm font-medium text-white ${
-            t.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'
+            t.type === 'success' ? 'bg-emerald-700' : 'bg-red-600'
           }`}
         >
           {t.type === 'success' ? (

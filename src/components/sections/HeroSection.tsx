@@ -186,7 +186,7 @@ export const HeroSection: React.FC = () => {
                 <div className="absolute inset-0 bg-gradient-to-t from-stone-900/85 via-stone-900/30 to-transparent" />
 
                 <div className="absolute bottom-[4.5rem] left-5 right-5 text-white">
-                  <span className="inline-block px-2.5 py-1 rounded bg-amber-600 text-white text-xs font-bold uppercase tracking-wider mb-1.5">
+                  <span className="inline-block px-2.5 py-1 rounded bg-amber-700 text-white text-xs font-bold uppercase tracking-wider mb-1.5">
                     Pelayanan Keagamaan
                   </span>
                   <h3 className="text-lg font-bold leading-snug drop-shadow-sm">
