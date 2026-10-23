@@ -26,7 +26,7 @@ const fallbackProfil: Profil = {
  * Jika baris belum ada, atau ada kolom yang kosong, bagian yang kosong diisi dari data cadangan lokal
  * sehingga halaman tidak pernah tampil bolong.
  */
-export async function getProfil(): Promise<CmsResponse<Profil>> {
+async function fetchProfil(): Promise<CmsResponse<Profil>> {
   return queryWithFallback(async () => {
     const { data, error } = await supabase!
       .from('profil')
@@ -52,7 +52,18 @@ export async function getProfil(): Promise<CmsResponse<Profil>> {
     } as Profil;
   }, fallbackProfil);
 }
+// Panggilan yang terjadi bersamaan berbagi satu request.
+// Setelah selesai, panggilan berikutnya mengambil data baru lagi.
+let profilRequest: Promise<CmsResponse<Profil>> | null = null;
 
+export function getProfil(): Promise<CmsResponse<Profil>> {
+  if (!profilRequest) {
+    profilRequest = fetchProfil().finally(() => {
+      profilRequest = null;
+    });
+  }
+  return profilRequest;
+}
 /**
  * Cek cepat status maintenance, dipakai App.tsx untuk menggerbangi
  * seluruh situs publik. Gagal terhubung ke Supabase dianggap TIDAK

@@ -180,6 +180,7 @@ export const HeroSection: React.FC = () => {
               <div className="relative rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-stone-100 aspect-[4/3] sm:aspect-[14/10]">
                 <img
                   src= {fotoDepan}
+                  fetchPriority="high"
                   alt="Pelayanan Kantor Urusan Agama Ngoro"
                   className="w-full h-full object-cover"
                 />
