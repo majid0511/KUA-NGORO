@@ -73,9 +73,9 @@ export const profileData: ProfileData = {
   
   // Jam pelayanan: dipakai untuk teks di situs dan perhitungan lencana "Pelayanan Buka/Tutup".
   officeHours: {
-    workDays: "Senin - Kamis: 07.30 - 16.00 WIB",
-    fridayHours: "Jumat: 07.30 - 16.30 WIB",
-    weekend: "Sabtu - Minggu & Hari Libur Nasional: Tutup",
+    workDays: "07.30 - 16.00 WIB",
+    fridayHours: "07.30 - 16.30 WIB",
+    weekend: "Tutup",
   },
 
   // Tautan Google Maps lokasi kantor
@@ -223,4 +223,7 @@ export const profileData: ProfileData = {
       description: "Memberikan bimbingan dan penyuluhan agama Islam di masyarakat, termasuk pembinaan majelis taklim."
     }
   ],
+   
 };
+
+
