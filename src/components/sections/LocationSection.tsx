@@ -116,9 +116,19 @@ export const LocationSection: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-xs font-bold text-stone-400 uppercase tracking-wider block">Jam Operasional Pelayanan</span>
-                    <p className="font-semibold text-stone-800 mt-0.5">{officeHours.workDays}</p>
-                    <p className="font-semibold text-stone-800">{officeHours.fridayHours}</p>
-                    <p className="text-xs text-stone-500 mt-0.5">{officeHours.weekend}</p>
+                    <p className="font-semibold text-stone-800 mt-0.5">
+                      <span>Senin - kamis :</span>
+                      <span>{officeHours.workDays}
+                      </span>
+                    </p>
+                    <p className="font-semibold text-stone-800">
+                      <span>Jumat :</span>
+                      <span>{officeHours.fridayHours}</span>
+                    </p>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      <span>Sabtu - Minggu :</span>
+                      <span>{officeHours.weekend}</span>
+                    </p>
                   </div>
                 </div>
               </div>

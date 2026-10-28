@@ -162,9 +162,18 @@ export default function Contact() {
                   <Clock className="w-4 h-4 text-emerald-700" />
                   Jam Pelayanan Kantor
                 </span>
-                <p className="text-xs text-stone-700 font-semibold">{officeHours.workDays}</p>
-                <p className="text-xs text-stone-700 font-semibold">{officeHours.fridayHours}</p>
-                <p className="text-xs text-stone-400">{officeHours.weekend}</p>
+                <p className="flex justify-between gap-4 text-xs text-stone-700 font-semibold">
+                  <span>Senin - kamis</span>
+                  <span>{officeHours.workDays}</span>
+                  </p>
+                <p className="flex justify-between gap-4 text-xs text-stone-700 font-semibold">
+                  <span>Jumat</span> 
+                  <span>{officeHours.fridayHours}</span>
+                </p>
+                <p className="flex justify-between gap-4 text-xs text-stone-400">
+                  <span>Sabtu - Minggu</span>
+                  <span>{officeHours.weekend}</span>
+                </p>
               </div>
             </div>
           </div>
