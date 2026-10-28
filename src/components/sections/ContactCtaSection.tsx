@@ -9,7 +9,7 @@ import { useKontak } from "../../hooks/useKontak";
  * Komponen ajakan menghubungi KUA. Nomor WhatsApp diambil dari data profil lokal.
  */
 export const ContactCtaSection: React.FC = () => {
-  const { phone, waNumber } = useKontak();  // Ambil nomor telepon & WhatsApp dari hook useKontak
+  const { waNumber } = useKontak();  // Ambil nomor telepon & WhatsApp dari hook useKontak
   return (
     <section className="py-16 sm:py-20 bg-gradient-to-r from-[#042918] via-[#0f5132] to-[#042918] text-white relative overflow-hidden">
       {/* Hiasan: kilau cahaya halus di pojok kanan atas */}

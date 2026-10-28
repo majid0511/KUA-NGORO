@@ -7,7 +7,6 @@ import { NewsCard } from "../components/cards/NewsCard";
 import { getBerita, getPengumuman } from "../lib/cms";
 import type { Berita, Pengumuman } from "../lib/cms/types";
 import { LoadingState, EmptyState, ErrorState } from "../components/ui/CmsState";
-import { profileData } from "../data/profile";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { Modal } from "../components/ui/Modal";
