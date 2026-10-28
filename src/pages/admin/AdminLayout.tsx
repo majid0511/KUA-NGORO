@@ -3,12 +3,10 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import {
-  LayoutDashboard, Newspaper, Bell, Landmark,
-  User, Users, Image, LogOut, Menu, X, ExternalLink,
-} from 'lucide-react';
+import { LayoutDashboard, Newspaper, Bell, Landmark, User, Users, Image, LogOut, Menu, X, ExternalLink, } from 'lucide-react';
 import { ToastContainer } from './ToastContainer';
 import kuaLogo from '../../assets/kualogo.png';
+import {AdminInternshipNote} from "../../components/layout/InternshipCredit";
 
 // Daftar menu sidebar: alamat (to), ikon, dan label. Untuk menambah halaman admin baru, tambahkan di sini dan di AdminApp.tsx.
 const NAV = [
@@ -95,6 +93,7 @@ export default function AdminLayout() {
           <LogOut size={16} />
           Keluar
         </button>
+        <AdminInternshipNote className="px-3 py-2" />
       </div>
     </aside>
   );

@@ -31,13 +31,33 @@ function extensionFor(file: File): string {
   return byName || 'jpg';
 }
 
+// Memperkecil foto sebelum diunggah. Kalau gagal atau hasilnya tidak lebih kecil, pakai file asli.
+async function shrinkImage(file: File, maxSide = 1600): Promise<File> {
+  if (!file.type.startsWith('image/') || file.type === 'image/gif') return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/webp', 0.82));
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, '') + '.webp', { type: 'image/webp' });
+  } catch {
+    return file;
+  }
+}
+
 /**
  * Mengunggah satu file ke bucket "media" di Supabase Storage.
  * Mengembalikan alamat publik file tersebut, atau melempar error jika gagal
  * (mis. file lebih dari 2 MB, bukan gambar, atau bukan admin).
  */
-export async function uploadMedia(file: File): Promise<string> {
+export async function uploadMedia(originalFile: File): Promise<string> {
+  const file = await shrinkImage(originalFile);
   const ext = extensionFor(file);
+
   // Nama file unik (waktu + angka acak) agar tidak pernah menimpa file lain
   const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 

@@ -89,3 +89,16 @@ export const InternshipFooterNote: React.FC = () => {
 
   return <span className="text-xs font-semibold text-emerald-400/80">{INTERNSHIP.footerNote}</span>;
 };
+/**
+ * Tulisan kecil versi panel admin (latar putih): dipakai di sidebar admin dan halaman login admin.
+ * Teksnya sama dengan footerNote; ikut hilang jika SHOW_INTERNSHIP_CREDIT = false.
+ */
+export const AdminInternshipNote: React.FC<{ className?: string }> = ({ className = "" }) => {
+  if (!SHOW_INTERNSHIP_CREDIT) return null;
+
+  return (
+    <p className={`text-[11px] font-medium text-slate-500 ${className}`}>
+      {INTERNSHIP.footerNote}
+    </p>
+  );
+};

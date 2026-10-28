@@ -54,15 +54,16 @@ async function fetchProfil(): Promise<CmsResponse<Profil>> {
 }
 // Panggilan yang terjadi bersamaan berbagi satu request.
 // Setelah selesai, panggilan berikutnya mengambil data baru lagi.
-let profilRequest: Promise<CmsResponse<Profil>> | null = null;
+
+// Tempat menyimpan jawaban supaya Supabase cukup ditanya sekali
+let profilCache: Promise<CmsResponse<Profil>> | null = null;
 
 export function getProfil(): Promise<CmsResponse<Profil>> {
-  if (!profilRequest) {
-    profilRequest = fetchProfil().finally(() => {
-      profilRequest = null;
-    });
-  }
-  return profilRequest;
+  profilCache ??= fetchProfil().then((res) => {
+    if (res.error) profilCache = null; // kalau gagal, jangan disimpan, biar bisa dicoba lagi
+    return res;
+  });
+  return profilCache;
 }
 /**
  * Cek cepat status maintenance, dipakai App.tsx untuk menggerbangi
@@ -72,14 +73,6 @@ export function getProfil(): Promise<CmsResponse<Profil>> {
  */
 export async function isMaintenanceMode(): Promise<boolean> {
   if (!isCmsConfigured()) return false;
-  try {
-    const { data, error } = await supabase!
-      .from('profil')
-      .select('maintenance_mode')
-      .maybeSingle();
-    if (error || !data) return false;
-    return Boolean((data as { maintenance_mode: boolean }).maintenance_mode);
-  } catch {
-    return false;
-  }
+  const res = await getProfil();
+  return Boolean(res.data?.maintenance_mode);
 }

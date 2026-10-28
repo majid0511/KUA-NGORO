@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import kualogo from '../../assets/kualogo.png';
+import { AdminInternshipNote } from '../../components/layout/InternshipCredit';
 
 /**
  * Halaman login. Di layar lebar ada panel hijau di kiri (branding) dan form di kanan; di HP hanya form.
@@ -171,6 +172,7 @@ export default function AdminLogin() {
             <p className="text-center text-xs text-slate-400 mt-6">
               Hanya admin KUA yang dapat mengakses halaman ini.
             </p>
+            <AdminInternshipNote className="text-center mt-2" />
           </div>
         </div>
       </div>
