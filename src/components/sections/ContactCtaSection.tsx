@@ -3,12 +3,13 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Phone, MessageSquare } from "lucide-react";
-import { profileData } from "../../data/profile";
+import { useKontak } from "../../hooks/useKontak";  
 
 /**
  * Komponen ajakan menghubungi KUA. Nomor WhatsApp diambil dari data profil lokal.
  */
 export const ContactCtaSection: React.FC = () => {
+  const { phone, waNumber } = useKontak();  // Ambil nomor telepon & WhatsApp dari hook useKontak
   return (
     <section className="py-16 sm:py-20 bg-gradient-to-r from-[#042918] via-[#0f5132] to-[#042918] text-white relative overflow-hidden">
       {/* Hiasan: kilau cahaya halus di pojok kanan atas */}
@@ -33,7 +34,7 @@ export const ContactCtaSection: React.FC = () => {
           </Link>
 
           <a
-            href={`https://wa.me/${profileData.whatsapp}`}
+            href={`https://wa.me/${waNumber}`}  // Gunakan nomor WhatsApp dari hook useKontak
             target="_blank"
             rel="noopener noreferrer"
             className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-emerald-700 text-white hover:bg-emerald-800 border border-emerald-400/30 px-7 py-3.5 rounded-xl font-bold text-base transition shadow-md"

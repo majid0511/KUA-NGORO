@@ -2,11 +2,12 @@
 // di panel admin (menu Profil KUA). Berisi pesan "Web dalam Maintenance" dan tombol WhatsApp untuk keperluan mendesak.
 import { Wrench } from "lucide-react";
 import { profileData } from "../data/profile";
-
+import { useKontak } from "../hooks/useKontak";
 /**
  * Halaman pesan pemeliharaan situs (tidak memakai navbar/footer).
  */
 export function MaintenanceScreen() {
+  const { phone, waNumber } = useKontak();
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#fbfbf9] px-4">
       <div className="w-full max-w-md text-center space-y-5">
@@ -26,7 +27,7 @@ export function MaintenanceScreen() {
           </p>
 
           <a
-            href={`https://wa.me/${profileData.whatsapp}`}
+            href={`https://wa.me/${waNumber}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition duration-300 hover:bg-emerald-800"
@@ -35,7 +36,7 @@ export function MaintenanceScreen() {
           </a>
 
           <p className="text-xs text-stone-500">
-            0851-3322-5303
+            {phone}
           </p>
         </div>
       </div>

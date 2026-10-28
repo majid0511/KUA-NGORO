@@ -11,6 +11,7 @@ import { profileData } from "../data/profile";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { Modal } from "../components/ui/Modal";
+import { useKontak } from "../hooks/useKontak";
 
 /**
  * Halaman informasi. Alur: muat berita & pengumuman -> saring -> tampilkan kartu -> klik untuk membaca di modal.
@@ -23,6 +24,7 @@ export default function Information() {
     path: "/informasi",
   });
 
+  const { phone, waNumber } = useKontak();
   // Semua berita/artikel yang dimuat (kolom kiri)
   const [beritaList, setBeritaList] = useState<Berita[]>([]);
   // Pengumuman yang masih berlaku (widget kanan)
@@ -215,12 +217,12 @@ export default function Information() {
                 Butuh kejelasan berkas nikah atau konsultasi? Hubungi WhatsApp resmi KUA Ngoro.
               </p>
               <a
-                href={`https://wa.me/${profileData.whatsapp}`}
+                href={`https://wa.me/${waNumber}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full inline-flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold py-3 rounded-xl transition"
               >
-                <span>Chat WhatsApp: {profileData.phone}</span>
+                <span>Chat WhatsApp: {phone}</span>
               </a>
             </div>
           </aside>
