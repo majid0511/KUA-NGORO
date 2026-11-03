@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
  */
 interface NewsCardProps {
   id: string;
+  slug?: string;
   title: string;
   excerpt: string;
   category: "Pengumuman" | "Berita" | "Artikel";
@@ -25,6 +26,7 @@ interface NewsCardProps {
  */
 export const NewsCard: React.FC<NewsCardProps> = ({
   id,
+  slug,
   title,
   excerpt,
   category,
@@ -111,7 +113,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           ) : (
-            <Link to={`/informasi#${id}`} className="inline-flex items-center gap-1.5 hover:underline">
+            <Link to={slug ? `/news/${slug}` : `/informasi#${id}`} className="inline-flex items-center gap-1.5 hover:underline">
               <span>Baca Selengkapnya</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>

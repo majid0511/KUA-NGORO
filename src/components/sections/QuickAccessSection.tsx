@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { profileData } from "../../data/profile";
 import { getProfil } from "../../lib/cms";
 import type { Profil } from "../../lib/cms/types";
+import { toWaNumber } from "../../hooks/useKontak";
 
 /**
  * Komponen empat kartu pintasan kontak.
@@ -30,8 +31,7 @@ export const QuickAccessSection: React.FC = () => {
   const workDaysHours = profil?.office_hours?.workDays || profileData.officeHours.workDays;
   const fridayHours = profil?.office_hours?.fridayHours || profileData.officeHours.fridayHours;
   // Nomor telepon hanya angka, dipakai untuk tautan WhatsApp (wa.me)
-  const rawPhoneNum = phone.replace(/[^0-9]/g, "");
-  const whatsappNum = rawPhoneNum || profileData.whatsapp;
+  const whatsappNum = toWaNumber( phone ) || profileData.whatsapp;
 
   // Definisi empat kartu: judul, isi, teks tombol, tujuan tautan (external = buka di tab baru), dan ikon
   const quickItems = [

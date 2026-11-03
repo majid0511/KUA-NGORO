@@ -7,6 +7,7 @@ import { Button } from "../components/ui/Button";
 import { usePageMeta } from "../hooks/usePageMeta";
 import { getProfil } from "../lib/cms";
 import type { Profil } from "../lib/cms/types";
+import { toWaNumber } from "../hooks/useKontak";
 
 /**
  * Halaman kontak.
@@ -38,8 +39,7 @@ export default function Contact() {
   const email = profil?.email || profileData.email;
   const officeHours = profil?.office_hours || profileData.officeHours;
   // Nomor telepon hanya angka, dipakai untuk tautan WhatsApp (wa.me)
-  const rawPhone = phone.replace(/[^0-9]/g, "");
-  const whatsappNum = rawPhone || profileData.whatsapp;
+  const whatsappNum = toWaNumber( phone ) || profileData.whatsapp;
 
   // Isi formulir yang sedang diketik pengunjung
   const [formData, setFormData] = useState({
