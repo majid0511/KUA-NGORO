@@ -79,8 +79,7 @@ export const profileData: ProfileData = {
   },
 
   // Tautan Google Maps lokasi kantor
-  mapsUrl: "https://www.google.com/maps/place/KUA+Kecamatan+Ngoro/@-7.6925264,112.2692273,17z/data=!3m1!4b1!4m6!3m5!1s0x2e7868772497aa05:0x2fe556b013739c7f!8m2!3d-7.6925264!4d112.2718022",
-
+  mapsUrl: "https://www.google.com/maps/place/KUA+Kecamatan+Ngoro/@-7.6926252,112.2714239,19.04z/data=!4m6!3m5!1s0x2e7868772497aa05:0x2fe556b013739c7f!8m2!3d-7.6925264!4d112.2718022!16s%2Fg%2F1hm4df361?entry=ttu&g_ep=EgoyMDI2MTAyOC4wIKXMDSoASAFQAw%3D%3D",
   aboutShort: "KUA Kecamatan Ngoro adalah unit pelaksana teknis Kementerian Agama di tingkat kecamatan yang bertugas memberikan pelayanan, pencatatan nikah dan rujuk, serta pembinaan kehidupan keagamaan bagi masyarakat Ngoro, Kabupaten Jombang.",
 
   aboutFull: "Kantor Urusan Agama (KUA) Kecamatan Ngoro bertindak sebagai garis depan pelayanan keagamaan Kementerian Agama Republik Indonesia di wilayah Kecamatan Ngoro, Kabupaten Jombang. Berkomitmen menghadirkan layanan publik yang transparan, profesional, ramah, dan inklusif, KUA Ngoro melayani urusan pernikahan, konsultasi keluarga sakinah, pengurusan sertifikasi tanah wakaf, pembinaan kemasjidan, hingga bimbingan penyuluhan agama Islam bagi seluruh lapisan masyarakat di 13 desa se-Kecamatan Ngoro.",
