@@ -69,6 +69,7 @@ export const NewsSection: React.FC = () => {
               >
               <NewsCard
                 id={item.id}
+                slug={item.slug}
                 title={item.title}
                 excerpt={item.excerpt}
                 category={item.category as "Pengumuman" | "Berita" | "Artikel"}
