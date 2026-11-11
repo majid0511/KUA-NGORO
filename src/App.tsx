@@ -6,7 +6,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Navbar } from "./components/layout/Navbar";
 import { Footer } from "./components/layout/Footer";
-import { MobileStickyBar } from "./components/layout/MobileStickyBar";
+import { MobileBottomNav } from "./components/navigation/MobileBottomNav";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import Services from "./pages/Services";
@@ -128,7 +128,7 @@ export default function App() {
       {/* Footer: kontak, tautan cepat, dan hak cipta */}
       <Footer />
       {/* Tombol cepat (telepon/WhatsApp) yang menempel di bawah layar HP */}
-      <MobileStickyBar />
+      <MobileBottomNav />
     </div>
   );
 }

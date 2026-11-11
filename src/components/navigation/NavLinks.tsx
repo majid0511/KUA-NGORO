@@ -31,6 +31,7 @@ interface NavLinksProps {
   className?: string;
   onItemClick?: () => void;
   vertical?: boolean;
+  onDark?: boolean; // true jika menu berada di atas latar gelap (mis. navbar saat discroll)
 }
 
 /**
@@ -40,6 +41,7 @@ export const NavLinks: React.FC<NavLinksProps> = ({
   className = "",
   onItemClick,
   vertical = false,
+  onDark = false,
 }) => {
   return (
     <nav className={`flex ${vertical ? "flex-col space-y-1" : "items-center space-x-1 lg:space-x-2"} ${className}`}>
@@ -51,12 +53,16 @@ export const NavLinks: React.FC<NavLinksProps> = ({
           end={item.path === "/"}
           onClick={onItemClick}
           className={({ isActive }) =>
-            `px-3.5 py-2 rounded-lg text-sm font-semibold transition-all duration-150 ${
+            `px-3.5 py-2 ${vertical ? "rounded-lg" : "rounded-full"} text-sm font-semibold transition-all duration-300 ${
               vertical ? "w-full text-left text-base" : ""
             } ${
               isActive
-                ? "text-[#0f5132] bg-emerald-100/70 font-bold"
-                : "text-stone-700 hover:text-[#0f5132] hover:bg-stone-100/80"
+                ? onDark
+                  ? "text-white bg-white/15 font-bold"
+                  : "text-[#0f5132] bg-emerald-100/70 font-bold"
+                : onDark
+                  ? "text-emerald-100 hover:text-white hover:bg-white/10"
+                  : "text-stone-700 hover:text-[#0f5132] hover:bg-stone-100/80"
             }`
           }
         >
