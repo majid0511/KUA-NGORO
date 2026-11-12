@@ -1,7 +1,7 @@
 // NAVBAR (menu atas situs publik): pita info resmi + logo & nama kantor + menu halaman + tombol "Hubungi KUA".
 // Di layar kecil menu diganti tombol hamburger yang membuka MobileDrawer. Nomor WhatsApp/telepon diambil dari profil di Supabase.
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Phone, MessageSquare } from "lucide-react";
 import { NavLinks } from "../navigation/NavLinks";
 import { useScrollPosition } from "../../hooks/useScrollPosition";
@@ -21,11 +21,11 @@ function toWaNumber(phone: string): string {
 
   return digits;
 }
-
 /**
  * Komponen menu atas. Mengubah gaya (lebih padat & berbayang) setelah halaman di-scroll lebih dari 20 piksel.
  */
 export const Navbar: React.FC = () => {
+  const { pathname } = useLocation();
   // Apakah menu samping (drawer) di HP sedang terbuka
   const scrollPosition = useScrollPosition();
   // True jika halaman sudah digulir > 20 piksel -> header tampil dengan gaya "scrolled"
@@ -91,10 +91,14 @@ export const Navbar: React.FC = () => {
             : "top-0 w-full max-w-full rounded-none bg-white/90 px-5 py-3.5 sm:px-8 lg:px-10 border-transparent border-b-stone-200/40 shadow-none"
         }`}
       >
-        <div className="mx-auto flex max-w-[75rem] items-center justify-between">
+        <div className="mx-auto flex max-w-[75rem] items-center justify-center lg:justify-between">
           {/* Logo & nama kantor; mengkliknya kembali ke Beranda */}
           <Link
             to="/"
+            onClick={() => {
+              // Sudah di Beranda: gulung ke atas (pindah dari halaman lain sudah diurus ScrollToTop di App.tsx)
+              if (pathname === "/") window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
             className="group flex items-center gap-3 focus:outline-none"
           >
             <img
