@@ -1,5 +1,13 @@
-// HALAMAN BERANDA (alamat: /). Hanya merakit bagian-bagian (section) secara berurutan dari atas ke bawah;
-// isi tiap bagian ada di folder src/components/sections/.
+// HALAMAN BERANDA (alamat: /).
+// Menggabungkan seluruh section beranda secara berurutan.
+// Motion digunakan untuk animasi masuk yang ringan ketika section terlihat.
+
+import {
+  motion,
+  useReducedMotion,
+  type Variants,
+} from "motion/react";
+
 import { HeroSection } from "../components/sections/HeroSection";
 import { QuickAccessSection } from "../components/sections/QuickAccessSection";
 import { AboutSection } from "../components/sections/AboutSection";
@@ -10,12 +18,34 @@ import { ActivitiesSection } from "../components/sections/ActivitiesSection";
 import { OfficialLinksSection } from "../components/sections/OfficialLinksSection";
 import { LocationSection } from "../components/sections/LocationSection";
 import { ContactCtaSection } from "../components/sections/ContactCtaSection";
+
 import { usePageMeta } from "../hooks/usePageMeta";
 
+// Variasi animasi masuk untuk setiap section.
+const sectionVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 24,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.55,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+};
+
 /**
- * Halaman Beranda. usePageMeta mengatur judul tab & deskripsi untuk mesin pencari.
+ * Halaman Beranda.
+ * Mengatur metadata SEO dan urutan seluruh section.
  */
 export default function Home() {
+  // Menghormati pengaturan pengguna yang mengurangi animasi.
+  const shouldReduceMotion = useReducedMotion();
+
+  // Mengatur judul tab dan deskripsi untuk mesin pencari.
   usePageMeta({
     title: "Beranda",
     description:
@@ -23,28 +53,81 @@ export default function Home() {
     path: "/",
   });
 
+  // Pembungkus animasi section.
+  const Section = ({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) => {
+    // Jika pengguna memilih reduced motion, tampilkan section tanpa animasi.
+    if (shouldReduceMotion) {
+      return <>{children}</>;
+    }
+
+    return (
+      <motion.section
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{
+          once: true,
+          amount: 0.12,
+        }}
+      >
+        {children}
+      </motion.section>
+    );
+  };
+
   return (
     <div className="space-y-0">
-      {/* 1. Sambutan utama + foto kantor + status buka/tutup */}
+      {/* 1. Sambutan utama + foto kantor + status buka/tutup. */}
       <HeroSection />
-      {/* 2. Pintasan cepat: lokasi, telepon, WhatsApp, jam layanan */}
-      <QuickAccessSection />
-      {/* 3. Tentang KUA */}
-      <AboutSection />
-      {/* 4. Daftar layanan (dari database) */}
-      <ServicesSection />
-      {/* 5. Alur persiapan pernikahan */}
-      <MarriageTimelineSection />
-      {/* 6. Berita & pengumuman terbaru (dari database) */}
-      <NewsSection />
-      {/* 7. Dokumentasi kegiatan (dari database) */}
-      <ActivitiesSection />
-      {/* 8. Tautan portal resmi Kemenag */}
-      <OfficialLinksSection />
-      {/* 9. Peta & informasi lokasi kantor */}
-      <LocationSection />
-      {/* 10. Ajakan menghubungi KUA */}
-      <ContactCtaSection />
+
+      {/* 2. Pintasan cepat: lokasi, telepon, WhatsApp, jam layanan. */}
+      <Section>
+        <QuickAccessSection />
+      </Section>
+
+      {/* 3. Tentang KUA. */}
+      <Section>
+        <AboutSection />
+      </Section>
+
+      {/* 4. Daftar layanan dari database. */}
+      <Section>
+        <ServicesSection />
+      </Section>
+
+      {/* 5. Alur persiapan pernikahan. */}
+      <Section>
+        <MarriageTimelineSection />
+      </Section>
+
+      {/* 6. Berita dan pengumuman terbaru dari database. */}
+      <Section>
+        <NewsSection />
+      </Section>
+
+      {/* 7. Dokumentasi kegiatan dari database. */}
+      <Section>
+        <ActivitiesSection />
+      </Section>
+
+      {/* 8. Tautan portal resmi Kemenag. */}
+      <Section>
+        <OfficialLinksSection />
+      </Section>
+
+      {/* 9. Peta dan informasi lokasi kantor. */}
+      <Section>
+        <LocationSection />
+      </Section>
+
+      {/* 10. Ajakan menghubungi KUA. */}
+      <Section>
+        <ContactCtaSection />
+      </Section>
     </div>
   );
 }

@@ -1,10 +1,20 @@
-// KARTU TAUTAN RESMI: kartu kecil yang membuka situs resmi (Kemenag, SIMKAH, dll) di tab baru.
 import React from "react";
-import { ExternalLink, CheckCircle2, Landmark, Building, MapPin, HeartHandshake, FileCheck, Building2, BookOpen } from "lucide-react";
-import { motion } from "framer-motion";
+import {
+  
+  CheckCircle2,
+  Landmark,
+  Building,
+  MapPin,
+  HeartHandshake,
+  FileCheck,
+  Building2,
+  BookOpen,
+  ArrowUpRight,
+} from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 
 /**
- * Data satu tautan: nama, deskripsi, alamat (url), kategori, nama ikon, dan penanda terverifikasi.
+ * Data satu tautan portal resmi.
  */
 interface OfficialLinkCardProps {
   name: string;
@@ -16,32 +26,49 @@ interface OfficialLinkCardProps {
 }
 
 /**
- * Memilih ikon sesuai nama (teks) dari data; nama yang tidak dikenali memakai ikon Landmark sebagai cadangan.
- * Jika menambah ikon baru, tambahkan juga di sini.
+ * Memilih ikon berdasarkan nama ikon dari officialLinksData.
+ * Ikon Landmark digunakan sebagai fallback.
  */
 const getIcon = (iconName: string) => {
+  const iconClass = "h-6 w-6";
+
   switch (iconName) {
     case "Landmark":
-      return <Landmark className="w-5 h-5 text-[#0f5132]" />;
+      return <Landmark className={iconClass} />;
     case "Building":
-      return <Building className="w-5 h-5 text-[#0f5132]" />;
+      return <Building className={iconClass} />;
     case "MapPin":
-      return <MapPin className="w-5 h-5 text-[#0f5132]" />;
+      return <MapPin className={iconClass} />;
     case "HeartHandshake":
-      return <HeartHandshake className="w-5 h-5 text-[#0f5132]" />;
+      return <HeartHandshake className={iconClass} />;
     case "FileCheck":
-      return <FileCheck className="w-5 h-5 text-[#0f5132]" />;
+      return <FileCheck className={iconClass} />;
     case "Building2":
-      return <Building2 className="w-5 h-5 text-[#0f5132]" />;
+      return <Building2 className={iconClass} />;
     case "BookOpen":
-      return <BookOpen className="w-5 h-5 text-[#0f5132]" />;
+      return <BookOpen className={iconClass} />;
     default:
-      return <Landmark className="w-5 h-5 text-[#0f5132]" />;
+      return <Landmark className={iconClass} />;
   }
 };
 
 /**
- * Kartu tautan. target="_blank" + rel="noopener noreferrer" = buka di tab baru dengan aman.
+ * Menghapus protokol URL agar alamat lebih ringkas untuk ditampilkan.
+ * URL asli tetap digunakan sebagai href.
+ */
+const formatDomain = (url: string): string => {
+  try {
+    const parsedUrl = new URL(url);
+
+    return `${parsedUrl.hostname}${parsedUrl.pathname === "/" ? "" : parsedUrl.pathname}`;
+  } catch {
+    return url;
+  }
+};
+
+/**
+ * Kartu direktori portal resmi.
+ * Membuka alamat eksternal pada tab baru.
  */
 export const OfficialLinkCard: React.FC<OfficialLinkCardProps> = ({
   name,
@@ -51,44 +78,72 @@ export const OfficialLinkCard: React.FC<OfficialLinkCardProps> = ({
   icon,
   verified = true,
 }) => {
+  // Menghormati preferensi pengguna yang mengurangi animasi.
+  const shouldReduceMotion = useReducedMotion();
+
+  // Menyiapkan URL untuk ditampilkan.
+  const domain = formatDomain(url);
+
   return (
     <motion.a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      whileHover={{ y: -2 }}
-      className="group bg-white border border-stone-200 hover:border-emerald-700/40 rounded-2xl p-5 shadow-sm hover:shadow transition-all duration-200 flex flex-col justify-between"
+      aria-label={`Buka ${name}, portal eksternal`}
+      whileHover={shouldReduceMotion ? undefined : { y: -4 }}
+      whileTap={shouldReduceMotion ? undefined : { scale: 0.99 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
+      className="group relative flex h-full min-h-[230px] flex-col justify-between overflow-hidden rounded-2xl border border-stone-200 bg-white p-5 shadow-sm transition-colors duration-300 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-950/5 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200 sm:p-6"
     >
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center group-hover:scale-105 transition-transform">
+      {/* Aksen dekoratif di sudut kartu. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-emerald-50 transition-transform duration-500 group-hover:scale-150"
+      />
+
+      <div className="relative">
+        {/* Ikon portal dan badge verifikasi. */}
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-100 bg-emerald-50 text-emerald-900 transition-all duration-300 group-hover:border-emerald-200 group-hover:bg-emerald-100">
             {getIcon(icon)}
           </div>
-          {/* Tanda "Resmi Kemenag" hanya muncul jika tautan sudah terverifikasi */}
+
           {verified && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Resmi Kemenag</span>
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1.5 text-[10px] font-bold text-emerald-800 sm:text-xs">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Terverifikasi
             </span>
           )}
         </div>
 
-        <span className="text-xs font-semibold text-amber-700 uppercase tracking-wider">
+        {/* Kategori portal. */}
+        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700 sm:text-xs">
           {category}
-        </span>
+        </p>
 
-        <h4 className="text-base font-bold text-stone-900 group-hover:text-[#0f5132] transition-colors mt-0.5 mb-1.5">
+        {/* Nama dan deskripsi portal. */}
+        <h3 className="mb-2 text-lg font-bold leading-snug text-stone-900 transition-colors duration-200 group-hover:text-emerald-900">
           {name}
-        </h4>
+        </h3>
 
-        <p className="text-xs text-stone-600 leading-relaxed line-clamp-2">
+        <p className="line-clamp-2 text-sm leading-relaxed text-stone-600">
           {description}
         </p>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between text-xs font-semibold text-[#0f5132]">
-        <span className="truncate max-w-[180px] text-stone-400 font-mono">{url.replace("https://", "")}</span>
-        <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+      {/* Informasi domain dan indikator tautan eksternal. */}
+      <div className="relative mt-6 flex items-center justify-between gap-3 border-t border-stone-100 pt-4">
+        <span
+          title={domain}
+          className="min-w-0 truncate font-mono text-[11px] text-stone-400 sm:text-xs"
+        >
+          {domain}
+        </span>
+
+        <span className="flex shrink-0 items-center gap-1.5 text-xs font-bold text-emerald-800 transition-colors group-hover:text-emerald-950">
+          Kunjungi
+          <ArrowUpRight className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        </span>
       </div>
     </motion.a>
   );

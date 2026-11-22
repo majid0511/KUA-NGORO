@@ -1,14 +1,11 @@
-// KARTU BERITA/PENGUMUMAN: menampilkan foto, kategori, tanggal, penulis, judul, dan ringkasan satu berita.
-import React from "react";
-import { Link } from "react-router-dom";
-import { Calendar, ArrowRight, User } from "lucide-react";
-import { Badge } from "../ui/Badge";
-import { motion } from "framer-motion";
 
-/**
- * Data satu berita. onClick (opsional): jika diberikan, tombol "Baca Selengkapnya" memanggil fungsi ini
- * (mis. membuka modal); jika tidak, tombol menjadi tautan ke halaman Informasi.
- */
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Calendar, ArrowRight, User, ImageOff } from "lucide-react";
+import { Badge } from "../ui/Badge";
+import { motion } from "motion/react";
+
+// Data satu berita.
 interface NewsCardProps {
   id: string;
   slug?: string;
@@ -22,9 +19,9 @@ interface NewsCardProps {
 }
 
 /**
- * Kartu berita dengan efek terangkat saat disorot kursor.
+ * Kartu berita dengan fallback gambar.
  */
-export const NewsCard: React.FC<NewsCardProps> = ({
+export const NewsCard = ({
   id,
   slug,
   title,
@@ -34,8 +31,14 @@ export const NewsCard: React.FC<NewsCardProps> = ({
   author,
   imageUrl,
   onClick,
-}) => {
-  // Menentukan warna lencana menurut kategori: Pengumuman = emas, Berita = hijau, Artikel = biru, lainnya = abu
+}: NewsCardProps) => {
+  // Memeriksa apakah URL gambar tersedia dan tidak kosong.
+  const hasImage = Boolean(imageUrl?.trim());
+
+  // Menyimpan status jika gambar gagal dimuat.
+  const [imageError, setImageError] = useState(false);
+
+  // Menentukan warna badge berdasarkan kategori.
   const getBadgeVariant = (cat: string) => {
     switch (cat) {
       case "Pengumuman":
@@ -49,73 +52,111 @@ export const NewsCard: React.FC<NewsCardProps> = ({
     }
   };
 
-  // Mengubah tanggal (mis. 2026-10-09) menjadi format Indonesia ("9 Oktober 2026"); jika gagal diubah, tampilkan apa adanya
+  // Mengubah tanggal ke format Indonesia.
   const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
-    } catch {
-      return dateStr;
-    }
+    if (!dateStr) return "-";
+
+    const d = new Date(dateStr);
+
+    // Menghindari tampilan Invalid Date.
+    if (Number.isNaN(d.getTime())) return dateStr;
+
+    return d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   };
+
+  // Gambar hanya ditampilkan jika URL tersedia dan belum gagal dimuat.
+  const showImage = hasImage && !imageError;
 
   return (
     <motion.article
       whileHover={{ y: -4 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className="group bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col h-full"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition-all duration-200 hover:shadow-md"
     >
+      {/* Area gambar berita */}
       <div className="relative aspect-[16/9] overflow-hidden bg-stone-100">
-        <img
-          src={imageUrl}
-          alt={title}
-          loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        <div className="absolute top-3 left-3 z-10">
-          <Badge variant={getBadgeVariant(category)}>{category}</Badge>
+        {showImage ? (
+          <img
+            src={imageUrl.trim()}
+            alt={title || "Gambar berita"}
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageError(true)}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          // Placeholder ketika gambar tidak tersedia atau gagal dimuat.
+          <div
+            className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-stone-100 to-stone-200 text-stone-400"
+            role="img"
+            aria-label="Gambar berita tidak tersedia"
+          >
+            <ImageOff className="h-9 w-9" strokeWidth={1.5} />
+            <span className="text-xs font-medium">
+              Gambar tidak tersedia
+            </span>
+          </div>
+        )}
+
+        {/* Badge kategori */}
+        <div className="absolute left-3 top-3 z-10">
+          <Badge variant={getBadgeVariant(category)}>
+            {category}
+          </Badge>
         </div>
       </div>
 
-      <div className="p-5 sm:p-6 flex flex-col justify-between flex-1">
+      {/* Konten kartu */}
+      <div className="flex flex-1 flex-col justify-between p-5 sm:p-6">
         <div>
-          <div className="flex items-center gap-4 text-xs text-stone-500 mb-3">
+          {/* Informasi tanggal dan penulis */}
+          <div className="mb-3 flex items-center gap-4 text-xs text-stone-500">
             <span className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
+              <Calendar className="h-3.5 w-3.5" />
               {formatDate(date)}
             </span>
+
             {author && (
               <span className="flex items-center gap-1">
-                <User className="w-3.5 h-3.5" />
+                <User className="h-3.5 w-3.5" />
                 {author}
               </span>
             )}
           </div>
 
-          <h3 className="text-lg font-bold text-stone-900 group-hover:text-[#0f5132] transition-colors leading-snug mb-2">
+          {/* Judul berita */}
+          <h3 className="mb-2 text-lg font-bold leading-snug text-stone-900 transition-colors group-hover:text-[#0f5132]">
             {title}
           </h3>
 
-          <p className="text-sm text-stone-600 leading-relaxed line-clamp-3 mb-4">
+          {/* Ringkasan berita */}
+          <p className="mb-4 line-clamp-3 text-sm leading-relaxed text-stone-600">
             {excerpt}
           </p>
         </div>
 
-        <div className="pt-3 border-t border-stone-100 flex items-center justify-between text-sm font-semibold text-[#0f5132]">
-          {/* Dua bentuk tombol "Baca Selengkapnya": tombol biasa (jika ada onClick) atau tautan ke /informasi */}
+        {/* Navigasi detail berita */}
+        <div className="flex items-center justify-between border-t border-stone-100 pt-3 text-sm font-semibold text-[#0f5132]">
           {onClick ? (
-            <button onClick={onClick} className="inline-flex items-center gap-1.5 hover:underline">
+            <button
+              type="button"
+              onClick={onClick}
+              className="inline-flex items-center gap-1.5 hover:underline"
+            >
               <span>Baca Selengkapnya</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
           ) : (
-            <Link to={slug ? `/news/${slug}` : `/informasi#${id}`} className="inline-flex items-center gap-1.5 hover:underline">
+            <Link
+              to={slug ? `/news/${slug}` : `/informasi#${id}`}
+              className="inline-flex items-center gap-1.5 hover:underline"
+            >
               <span>Baca Selengkapnya</span>
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           )}
         </div>

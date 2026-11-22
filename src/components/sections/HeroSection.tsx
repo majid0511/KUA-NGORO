@@ -1,20 +1,28 @@
-// BAGIAN UTAMA (HERO) di Beranda: sambutan paling atas berisi judul "KUA Kecamatan Ngoro", ajakan bertindak (tombol),
-// foto kantor, dan lencana status "Pelayanan Buka/Tutup" yang dihitung otomatis dari jam kerja.
-import React from "react";
+
+import React, { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import { ArrowRight, Phone, ShieldCheck, MapPin, CheckCircle } from "lucide-react";
-import { motion, type Variants } from "framer-motion";
+import {
+  ArrowRight,
+  Phone,
+  ShieldCheck,
+  MapPin,
+  CheckCircle2,
+  Clock3,
+} from "lucide-react";
+import {
+  motion,
+  useReducedMotion,
+  type Variants,
+} from "motion/react";
+
 import fotoDepan from "../../assets/fotodepan.webp";
 
-// Jam layanan mengikuti src/data/profile.ts (WIB). Hari libur nasional belum terdeteksi.
-/**
- * Menentukan apakah kantor sedang buka SEKARANG berdasarkan jam kerja zona Asia/Jakarta (WIB),
- * sehingga hasilnya sama untuk pengunjung di zona waktu mana pun.
- * Jam kerja: Senin-Kamis 07.30-16.00, Jumat 07.30-16.30, Sabtu-Minggu tutup.
- * Catatan: hari libur nasional belum terdeteksi.
- */
+// Jam pelayanan menggunakan zona waktu WIB.
+// Senin-Kamis: 07.30-16.00.
+// Jumat: 07.30-16.30.
+// Sabtu-Minggu: tutup.
+// Hari libur nasional belum diperhitungkan.
 const isServiceOpen = (now: Date = new Date()): boolean => {
-  // Ambil nama hari & jam/menit saat ini menurut WIB
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Jakarta",
     weekday: "short",
@@ -22,213 +30,291 @@ const isServiceOpen = (now: Date = new Date()): boolean => {
     minute: "2-digit",
     hourCycle: "h23",
   }).formatToParts(now);
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+
+  // Mengambil nilai hari, jam, dan menit dari hasil formatter.
+  const get = (type: string) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
   const day = get("weekday");
-  // Ubah jam:menit menjadi total menit sejak tengah malam agar mudah dibandingkan (450 = 07.30, 960 = 16.00, 990 = 16.30)
   const minutes = Number(get("hour")) * 60 + Number(get("minute"));
-  if (["Mon", "Tue", "Wed", "Thu"].includes(day)) return minutes >= 450 && minutes < 960; // 07.30 - 16.00
-  if (day === "Fri") return minutes >= 450 && minutes < 990; // 07.30 - 16.30
-  return false; // Sabtu - Minggu
+
+  // Senin sampai Kamis.
+  if (["Mon", "Tue", "Wed", "Thu"].includes(day)) {
+    return minutes >= 450 && minutes < 960;
+  }
+
+  // Jumat.
+  if (day === "Fri") {
+    return minutes >= 450 && minutes < 990;
+  }
+
+  // Sabtu dan Minggu.
+  return false;
+};
+
+// Animasi masuk untuk elemen hero.
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.08,
+    },
+  },
+};
+
+// Animasi elemen dari bawah ke atas.
+const fadeUpVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 20,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.55,
+      ease: "easeOut",
+    },
+  },
+};
+
+// Animasi gambar.
+const imageVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.97,
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.7,
+      ease: "easeOut",
+    },
+  },
 };
 
 /**
- * Komponen hero. Isi kiri muncul bertahap (kata demi kata) saat halaman dimuat; kartu foto di kanan.
+ * HeroSection merupakan bagian utama halaman beranda.
+ * Menampilkan identitas KUA, akses layanan, foto kantor,
+ * informasi wilayah kerja, dan status pelayanan.
  */
 export const HeroSection: React.FC = () => {
-  // Status buka/tutup kantor; dihitung ulang tiap menit oleh useEffect di bawah
-  const [open, setOpen] = React.useState(isServiceOpen);
-  React.useEffect(() => {
-    const id = setInterval(() => setOpen(isServiceOpen()), 60_000);
-    return () => clearInterval(id);
+  // Menghitung status pelayanan berdasarkan jam WIB.
+  const [open, setOpen] = useState(() => isServiceOpen());
+
+  // Menghormati pengaturan pengguna yang mengurangi animasi.
+  const shouldReduceMotion = useReducedMotion();
+
+  // Memperbarui status pelayanan setiap satu menit.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setOpen(isServiceOpen());
+    }, 60_000);
+
+    // Membersihkan interval ketika komponen dilepas.
+    return () => window.clearInterval(intervalId);
   }, []);
-  // Kata-kata judul yang dimunculkan satu per satu (efek animasi)
-  const headlineWords = ["KUA", "Kecamatan", "Ngoro"];
 
-  // Pengaturan animasi (framer-motion): wadah memunculkan anak-anaknya berurutan dengan jeda 0,12 detik
-  const containerVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.12,
-        delayChildren: 0.1,
-      },
-    },
-  };
-
-  // Animasi tiap kata judul: naik dari bawah dengan efek pegas
-  const wordVariants: Variants = {
-    hidden: { y: "115%", opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 120,
-        damping: 18,
-        mass: 0.8,
-      },
-    },
-  };
-
-  // Animasi elemen lain: memudar masuk sambil naik sedikit
-  const itemFadeUp: Variants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { type: "spring", stiffness: 120, damping: 18 },
-    },
-  };
+  // Mengatur animasi tanpa mengabaikan preferensi aksesibilitas.
+  const initialAnimation = shouldReduceMotion ? false : "hidden";
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-emerald-50/60 via-white to-stone-50/50 pt-8 pb-16 lg:pt-14 lg:pb-24 border-b border-stone-200/60">
-      <div className="container-kua">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          {/* Kolom kiri: lencana, judul, deskripsi, tombol, dan tiga poin keunggulan */}
+    <section className="relative isolate overflow-hidden border-b border-stone-200/70 bg-gradient-to-br from-emerald-50 via-white to-stone-50">
+      {/* Dekorasi latar belakang. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-32 -top-32 -z-10 h-96 w-96 rounded-full bg-emerald-100/60 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-40 -left-32 -z-10 h-96 w-96 rounded-full bg-amber-100/40 blur-3xl"
+      />
+
+      <div className="container-kua relative py-14 sm:py-20 lg:py-24">
+        <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-12 lg:gap-10">
+
+          {/* BAGIAN KIRI: IDENTITAS DAN AKSES LAYANAN. */}
           <motion.div
             variants={containerVariants}
-            initial="hidden"
+            initial={initialAnimation}
             animate="visible"
-            className="lg:col-span-7 space-y-6 sm:space-y-7 text-center lg:text-left"
+            className="space-y-7 text-center lg:col-span-7 lg:text-left"
           >
-            {/* 1. Lencana kecil di atas judul */}
-            <motion.div variants={itemFadeUp} className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-100/90 border border-emerald-200 text-[#0f5132] text-xs sm:text-sm font-semibold tracking-wide shadow-xs">
-              <ShieldCheck className="w-4 h-4 text-emerald-700" />
-              <span>KANTOR URUSAN AGAMA • KABUPATEN JOMBANG</span>
+            {/* Label identitas institusi. */}
+            <motion.div
+              variants={fadeUpVariants}
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/80 px-4 py-2 text-xs font-bold tracking-wide text-emerald-900 shadow-sm backdrop-blur-sm sm:text-sm"
+            >
+              <ShieldCheck className="h-4 w-4 text-emerald-700" />
+              <span>KANTOR URUSAN AGAMA KABUPATEN JOMBANG</span>
             </motion.div>
 
-            {/* 2. Judul besar; tiap kata muncul bergantian dari bawah */}
-            <div className="overflow-hidden">
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-stone-900 tracking-tight leading-[1.15]">
-                {headlineWords.map((word, idx) => (
-                  <span key={idx} className="inline-block overflow-hidden mr-2 sm:mr-3.5 pb-1">
-                    <motion.span
-                      variants={wordVariants}
-                      className={`inline-block ${
-                        word === "Ngoro"
-                          ? "text-[#0f5132] underline decoration-amber-500/80 decoration-4 underline-offset-8"
-                          : ""
-                      }`}
-                    >
-                      {word}
-                    </motion.span>
-                  </span>
-                ))}
+            {/* Headline utama. */}
+            <motion.div variants={fadeUpVariants}>
+              <h1 className="text-4xl font-extrabold leading-[1.12] tracking-tight text-stone-950 sm:text-5xl lg:text-6xl xl:text-7xl">
+                Melayani dengan
+                <span className="mt-1 block text-emerald-800">
+                  Amanah dan
+                </span>
+                <span className="block text-emerald-800">
+                  Profesional.
+                </span>
               </h1>
-            </div>
 
-            {/* 3. Kalimat pendukung di bawah judul */}
+              <p className="mt-5 text-lg font-semibold text-stone-700 sm:text-xl">
+                KUA Kecamatan Ngoro
+              </p>
+            </motion.div>
+
+            {/* Deskripsi singkat. */}
             <motion.p
-              variants={itemFadeUp}
-              className="text-base sm:text-lg lg:text-xl text-stone-600 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-normal"
+              variants={fadeUpVariants}
+              className="mx-auto max-w-2xl text-base leading-relaxed text-stone-600 sm:text-lg lg:mx-0"
             >
-              Informasi resmi, pendaftaran nikah online, dan bimbingan pelayanan keagamaan yang akuntabel, mudah diakses, dan dekat untuk seluruh masyarakat Kecamatan Ngoro.
+              Portal informasi resmi dan akses layanan Kantor Urusan Agama
+              Kecamatan Ngoro. Mendekatkan pelayanan pernikahan, wakaf,
+              dan bimbingan keagamaan kepada masyarakat.
             </motion.p>
 
-            {/* 4. Dua tombol aksi: Lihat Layanan & Hubungi KUA */}
+            {/* Tombol navigasi utama. */}
             <motion.div
-              variants={itemFadeUp}
-              className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5 pt-2"
+              variants={fadeUpVariants}
+              className="flex flex-col justify-center gap-3 pt-1 sm:flex-row lg:justify-start"
             >
               <RouterLink
                 to="/layanan"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-[#0f5132] text-white hover:bg-[#073822] px-7 py-3.5 rounded-xl font-bold text-base shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
+                className="group inline-flex min-h-14 items-center justify-center gap-3 rounded-xl bg-emerald-900 px-7 py-4 text-base font-bold text-white shadow-lg shadow-emerald-900/15 transition duration-300 hover:-translate-y-1 hover:bg-emerald-950 hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300"
               >
-                <span>Lihat Layanan</span>
-                <ArrowRight className="w-5 h-5" />
+                Lihat Layanan
+                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
               </RouterLink>
 
               <RouterLink
                 to="/kontak"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-white text-stone-800 border border-stone-300 hover:bg-stone-50 px-6 py-3.5 rounded-xl font-semibold text-base transition shadow-xs"
+                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-xl border border-stone-300 bg-white px-7 py-4 text-base font-semibold text-stone-800 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-emerald-300 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-200"
               >
-                <Phone className="w-4 h-4 text-[#0f5132]" />
-                <span>Hubungi KUA</span>
+                <Phone className="h-5 w-5 text-emerald-800" />
+                Hubungi KUA
               </RouterLink>
             </motion.div>
 
-            {/* Tiga poin keunggulan singkat */}
+            {/* Keunggulan dan informasi singkat. */}
             <motion.div
-              variants={itemFadeUp}
-              className="pt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-left border-t border-stone-200/60 max-w-lg mx-auto lg:mx-0"
+              variants={fadeUpVariants}
+              className="grid grid-cols-1 gap-3 border-t border-stone-200 pt-6 text-left sm:grid-cols-3"
             >
-              <div className="flex items-center gap-2 text-xs font-semibold text-stone-700">
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Nikah Gratis di KUA</span>
+              <div className="flex items-center justify-center gap-2 text-sm font-medium text-stone-700 lg:justify-start">
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-700" />
+                <span>Layanan Nikah</span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-stone-700">
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Nikah Online SIMKAH</span>
+
+              <div className="flex items-center justify-center gap-2 text-sm font-medium text-stone-700 lg:justify-start">
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-700" />
+                <span>SIMKAH Online</span>
               </div>
-              <div className="flex items-center gap-2 text-xs font-semibold text-stone-700 col-span-2 sm:col-span-1">
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+
+              <div className="flex items-center justify-center gap-2 text-sm font-medium text-stone-700 lg:justify-start">
+                <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-700" />
                 <span>13 Desa Terlayani</span>
               </div>
             </motion.div>
           </motion.div>
 
-          {/* Kolom kanan: kartu foto kantor dengan dua lencana melayang */}
+          {/* BAGIAN KANAN: FOTO KANTOR DAN INFORMASI PELAYANAN. */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
-            className="lg:col-span-5 relative"
+            variants={imageVariants}
+            initial={initialAnimation}
+            animate="visible"
+            className="relative mx-auto w-full max-w-xl lg:col-span-5 lg:max-w-none"
           >
-            <div className="relative mx-auto max-w-md lg:max-w-none">
-              {/* Foto kantor + gradasi gelap + keterangan alamat di atasnya */}
-              <div className="relative rounded-3xl overflow-hidden border-4 border-white shadow-2xl bg-stone-100 aspect-[4/3] sm:aspect-[14/10]">
+            {/* Bingkai foto kantor. */}
+            <div className="relative overflow-hidden rounded-[2rem] border-[6px] border-white bg-stone-200 shadow-2xl shadow-emerald-950/10">
+              <div className="aspect-[4/3] sm:aspect-[5/4]">
                 <img
-                  src= {fotoDepan}
+                  src={fotoDepan}
+                  alt="Tampak depan Kantor Urusan Agama Kecamatan Ngoro"
                   fetchPriority="high"
-                  alt="Pelayanan Kantor Urusan Agama Ngoro"
-                  className="w-full h-full object-cover"
+                  decoding="async"
+                  className="h-full w-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-stone-900/85 via-stone-900/30 to-transparent" />
-
-                <div className="absolute bottom-[4.5rem] left-5 right-5 text-white">
-                  <span className="inline-block px-2.5 py-1 rounded bg-amber-700 text-white text-xs font-bold uppercase tracking-wider mb-1.5">
-                    Pelayanan Keagamaan
-                  </span>
-                  <h3 className="text-lg font-bold leading-snug drop-shadow-sm">
-                    Kantor Urusan Agama Kecamatan Ngoro
-                  </h3>
-                  <p className="text-xs text-stone-200 mt-0.5 flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>Jl. Arjuno No.7, Pandean, Ngoro, Jombang</span>
-                  </p>
-                </div>
               </div>
 
-              {/* Lencana melayang kiri-bawah: "13 Desa" wilayah kerja */}
-              <div className="absolute -bottom-6 -left-4 sm:-left-6 bg-white border border-stone-200 p-4 rounded-2xl shadow-xl flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 text-[#0f5132] flex items-center justify-center font-bold text-xl">
-                  13
-                </div>
-                <div>
-                  <span className="text-xs text-stone-500 font-medium block">Wilayah Kerja</span>
-                  <span className="text-sm font-bold text-stone-900 block">Desa se-Kecamatan Ngoro</span>
-                </div>
-              </div>
+              {/* Gradasi untuk keterbacaan teks foto. */}
+              <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-950/10 to-transparent" />
 
-              {/* Lencana melayang kanan-atas: status Pelayanan Buka (hijau, berdenyut) / Tutup (abu-abu) */}
-              <div
-                className={`absolute -top-4 -right-4 text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 border text-xs font-semibold ${
-                  open ? "bg-emerald-950 border-emerald-800" : "bg-stone-800 border-stone-600"
-                }`}
-              >
-                <span className="relative flex w-2.5 h-2.5">
-                  {open && (
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
-                  )}
-                  <span
-                    className={`relative inline-flex w-2.5 h-2.5 rounded-full ${open ? "bg-emerald-400" : "bg-stone-400"}`}
-                  />
+              {/* Keterangan kantor di atas foto. */}
+              <div className="absolute bottom-0 left-0 right-0 p-5 text-white sm:p-7">
+                <span className="mb-3 inline-flex rounded-md bg-amber-600 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white sm:text-xs">
+                  Pelayanan Keagamaan
                 </span>
-                <span>{open ? "Pelayanan Buka" : "Pelayanan Tutup"}</span>
+
+                <h2 className="text-xl font-bold leading-snug sm:text-2xl">
+                  Kantor Urusan Agama Kecamatan Ngoro
+                </h2>
+
+                <p className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-stone-200 sm:text-sm">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                  <span>
+                    Jl. Arjuno No. 7, Pandean, Ngoro, Jombang
+                  </span>
+                </p>
               </div>
             </div>
+
+            {/* Informasi wilayah kerja. */}
+            <div className="absolute -bottom-6 -left-2 flex items-center gap-3 rounded-2xl border border-stone-100 bg-white p-3 shadow-xl sm:-left-6 sm:p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-2xl font-extrabold text-emerald-900">
+                13
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-stone-500">
+                  Wilayah Kerja
+                </p>
+                <p className="text-sm font-bold text-stone-900">
+                  Desa se-Kecamatan Ngoro
+                </p>
+              </div>
+            </div>
+
+            {/* Status pelayanan otomatis. */}
+            <div
+              role="status"
+              aria-live="polite"
+              title="Status dihitung berdasarkan jam kerja WIB dan belum memperhitungkan hari libur nasional."
+              className={`absolute -right-2 -top-5 flex items-center gap-2 rounded-xl border px-4 py-3 text-xs font-bold text-white shadow-xl sm:-right-5 ${
+                open
+                  ? "border-emerald-800 bg-emerald-950"
+                  : "border-stone-700 bg-stone-800"
+              }`}
+            >
+              <span className="relative flex h-2.5 w-2.5">
+                {open && (
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                )}
+                <span
+                  className={`relative inline-flex h-2.5 w-2.5 rounded-full ${
+                    open ? "bg-emerald-400" : "bg-stone-400"
+                  }`}
+                />
+              </span>
+
+              <span>
+                {open ? "Pelayanan Buka" : "Pelayanan Tutup"}
+              </span>
+            </div>
           </motion.div>
+        </div>
+
+        {/* Catatan transparansi status pelayanan. */}
+        <div className="mt-12 flex items-center justify-center gap-2 text-center text-xs text-stone-500 lg:mt-16">
+          <Clock3 className="h-4 w-4 shrink-0" />
+          <span>
+            Status pelayanan berdasarkan jadwal kerja WIB, belum memperhitungkan hari libur nasional.
+          </span>
         </div>
       </div>
     </section>
