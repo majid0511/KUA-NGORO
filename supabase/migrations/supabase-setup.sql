@@ -1,23 +1,33 @@
 -- ============================================================
 -- KUA Ngoro – Supabase Setup (satu file, gabungan seluruh migrasi)
--- Jalankan sekali via Supabase Dashboard -> SQL Editor -> Run,
--- atau `supabase db push`. Aman dijalankan ulang (idempotent) --
--- semua statement pakai "if not exists" / "or replace" / "drop ... if
--- exists" sebelum setiap "create trigger"/"create policy".
+-- Jalankan via Supabase Dashboard -> SQL Editor -> Run.
+-- Aman dijalankan ulang (idempotent) di database kosong maupun yang
+-- sudah pernah memakai versi lama: semua statement memakai
+-- "if not exists" / "or replace" / "drop ... if exists".
+-- Dibungkus satu transaksi: jika ada yang gagal, semuanya dibatalkan.
 --
--- Kalau sebelumnya kamu sudah pernah menjalankan versi terpisahnya
--- (0001/0002/0003, atau supabase-setup.sql versi lama + migrasi
--- maintenance_mode secara terpisah), TIDAK perlu menjalankan file
--- ini lagi -- isinya sama persis, cuma digabung jadi satu file
--- untuk kerapian repo.
+-- Isi (urutan):
+--   1. Skema awal + RLS
+--   2. Hardening + bucket Storage "media"
+--   3. Kolom tanggal bertipe date
+--   4. Mode maintenance + NIP pegawai
+--   5. Fungsi admin_email_exists (pesan error halaman login)
 -- ============================================================
 
--- ─── Extensions ──────────────────────────────────────────────
+begin;
+
+-- ═══════════════════════════════════════════════════════════
+-- 1. SKEMA AWAL
+-- ═══════════════════════════════════════════════════════════
+
 create extension if not exists "pgcrypto";
 
 -- ─── Helper: auto-update updated_at ─────────────────────────
 create or replace function public.set_updated_at()
-returns trigger language plpgsql as $$
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
 begin
   new.updated_at = now();
   return new;
@@ -25,16 +35,21 @@ end;
 $$;
 
 -- ─── Table: admins ───────────────────────────────────────────
--- To add the first admin after creating the user in Supabase Auth:
+-- Menambah admin pertama setelah membuat user di Supabase Auth:
 --   insert into public.admins (user_id) values ('<auth-user-uuid>');
 create table if not exists public.admins (
-  user_id uuid primary key references auth.users on delete cascade,
+  user_id    uuid primary key references auth.users on delete cascade,
   created_at timestamptz not null default now()
 );
 
 -- ─── Security helper: is_admin() ─────────────────────────────
 create or replace function public.is_admin()
-returns boolean language sql security definer stable as $$
+returns boolean
+language sql
+security definer
+stable
+set search_path = ''
+as $$
   select exists (
     select 1 from public.admins where user_id = auth.uid()
   );
@@ -42,18 +57,18 @@ $$;
 
 -- ─── Table: profil (singleton) ───────────────────────────────
 create table if not exists public.profil (
-  id          uuid primary key default gen_random_uuid(),
-  office_name text not null default '',
-  description text not null default '',
-  history     text not null default '',
-  vision      text not null default '',
-  mission     text[] not null default '{}',
-  address     text not null default '',
-  phone       text not null default '',
-  email       text not null default '',
+  id           uuid primary key default gen_random_uuid(),
+  office_name  text not null default '',
+  description  text not null default '',
+  history      text not null default '',
+  vision       text not null default '',
+  mission      text[] not null default '{}',
+  address      text not null default '',
+  phone        text not null default '',
+  email        text not null default '',
   office_hours jsonb not null default '{"workDays":"","fridayHours":"","weekend":""}',
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
 );
 
 drop trigger if exists profil_updated_at on public.profil;
@@ -62,6 +77,8 @@ create trigger profil_updated_at
   for each row execute function public.set_updated_at();
 
 -- ─── Table: berita ───────────────────────────────────────────
+-- published_at dibuat text dulu; dikonversi ke date di bagian 3
+-- (supaya database lama dan baru melewati jalur yang sama).
 create table if not exists public.berita (
   id             uuid primary key default gen_random_uuid(),
   title          text not null,
@@ -126,6 +143,7 @@ create trigger layanan_updated_at
   for each row execute function public.set_updated_at();
 
 -- ─── Table: staf ─────────────────────────────────────────────
+-- Kolom nip ditambahkan di bagian 4.
 create table if not exists public.staf (
   id         uuid primary key default gen_random_uuid(),
   name       text not null,
@@ -161,9 +179,7 @@ create trigger galeri_updated_at
   before update on public.galeri
   for each row execute function public.set_updated_at();
 
--- ═══════════════════════════════════════════════════════════
--- Row Level Security (RLS)
--- ═══════════════════════════════════════════════════════════
+-- ─── Row Level Security (RLS) ────────────────────────────────
 
 alter table public.admins     enable row level security;
 alter table public.profil     enable row level security;
@@ -173,87 +189,59 @@ alter table public.layanan    enable row level security;
 alter table public.staf       enable row level security;
 alter table public.galeri     enable row level security;
 
--- ── admins: only admins can manage, no anon read ────────────
+-- ── admins: hanya admin yang bisa kelola, anon tidak bisa baca ──
 drop policy if exists "admins_manage" on public.admins;
 create policy "admins_manage" on public.admins
   for all using (public.is_admin());
 
--- ── profil: anyone reads, only admin writes ──────────────────
+-- ── profil: semua orang baca, hanya admin yang tulis ─────────
 drop policy if exists "profil_read" on public.profil;
 create policy "profil_read"  on public.profil for select using (true);
 drop policy if exists "profil_write" on public.profil;
 create policy "profil_write" on public.profil for all    using (public.is_admin());
 
--- ── berita: anon reads published only ────────────────────────
+-- ── berita: anon hanya membaca yang published ────────────────
 drop policy if exists "berita_read" on public.berita;
 create policy "berita_read"  on public.berita for select using (status = 'published');
 drop policy if exists "berita_write" on public.berita;
 create policy "berita_write" on public.berita for all    using (public.is_admin());
 
--- ── pengumuman: anon reads published & not expired ───────────
--- (policy "pengumuman_read" didefinisikan sekali di bagian akhir file,
--- setelah expires_at/published_at dikonversi ke tipe date)
+-- ── pengumuman: policy baca dibuat di bagian 3 (setelah expires_at
+-- bertipe date). Policy tulis di sini.
 drop policy if exists "pengumuman_write" on public.pengumuman;
 create policy "pengumuman_write" on public.pengumuman for all using (public.is_admin());
 
--- ── layanan: anon reads active only ─────────────────────────
+-- ── layanan: anon hanya membaca yang active ──────────────────
 drop policy if exists "layanan_read" on public.layanan;
 create policy "layanan_read"  on public.layanan for select using (status = 'active');
 drop policy if exists "layanan_write" on public.layanan;
 create policy "layanan_write" on public.layanan for all    using (public.is_admin());
 
--- ── staf: anon reads active only ────────────────────────────
+-- ── staf: anon hanya membaca yang active ─────────────────────
 drop policy if exists "staf_read" on public.staf;
 create policy "staf_read"  on public.staf for select using (active = true);
 drop policy if exists "staf_write" on public.staf;
 create policy "staf_write" on public.staf for all    using (public.is_admin());
 
--- ── galeri: anyone reads ─────────────────────────────────────
+-- ── galeri: semua orang baca ─────────────────────────────────
 drop policy if exists "galeri_read" on public.galeri;
 create policy "galeri_read"  on public.galeri for select using (true);
 drop policy if exists "galeri_write" on public.galeri;
 create policy "galeri_write" on public.galeri for all    using (public.is_admin());
 
 -- ═══════════════════════════════════════════════════════════
--- Storage – bucket "media"
--- Run these statements in Supabase Dashboard → Storage → Policies
--- OR via the Storage API. Bucket must be created first via UI.
+-- 2. HARDENING + STORAGE BUCKET "media"
 -- ═══════════════════════════════════════════════════════════
 
--- Create the bucket (public read):
--- insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
--- values (
---   'media', 'media', true,
---   2097152,                                          -- 2 MB
---   array['image/jpeg','image/png','image/webp','image/gif']
--- )
--- on conflict (id) do nothing;
-
--- Public read policy for the media bucket:
--- create policy "media_public_read" on storage.objects
---   for select using (bucket_id = 'media');
-
--- Admin-only upload / update / delete:
--- create policy "media_admin_write" on storage.objects
---   for insert with check (bucket_id = 'media' and public.is_admin());
--- create policy "media_admin_update" on storage.objects
---   for update using (bucket_id = 'media' and public.is_admin());
--- create policy "media_admin_delete" on storage.objects
---   for delete using (bucket_id = 'media' and public.is_admin());
--- ============================================================
--- KUA Ngoro – Migration 0002: hardening + Storage bucket "media"
--- Jalankan SETELAH 0001_init.sql (Dashboard → SQL Editor → Run).
--- Aman dijalankan ulang.
--- ============================================================
-
--- ─── 1. Kunci search_path fungsi (rekomendasi Supabase linter) ─
+-- Kunci search_path fungsi (rekomendasi Supabase linter). Fungsi di atas
+-- sudah dibuat dengan pengaturan ini; baris ini menjaga database lama.
 alter function public.set_updated_at() set search_path = '';
 alter function public.is_admin()       set search_path = '';
 
--- ─── 2. profil harus singleton: maksimal satu baris ─────────
+-- profil harus singleton: maksimal satu baris.
 create unique index if not exists profil_singleton on public.profil ((true));
 
--- ─── 3. Storage bucket "media" (baca publik lewat URL) ──────
+-- Bucket "media" (baca publik lewat URL).
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'media', 'media', true,
@@ -290,15 +278,14 @@ create policy "media_admin_update" on storage.objects
 create policy "media_admin_delete" on storage.objects
   for delete to authenticated
   using (bucket_id = 'media' and public.is_admin());
--- ============================================================
--- KUA Ngoro – Migration 0003: kolom tanggal bertipe date
--- Jalankan SETELAH 0001 dan 0002. Aman dijalankan ulang.
--- Sebelumnya published_at / expires_at bertipe text. Nilai lama
--- (format YYYY-MM-DD) dikonversi; nilai kosong jadi tanggal
--- pembuatan (published_at) atau NULL (expires_at).
--- Zona waktu memakai Asia/Jakarta agar pengumuman tidak hilang
--- atau tampil di hari yang salah.
--- ============================================================
+
+-- ═══════════════════════════════════════════════════════════
+-- 3. KOLOM TANGGAL BERTIPE DATE
+-- Nilai lama (YYYY-MM-DD) dikonversi; nilai kosong jadi tanggal
+-- pembuatan (published_at) atau NULL (expires_at). Zona waktu
+-- Asia/Jakarta agar pengumuman tidak hilang atau tampil di hari
+-- yang salah. Dilewati otomatis jika kolom sudah bertipe date.
+-- ═══════════════════════════════════════════════════════════
 
 -- Policy bergantung pada expires_at: lepas dulu sebelum ubah tipe kolom.
 drop policy if exists "pengumuman_read" on public.pengumuman;
@@ -342,16 +329,51 @@ create policy "pengumuman_read" on public.pengumuman
     and (expires_at is null or expires_at >= (now() at time zone 'Asia/Jakarta')::date)
   );
 
--- ============================================================
--- KUA Ngoro – Migration 0002: mode maintenance
--- Jalankan SETELAH supabase-setup.sql. Aman dijalankan ulang.
--- Menambah sakelar di tabel profil untuk menonaktifkan sementara
--- halaman publik (kecuali /admin) dan menampilkan pesan maintenance.
--- ============================================================
+-- ═══════════════════════════════════════════════════════════
+-- 4. MODE MAINTENANCE + NIP PEGAWAI
+-- ═══════════════════════════════════════════════════════════
 
+-- Sakelar untuk menonaktifkan sementara halaman publik (kecuali /admin)
+-- dan menampilkan pesan maintenance.
 alter table public.profil
   add column if not exists maintenance_mode boolean not null default false;
 
--- ─── NIP pegawai (opsional, tampil di halaman Profil jika diisi) ──
+-- NIP pegawai (opsional, tampil di halaman Profil jika diisi).
 alter table public.staf
   add column if not exists nip text;
+
+-- ═══════════════════════════════════════════════════════════
+-- 5. FUNGSI admin_email_exists (pesan error halaman login)
+-- Dipakai AdminLogin.tsx untuk membedakan "Email salah" dan
+-- "Kata sandi salah". true hanya jika email ada di auth.users DAN
+-- di public.admins.
+--
+-- Catatan keamanan: fungsi ini memungkinkan orang luar menebak email
+-- mana yang terdaftar sebagai admin. Untuk kembali ke pesan umum:
+--   drop function if exists public.admin_email_exists(text);
+-- ═══════════════════════════════════════════════════════════
+
+create or replace function public.admin_email_exists(p_email text)
+returns boolean
+language sql
+security definer
+stable
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from auth.users u
+    join public.admins a on a.user_id = u.id
+    where lower(u.email) = lower(trim(p_email))
+  );
+$$;
+
+comment on function public.admin_email_exists(text) is
+  'True jika email milik akun yang terdaftar di tabel admins. Dipakai halaman login admin untuk pesan error.';
+
+-- Halaman login dipanggil sebelum masuk (role anon), tapi sesi lama bisa saja
+-- masih berstatus authenticated, jadi keduanya diberi izin.
+revoke all on function public.admin_email_exists(text) from public;
+grant execute on function public.admin_email_exists(text) to anon, authenticated;
+
+commit;

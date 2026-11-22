@@ -70,6 +70,37 @@ const INPUT_CLASS =
   "h-12 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-11 pr-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 focus:border-[#0F5132] focus:bg-white focus:ring-4 focus:ring-emerald-900/[0.06] disabled:opacity-60";
 
 // ==========================================
+// LOGIN ERROR HELPER
+// ==========================================
+
+const GENERIC_LOGIN_ERROR = "Email atau kata sandi salah. Silakan coba lagi.";
+
+/**
+ * Menentukan pesan error saat login gagal: email yang salah atau kata sandi yang salah.
+ * Supabase sendiri hanya membalas "invalid credentials" untuk keduanya, jadi email
+ * dicek lewat fungsi database admin_email_exists (lihat SQL-nya di catatan).
+ * Jika fungsi belum dibuat atau gagal dipanggil, pesan umum yang dipakai.
+ */
+async function describeLoginFailure(
+  client: NonNullable<typeof supabase>,
+  email: string
+): Promise<string> {
+  try {
+    const { data, error } = await client.rpc("admin_email_exists", {
+      p_email: email,
+    });
+
+    if (error) return GENERIC_LOGIN_ERROR;
+
+    return data
+      ? "Kata sandi salah, coba lagi."
+      : "Email salah, silakan coba lagi.";
+  } catch {
+    return GENERIC_LOGIN_ERROR;
+  }
+}
+
+// ==========================================
 // DECORATIVE COMPONENTS
 // ==========================================
 
@@ -265,7 +296,7 @@ export default function AdminLogin() {
       });
 
       if (authError) {
-        setError("Email atau kata sandi salah. Silakan coba lagi.");
+        setError(await describeLoginFailure(client, email.trim()));
         return;
       }
 
