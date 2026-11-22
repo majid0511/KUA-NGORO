@@ -1,4 +1,3 @@
-
 /**
  * PRAYER DYNAMIC ISLAND
  *
@@ -6,13 +5,22 @@
  *
  * Fitur:
  * - Posisi fixed di pojok kanan atas.
- * - Tampilan compact dan expanded.
+ * - Tampilan compact (idle) dan expanded.
  * - Menampilkan lima waktu sholat.
  * - Menyorot waktu sholat berikutnya.
+ * - Kembali ke mode idle saat pengguna menekan area di luar island
+ *   atau menekan tombol Escape.
  * - Notifikasi in-app ketika waktu sholat masuk.
  * - Browser Notification dengan izin pengguna.
  * - Memuat ulang jadwal saat tanggal WIB berubah.
  * - Mencegah notifikasi yang sama muncul berulang kali.
+ *
+ * Transisi:
+ * - Satu wadah yang tetap ada (tidak di-remount), ukurannya beranimasi
+ *   dengan spring lewat layout animation.
+ * - Radius sudut diatur lewat style agar ikut terkoreksi saat wadah
+ *   berubah ukuran (tidak penyok / meloncat).
+ * - Isi (idle, expanded, notifikasi) saling bertukar dengan crossfade.
  *
  * Catatan:
  * Browser Notification hanya berjalan ketika halaman website
@@ -32,7 +40,6 @@ import {
   Bell,
   BellRing,
   ChevronDown,
-  ChevronUp,
   MoonStar,
   X,
 } from "lucide-react";
@@ -64,6 +71,11 @@ const ALERT_DURATION = 12_000;
 
 // Interval pemeriksaan pergantian tanggal.
 const DATE_CHECK_INTERVAL = 30_000;
+
+// Radius sudut tiap keadaan (px). Dibuat berdekatan agar perubahannya mulus.
+const RADIUS_COMPACT = 18;
+const RADIUS_ALERT = 22;
+const RADIUS_EXPANDED = 24;
 
 /**
  * Mendapatkan waktu sekarang berdasarkan WIB.
@@ -159,6 +171,10 @@ export const PrayerTimesBar: React.FC = () => {
 
   // Menghormati preferensi Reduce Motion pengguna.
   const shouldReduceMotion = useReducedMotion();
+  const reduceMotion = Boolean(shouldReduceMotion);
+
+  // Wadah island: dipakai untuk mendeteksi tekanan di luar island.
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Menyimpan ID timer notifikasi in-app.
   const alertTimerRef = useRef<number | null>(null);
@@ -223,6 +239,7 @@ export const PrayerTimesBar: React.FC = () => {
       setTimes(null);
       setNext(null);
       setAlertPrayer(null);
+      setExpanded(false);
 
       // Bersihkan status pemeriksaan sebelumnya.
       lastCheckedRef.current = null;
@@ -383,6 +400,36 @@ export const PrayerTimesBar: React.FC = () => {
     };
   }, []);
 
+  // Kembali ke mode idle saat pengguna menekan area di luar island
+  // atau menekan tombol Escape. Hanya aktif selama island terbuka.
+  useEffect(() => {
+    if (!expanded) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const node = containerRef.current;
+
+      if (
+        node &&
+        event.target instanceof Node &&
+        !node.contains(event.target)
+      ) {
+        setExpanded(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExpanded(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [expanded]);
+
   /**
    * Meminta izin Browser Notification.
    * Hanya dijalankan setelah pengguna menekan tombol.
@@ -416,46 +463,73 @@ export const PrayerTimesBar: React.FC = () => {
   // Jangan tampilkan bubble jika jadwal belum tersedia.
   if (!times) return null;
 
+  // Radius sudut mengikuti keadaan island.
+  const radius = alertPrayer
+    ? RADIUS_ALERT
+    : expanded
+      ? RADIUS_EXPANDED
+      : RADIUS_COMPACT;
+
+  // Transisi ukuran wadah: spring halus ala Dynamic Island.
+  const layoutTransition = reduceMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 420, damping: 34 };
+
   return (
     <div className="fixed right-3 top-20 z-50 flex justify-end sm:right-5 sm:top-24">
       <motion.div
-        layout={!shouldReduceMotion}
-        transition={{
-          layout: {
-            duration: shouldReduceMotion ? 0 : 0.25,
-            ease: "easeInOut",
-          },
-        }}
+        ref={containerRef}
+        layout={!reduceMotion}
+        transition={{ layout: layoutTransition }}
+        // Radius lewat style agar terkoreksi otomatis saat layout beranimasi.
+        style={{ borderRadius: radius }}
         className={`relative ${
           expanded
-            ? "w-[min(88vw,320px)] rounded-2xl"
-            : "w-fit max-w-[88vw] rounded-full"
+            ? "w-[min(88vw,320px)]"
+            : "w-fit max-w-[88vw]"
         } overflow-hidden border border-emerald-900/20 bg-[#103d2b] text-white shadow-lg shadow-emerald-950/15`}
       >
-        <AnimatePresence mode="wait" initial={false}>
+        {/* popLayout: isi lama langsung keluar dari alur sehingga wadah
+            mulai berubah ukuran sambil isi baru muncul (crossfade). */}
+        <AnimatePresence mode="popLayout" initial={false}>
           {/* NOTIFIKASI WAKTU SHOLAT */}
           {alertPrayer ? (
             <motion.div
               key="notification"
+              layout={!reduceMotion}
               initial={
-                shouldReduceMotion
+                reduceMotion
                   ? false
-                  : { opacity: 0, scale: 0.95 }
+                  : { opacity: 0, scale: 0.94 }
               }
               animate={{ opacity: 1, scale: 1 }}
               exit={
-                shouldReduceMotion
+                reduceMotion
                   ? undefined
-                  : { opacity: 0, scale: 0.95 }
+                  : { opacity: 0, scale: 0.94 }
               }
+              transition={{
+                duration: reduceMotion ? 0 : 0.2,
+                layout: layoutTransition,
+              }}
               className="flex items-center gap-2.5 px-3 py-2"
               role="status"
               aria-live="assertive"
             >
-              <BellRing
-                size={16}
-                className="shrink-0 text-emerald-300"
-              />
+              {/* Lonceng bergoyang sekali saat notifikasi muncul */}
+              <motion.span
+                aria-hidden="true"
+                className="flex shrink-0"
+                initial={false}
+                animate={
+                  reduceMotion
+                    ? undefined
+                    : { rotate: [0, -18, 16, -12, 8, 0] }
+                }
+                transition={{ duration: 0.7, delay: 0.15 }}
+              >
+                <BellRing size={16} className="text-emerald-300" />
+              </motion.span>
 
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold text-white">
@@ -471,28 +545,49 @@ export const PrayerTimesBar: React.FC = () => {
                 type="button"
                 onClick={dismissAlert}
                 aria-label="Tutup pemberitahuan"
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-emerald-200 transition hover:bg-white/10 hover:text-white"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-emerald-200 transition hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
               >
                 <X size={13} />
               </button>
             </motion.div>
           ) : (
+            // Wadah isi utama: TIDAK memakai key yang berubah, sehingga
+            // bagian ini tidak di-remount saat island dibuka atau ditutup.
             <motion.div
-              key={expanded ? "expanded" : "compact"}
+              key="main"
+              layout={!reduceMotion}
               initial={
-                shouldReduceMotion
+                reduceMotion
                   ? false
-                  : { opacity: 0, y: 4 }
+                  : { opacity: 0, scale: 0.96 }
               }
-              animate={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
               exit={
-                shouldReduceMotion
+                reduceMotion
                   ? undefined
-                  : { opacity: 0, y: -4 }
+                  : { opacity: 0, scale: 0.96 }
               }
+              transition={{
+                duration: reduceMotion ? 0 : 0.2,
+                layout: layoutTransition,
+              }}
+              className="relative"
             >
-              {/* BUBBLE UTAMA */}
-              <div className="relative flex min-h-9 items-center px-3 py-1.5 pr-10">
+              {/* BUBBLE UTAMA: seluruh baris bisa ditekan untuk buka/tutup */}
+              <motion.button
+                layout={!reduceMotion}
+                type="button"
+                onClick={() => setExpanded((value) => !value)}
+                aria-expanded={expanded}
+                aria-label={
+                  expanded
+                    ? "Tutup jadwal sholat"
+                    : "Buka jadwal sholat"
+                }
+                whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+                className="relative flex min-h-9 w-full items-center px-3 py-1.5 pr-10 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-emerald-300"
+                style={{ borderRadius: RADIUS_COMPACT }}
+              >
                 {/* Informasi waktu sholat */}
                 <div className="flex min-w-0 items-center gap-2">
                   <MoonStar
@@ -526,45 +621,45 @@ export const PrayerTimesBar: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Tombol panah di pojok kanan atas */}
-                <button
-                  type="button"
-                  onClick={() => setExpanded((value) => !value)}
-                  aria-expanded={expanded}
-                  aria-label={
-                    expanded
-                      ? "Tutup jadwal sholat"
-                      : "Buka jadwal sholat"
-                  }
-                  className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-emerald-200 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+                {/* Panah di kanan: berputar halus, bukan berganti ikon */}
+                <motion.span
+                  aria-hidden="true"
+                  initial={false}
+                  animate={{ rotate: expanded ? 180 : 0 }}
+                  transition={{
+                    duration: reduceMotion ? 0 : 0.25,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className="absolute right-1.5 top-1/2 -mt-3.5 flex h-7 w-7 items-center justify-center rounded-full text-emerald-200"
                 >
-                  {expanded ? (
-                    <ChevronUp size={13} aria-hidden="true" />
-                  ) : (
-                    <ChevronDown size={13} aria-hidden="true" />
-                  )}
-                </button>
-              </div>
+                  <ChevronDown size={13} />
+                </motion.span>
+              </motion.button>
 
-              {/* PANEL JADWAL LENGKAP */}
-              <AnimatePresence>
+              {/* PANEL JADWAL LENGKAP.
+                  popLayout: saat ditutup, panel langsung keluar dari alur
+                  sambil memudar, sehingga wadah menyusut tanpa jeda. */}
+              <AnimatePresence mode="popLayout" initial={false}>
                 {expanded && (
                   <motion.div
+                    key="panel"
+                    layout={!reduceMotion}
                     initial={
-                      shouldReduceMotion
+                      reduceMotion
                         ? false
-                        : { opacity: 0, height: 0 }
+                        : { opacity: 0, y: -6 }
                     }
-                    animate={{ opacity: 1, height: "auto" }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={
-                      shouldReduceMotion
+                      reduceMotion
                         ? undefined
-                        : { opacity: 0, height: 0 }
+                        : { opacity: 0, y: -6 }
                     }
                     transition={{
-                      duration: shouldReduceMotion ? 0 : 0.2,
+                      duration: reduceMotion ? 0 : 0.2,
+                      layout: layoutTransition,
                     }}
-                    className="overflow-hidden"
+                    className="w-full"
                   >
                     <div className="border-t border-white/10 px-2.5 pb-3 pt-2.5">
                       {/* Header jadwal */}
@@ -578,15 +673,26 @@ export const PrayerTimesBar: React.FC = () => {
                         </span>
                       </div>
 
-                      {/* Lima waktu sholat */}
+                      {/* Lima waktu sholat: muncul berurutan */}
                       <div className="grid grid-cols-5 gap-1">
-                        {ORDER.map((name) => {
+                        {ORDER.map((name, index) => {
                           const active = next === name;
 
                           return (
-                            <div
+                            <motion.div
                               key={name}
-                              className={`flex flex-col items-center gap-1 rounded-lg px-1 py-2 ${
+                              initial={
+                                reduceMotion
+                                  ? false
+                                  : { opacity: 0, y: 6 }
+                              }
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{
+                                duration: reduceMotion ? 0 : 0.22,
+                                delay: reduceMotion ? 0 : 0.06 + index * 0.035,
+                                ease: [0.22, 1, 0.36, 1],
+                              }}
+                              className={`flex flex-col items-center gap-1 rounded-lg px-1 py-2 transition-colors duration-300 ${
                                 active
                                   ? "bg-white/15 ring-1 ring-white/20"
                                   : "bg-white/5"
@@ -611,7 +717,7 @@ export const PrayerTimesBar: React.FC = () => {
                                   Berikutnya
                                 </span>
                               )}
-                            </div>
+                            </motion.div>
                           );
                         })}
                       </div>
@@ -642,13 +748,14 @@ export const PrayerTimesBar: React.FC = () => {
                             Tidak didukung
                           </span>
                         ) : (
-                          <button
+                          <motion.button
                             type="button"
                             onClick={enableBrowserNotification}
-                            className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[9px] font-semibold text-emerald-200 transition hover:bg-emerald-400/25"
+                            whileTap={reduceMotion ? undefined : { scale: 0.94 }}
+                            className="rounded-full bg-emerald-400/15 px-2.5 py-1 text-[9px] font-semibold text-emerald-200 transition hover:bg-emerald-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
                           >
                             Aktifkan
-                          </button>
+                          </motion.button>
                         )}
                       </div>
                     </div>

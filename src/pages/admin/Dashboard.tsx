@@ -1,6 +1,6 @@
 // DASHBOARD ADMIN (alamat: /admin): ringkasan jumlah konten dan pintasan ke halaman kelola.
-// Redesign: tema hijau zamrud KUA + pola geometris Islami, animasi memakai motion/react.
-import { useEffect, useState } from 'react';
+// Redesign: emerald glass (selaras dengan sidebar & AdminShared) + pola geometris Islami, animasi memakai motion/react.
+import { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, animate, useReducedMotion, type Variants } from 'motion/react';
 import { supabase } from '../../lib/supabase';
@@ -58,19 +58,21 @@ function getGreeting() {
 }
 
 /**
- * Pola bintang delapan sudut ala ornamen geometris Islami, dipakai sebagai latar halus
+ * Pola bintang delapan sudut ala ornamen geometris Islami, dipakai sebagai latar halus.
+ * Id pola dibuat unik per instance supaya beberapa pola di satu halaman tidak bentrok.
  */
 function GeometricPattern({ className = '' }: { className?: string }) {
+  const patternId = `geo-star-${useId().replace(/:/g, '')}`;
   return (
     <svg className={className} width="100%" height="100%" aria-hidden="true">
       <defs>
-        <pattern id="geo-star" width="48" height="48" patternUnits="userSpaceOnUse">
+        <pattern id={patternId} width="48" height="48" patternUnits="userSpaceOnUse">
           <rect x="12" y="12" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1" />
           <rect x="12" y="12" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="1" transform="rotate(45 24 24)" />
           <circle cx="24" cy="24" r="3" fill="none" stroke="currentColor" strokeWidth="1" />
         </pattern>
       </defs>
-      <rect width="100%" height="100%" fill="url(#geo-star)" />
+      <rect width="100%" height="100%" fill={`url(#${patternId})`} />
     </svg>
   );
 }
@@ -79,7 +81,7 @@ function GeometricPattern({ className = '' }: { className?: string }) {
  * Angka yang menghitung naik dari 0 ke nilai akhir. Saat loading tampil kerangka berdenyut.
  * Mengikuti preferensi "kurangi gerakan" milik pengguna.
  */
-function CountUp({ value, loading }: { value: number; loading: boolean }) {
+function CountUp({ value, loading, light = false }: { value: number; loading: boolean; light?: boolean }) {
   const reduce = useReducedMotion();
   const [display, setDisplay] = useState(0);
 
@@ -98,7 +100,13 @@ function CountUp({ value, loading }: { value: number; loading: boolean }) {
   }, [value, loading, reduce]);
 
   if (loading) {
-    return <span className="inline-block h-7 w-10 rounded-md bg-slate-200 animate-pulse align-middle" />;
+    return (
+      <span
+        className={`inline-block h-7 w-10 animate-pulse rounded-full align-middle ${
+          light ? 'bg-white/25' : 'bg-slate-200'
+        }`}
+      />
+    );
   }
   return <>{display}</>;
 }
@@ -143,52 +151,47 @@ export default function AdminDashboard() {
   });
 
   return (
-    <motion.div
-      className="max-w-5xl space-y-6"
-      variants={container}
-      initial="hidden"
-      animate="show"
-    >
-      {/* Banner sambutan: gradasi hijau, pola geometris, dan ringkasan total konten */}
+    <motion.div className="w-full space-y-6" variants={container} initial="hidden" animate="show">
+      {/* Banner sambutan: gradasi emerald, pola geometris, dan ringkasan total konten */}
       <motion.div
         variants={item}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f5132] via-[#0c4429] to-[#073822] p-6 sm:p-7 text-white"
+        className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-emerald-600 via-emerald-800 to-emerald-950 p-6 text-white shadow-lg shadow-emerald-950/20 sm:p-8"
       >
         <GeometricPattern className="absolute inset-0 text-white opacity-[0.07]" />
-        {/* Cahaya emas lembut yang berdenyut pelan */}
+        <div className="pointer-events-none absolute inset-0 rounded-[1.75rem] ring-1 ring-inset ring-white/15" />
+        {/* Cahaya lembut yang berdenyut pelan */}
         <motion.div
           aria-hidden="true"
-          className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-amber-300/25 blur-3xl"
+          className="absolute -right-16 -top-20 h-60 w-60 rounded-full bg-emerald-300/30 blur-3xl"
           animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
           transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
         />
 
-        <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-amber-300">
-              <Sparkles size={12} />
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-50 backdrop-blur">
+              <Sparkles size={12} className="text-emerald-200" />
               Panel Admin
             </p>
-            <h1 className="text-2xl font-bold mt-2">{getGreeting()}, Admin</h1>
-            <p className="text-sm text-emerald-100/80 mt-1">
+            <h1 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">{getGreeting()}, Admin</h1>
+            <p className="mt-1.5 text-sm text-emerald-50/75">
               Ringkasan konten website KUA Kecamatan Ngoro · {today}
             </p>
           </div>
 
-          <div className="shrink-0 rounded-xl bg-white/10 backdrop-blur-sm ring-1 ring-white/15 px-5 py-3">
+          <div className="shrink-0 rounded-2xl border border-white/20 bg-white/10 px-6 py-4 backdrop-blur-md">
             <p className="text-3xl font-bold leading-none tabular-nums">
-              <CountUp value={total} loading={loading} />
+              <CountUp value={total} loading={loading} light />
             </p>
-            <p className="text-[11px] font-medium text-emerald-100/80 mt-1.5 uppercase tracking-wide">Total konten</p>
+            <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-50/75">
+              Total konten
+            </p>
           </div>
         </div>
       </motion.div>
 
       {/* Baris kartu statistik: jumlah berita, pengumuman, layanan, staf, galeri */}
-      <motion.div
-        variants={container}
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"
-      >
+      <motion.div variants={container} className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {CARDS.map(({ key, label, icon: Icon, to }) => (
           <motion.div key={key} variants={item}>
             <MotionLink
@@ -196,29 +199,29 @@ export default function AdminDashboard() {
               whileHover={{ y: -4 }}
               whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-              className="group relative block overflow-hidden bg-white border border-slate-200 rounded-xl p-4 hover:border-[#0f5132]/40 hover:shadow-lg hover:shadow-emerald-900/5 transition-colors"
+              className="group relative block overflow-hidden rounded-[1.5rem] border border-emerald-900/10 bg-white p-5 shadow-sm shadow-emerald-950/5 transition-colors hover:border-emerald-600/40 hover:shadow-lg hover:shadow-emerald-900/10"
             >
-              {/* Garis emas tipis di atas kartu yang muncul saat hover */}
-              <span className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-amber-300 to-amber-500 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-300" />
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-[#0f5132] group-hover:bg-[#0f5132] group-hover:text-white transition-colors">
+              {/* Garis gradasi tipis di atas kartu yang muncul saat hover */}
+              <span className="absolute inset-x-0 top-0 h-1 origin-left scale-x-0 bg-gradient-to-r from-emerald-700 via-emerald-500 to-emerald-300 transition-transform duration-300 group-hover:scale-x-100" />
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-50 text-emerald-800 ring-1 ring-emerald-900/5 transition-colors group-hover:bg-gradient-to-br group-hover:from-emerald-500 group-hover:to-emerald-800 group-hover:text-white">
                 <Icon size={18} />
               </span>
-              <p className="text-2xl font-bold text-slate-900 leading-none mt-4 tabular-nums">
+              <p className="mt-5 text-3xl font-bold leading-none tabular-nums text-slate-900">
                 <CountUp value={counts[key as keyof CountState]} loading={loading} />
               </p>
-              <p className="text-xs font-medium text-slate-500 mt-1.5">{label}</p>
+              <p className="mt-2 text-xs font-semibold text-slate-500">{label}</p>
             </MotionLink>
           </motion.div>
         ))}
       </motion.div>
 
-      <div className="grid lg:grid-cols-5 gap-6">
+      <div className="grid gap-6 lg:grid-cols-5">
         {/* Pintasan ke halaman kelola yang paling sering dipakai */}
         <motion.div
           variants={item}
-          className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-5"
+          className="rounded-[1.5rem] border border-emerald-900/10 bg-white p-5 shadow-sm shadow-emerald-950/5 sm:p-6 lg:col-span-3"
         >
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Pintasan</h2>
+          <h2 className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-900/70">Pintasan</h2>
           <div className="divide-y divide-slate-100">
             {SHORTCUTS.map(({ to, label, hint }) => (
               <MotionLink
@@ -226,18 +229,18 @@ export default function AdminDashboard() {
                 to={to}
                 whileHover="hover"
                 initial="rest"
-                className="flex items-center justify-between gap-4 py-3.5 group"
+                className="group flex items-center justify-between gap-4 py-4"
               >
                 <span>
-                  <span className="block text-sm font-semibold text-slate-800 group-hover:text-[#0f5132] transition-colors">
+                  <span className="block text-sm font-semibold text-slate-800 transition-colors group-hover:text-emerald-800">
                     {label}
                   </span>
-                  <span className="block text-xs text-slate-400 mt-0.5">{hint}</span>
+                  <span className="mt-0.5 block text-xs text-slate-400">{hint}</span>
                 </span>
                 <motion.span
                   variants={{ rest: { x: 0 }, hover: { x: 4 } }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-400 group-hover:bg-emerald-50 group-hover:text-[#0f5132] transition-colors"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-50 text-slate-400 transition-colors group-hover:bg-emerald-600 group-hover:text-white"
                 >
                   <ArrowRight size={15} />
                 </motion.span>
@@ -253,20 +256,20 @@ export default function AdminDashboard() {
             whileHover={{ y: -4 }}
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 400, damping: 22 }}
-            className="group relative overflow-hidden flex h-full min-h-[190px] flex-col justify-between gap-6 p-5 bg-gradient-to-br from-[#0f5132] to-[#073822] text-white rounded-xl hover:shadow-xl hover:shadow-emerald-900/20 transition-shadow"
+            className="group relative flex h-full min-h-[200px] flex-col justify-between gap-6 overflow-hidden rounded-[1.5rem] bg-gradient-to-br from-emerald-600 via-emerald-800 to-emerald-950 p-6 text-white shadow-lg shadow-emerald-950/20 transition-shadow hover:shadow-xl hover:shadow-emerald-900/30"
           >
-            <GeometricPattern className="absolute inset-0 text-white opacity-[0.07] group-hover:opacity-[0.12] transition-opacity" />
-            <span className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15 text-amber-300">
+            <GeometricPattern className="absolute inset-0 text-white opacity-[0.07] transition-opacity group-hover:opacity-[0.12]" />
+            <div className="pointer-events-none absolute inset-0 rounded-[1.5rem] ring-1 ring-inset ring-white/15" />
+            <span className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/15 text-white backdrop-blur">
               <User size={20} />
             </span>
             <div className="relative">
-              <p className="font-semibold text-sm">Profil KUA</p>
-              <p className="text-xs text-emerald-200 mt-1">Edit data kantor, visi-misi, dan jam pelayanan.</p>
+              <p className="text-sm font-bold">Profil KUA</p>
+              <p className="mt-1 text-xs text-emerald-50/75">Edit data kantor, visi-misi, dan jam pelayanan.</p>
             </div>
-            <ArrowRight
-              size={16}
-              className="relative text-amber-300 self-end group-hover:translate-x-1 transition-transform"
-            />
+            <span className="relative flex h-9 w-9 items-center justify-center self-end rounded-full bg-white text-emerald-900 shadow-lg shadow-black/20 transition-transform group-hover:translate-x-1">
+              <ArrowRight size={16} />
+            </span>
           </MotionLink>
         </motion.div>
       </div>
