@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { SectionHeading } from "../ui/SectionHeading";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { NewsCard } from "../cards/NewsCard";
 import { getBerita } from "../../lib/cms";
 import type { Berita } from "../../lib/cms/types";

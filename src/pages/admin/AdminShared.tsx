@@ -4,7 +4,7 @@
 // Tambahan baru: AdminShell, AdminSidebar, dan AdminSidebarAction.
 // Semua komponen punya animasi (motion/react) yang menghormati preferensi reduced motion.
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Loader2,
   Inbox,
@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { showToast } from "./toast";
+import { Modal } from "../../components/ui/Modal";
 
 // ============================================================
 // 1. HELPER OPERASI SUPABASE
@@ -801,112 +802,99 @@ export function ConfirmDelete({
   onCancel,
 }: ConfirmDeleteProps) {
   const shouldReduceMotion = useReducedMotion();
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Tekan Esc untuk menutup dialog
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onCancel]);
+  const handleConfirm = async () => {
+    if (isDeleting) return;
+    try {
+      setIsDeleting(true);
+      await onConfirm();
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (isDeleting) return; // Cegah penutupan saat proses delete sedang berjalan
+    onCancel();
+  };
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          key="confirm-delete"
-          initial={shouldReduceMotion ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: shouldReduceMotion ? 0 : 0.2 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-emerald-950/60 p-4 backdrop-blur-md"
-          role="presentation"
-        >
-          <motion.div
-            initial={
-              shouldReduceMotion ? false : { opacity: 0, y: 15, scale: 0.97 }
-            }
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
-            transition={{ duration: shouldReduceMotion ? 0 : 0.22 }}
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="confirm-delete-title"
-            aria-describedby="confirm-delete-description"
-            className="w-full max-w-md overflow-hidden rounded-[1.75rem] border border-white/60 bg-white shadow-2xl"
-          >
-            <div className="h-1.5 bg-gradient-to-r from-red-500 to-amber-400" />
+    <Modal isOpen={open} onClose={handleClose} maxWidth="md">
+      <div className="w-full">
+        <div className="-mt-6 -mx-6 h-1.5 bg-gradient-to-r from-red-500 to-amber-400 mb-6" />
 
-            <div className="p-6">
-              <div className="mb-5 flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 ring-1 ring-red-100">
-                    <Trash2 className="h-5 w-5 text-red-600" />
-                  </div>
-
-                  <div>
-                    <h2
-                      id="confirm-delete-title"
-                      className="text-base font-bold text-slate-900"
-                    >
-                      Hapus Data?
-                    </h2>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Konfirmasi penghapusan
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  aria-label="Tutup dialog"
-                  className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div
-                id="confirm-delete-description"
-                className="rounded-2xl border border-red-100 bg-red-50/60 p-4"
-              >
-                <p className="break-words text-sm leading-relaxed text-slate-700">
-                  Data{" "}
-                  <strong className="font-semibold text-slate-900">
-                    &ldquo;{label}&rdquo;
-                  </strong>{" "}
-                  akan dihapus secara permanen dan tidak dapat dikembalikan.
-                </p>
-              </div>
-
-              <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <motion.button
-                  type="button"
-                  onClick={onCancel}
-                  whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
-                  className="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-                >
-                  Batal
-                </motion.button>
-
-                <motion.button
-                  type="button"
-                  onClick={onConfirm}
-                  whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-red-900/20 transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                >
-                  <Trash2 size={15} />
-                  Ya, Hapus
-                </motion.button>
-              </div>
+        <div className="mb-5 flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-50 ring-1 ring-red-100">
+              <Trash2 className="h-5 w-5 text-red-600" />
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+
+            <div>
+              <h2
+                id="confirm-delete-title"
+                className="text-base font-bold text-slate-900"
+              >
+                Hapus Data?
+              </h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Konfirmasi penghapusan
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={isDeleting}
+            aria-label="Tutup dialog"
+            className="rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div
+          id="confirm-delete-description"
+          className="rounded-2xl border border-red-100 bg-red-50/60 p-4"
+        >
+          <p className="break-words text-sm leading-relaxed text-slate-700">
+            Data{" "}
+            <strong className="font-semibold text-slate-900">
+              &ldquo;{label}&rdquo;
+            </strong>{" "}
+            akan dihapus secara permanen dan tidak dapat dikembalikan.
+          </p>
+        </div>
+
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <motion.button
+            type="button"
+            onClick={handleClose}
+            disabled={isDeleting}
+            whileTap={shouldReduceMotion || isDeleting ? undefined : { scale: 0.96 }}
+            className="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Batal
+          </motion.button>
+
+          <motion.button
+            type="button"
+            onClick={handleConfirm}
+            disabled={isDeleting}
+            whileTap={shouldReduceMotion || isDeleting ? undefined : { scale: 0.96 }}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-red-900/20 transition-colors hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 size={15} />
+            )}
+            {isDeleting ? "Menghapus..." : "Ya, Hapus"}
+          </motion.button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

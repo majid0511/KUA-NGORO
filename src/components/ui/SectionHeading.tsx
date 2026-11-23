@@ -1,7 +1,7 @@
 // KOMPONEN JUDUL BAGIAN: label kecil (eyebrow) + judul besar + deskripsi, dengan animasi muncul saat discroll ke layar.
 // Dipakai di hampir semua bagian/halaman agar gaya judul seragam.
 import React from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 /**
  * eyebrow = label kecil di atas judul, title = judul utama, description = kalimat penjelas,

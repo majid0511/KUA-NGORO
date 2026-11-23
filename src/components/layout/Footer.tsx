@@ -106,6 +106,14 @@ export const Footer: React.FC = () => {
                   Kontak
                 </Link>
               </li>
+              <li>
+                <Link
+                  to="/updates"
+                  className="inline-block py-1 transition-colors text-emerald-300 font-semibold hover:text-white hover:underline"
+                >
+                  Pembaruan (v2.0)
+                </Link>
+              </li>
             </ul>
           </div>
 

@@ -1,13 +1,10 @@
-// KOMPONEN MODAL (jendela pop-up di tengah layar dengan latar gelap), dipakai mis. untuk detail layanan & foto kegiatan.
+// KOMPONEN MODAL dengan elemen native HTML <dialog>
+// Mengintegrasikan lifecycle React dengan dialog.showModal(), dialog.close(),
+// pengembalian fokus otomatis, backdrop click, Escape key handling, dan penanganan scroll.
 import React, { useEffect, useId, useRef } from "react";
 import { X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
-
-/**
- * isOpen = tampil/tidak, onClose = fungsi penutup, title = judul (opsional), maxWidth = lebar maksimum.
- */
-interface ModalProps {
+export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
@@ -15,9 +12,14 @@ interface ModalProps {
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
 
-/**
- * Menampilkan modal dengan animasi. Bisa ditutup dengan tombol X, klik latar gelap, atau tombol Esc.
- */
+const maxWidthClasses = {
+  sm: "max-w-sm",
+  md: "max-w-md",
+  lg: "max-w-lg",
+  xl: "max-w-xl",
+  "2xl": "max-w-2xl",
+};
+
 export const Modal: React.FC<ModalProps> = ({
   isOpen,
   onClose,
@@ -26,7 +28,7 @@ export const Modal: React.FC<ModalProps> = ({
   maxWidth = "lg",
 }) => {
   const titleId = useId();
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
@@ -36,151 +38,122 @@ export const Modal: React.FC<ModalProps> = ({
   }, [onClose]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
 
-    const activeElement = document.activeElement;
-    returnFocusRef.current =
-      activeElement instanceof HTMLElement && activeElement !== document.body
-        ? activeElement
-        : null;
-
-    // Saat modal terbuka, kunci scroll halaman di belakangnya.
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCloseRef.current();
-        return;
+    if (isOpen) {
+      // Simpan elemen pemicu aktif untuk pengembalian fokus saat ditutup
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement && activeElement !== document.body) {
+        returnFocusRef.current = activeElement;
       }
 
-      if (event.key !== "Tab") return;
-
-      const dialog = dialogRef.current;
-      if (!dialog) return;
-
-      const focusableElements = Array.from(
-        dialog.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"]), [contenteditable="true"]',
-        ),
-      ).filter(
-        (element) =>
-          !element.matches(":disabled") &&
-          element.getAttribute("aria-hidden") !== "true" &&
-          element.tabIndex >= 0 &&
-          element.getClientRects().length > 0 &&
-          window.getComputedStyle(element).visibility !== "hidden",
-      );
-
-      if (focusableElements.length === 0) {
-        event.preventDefault();
-        dialog.focus();
-        return;
+      if (!dialog.open) {
+        try {
+          dialog.showModal();
+        } catch {
+          // Cegah crash jika sudah terbuka dalam transisi bersamaan
+        }
       }
 
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-      const currentFocus = document.activeElement;
+      // Kunci scroll halaman belakang
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
 
-      if (
-        event.shiftKey &&
-        (currentFocus === firstElement || !dialog.contains(currentFocus))
-      ) {
-        event.preventDefault();
-        lastElement.focus();
-      } else if (
-        !event.shiftKey &&
-        (currentFocus === lastElement || !dialog.contains(currentFocus))
-      ) {
-        event.preventDefault();
-        firstElement.focus();
+      // Fokuskan tombol tutup saat dialog dibuka
+      const focusTimer = window.setTimeout(() => {
+        closeButtonRef.current?.focus();
+      }, 0);
+
+      return () => {
+        window.clearTimeout(focusTimer);
+        document.body.style.overflow = prevOverflow;
+
+        if (dialog.open) {
+          dialog.close();
+        }
+
+        const trigger = returnFocusRef.current;
+        returnFocusRef.current = null;
+        if (trigger?.isConnected) {
+          trigger.focus();
+        }
+      };
+    } else {
+      if (dialog.open) {
+        dialog.close();
       }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    closeButtonRef.current?.focus();
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-
-      const returnFocusElement = returnFocusRef.current;
-      returnFocusRef.current = null;
-      if (returnFocusElement?.isConnected) returnFocusElement.focus();
-    };
+    }
   }, [isOpen]);
 
-  // Pemetaan nama lebar ke kelas CSS
-  const maxWidthClasses = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-lg",
-    xl: "max-w-xl",
-    "2xl": "max-w-2xl",
+  // Tangani event native 'cancel' (saat user menekan Escape)
+  const handleCancel = (e: React.SyntheticEvent<HTMLDialogElement>) => {
+    e.preventDefault();
+    onCloseRef.current();
   };
 
+  // Tutup jika mengklik area backdrop di luar bounding box dialog
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDialogElement>) => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const rect = dialog.getBoundingClientRect();
+    const isClickInside =
+      e.clientX >= rect.left &&
+      e.clientX <= rect.right &&
+      e.clientY >= rect.top &&
+      e.clientY <= rect.bottom;
+
+    if (!isClickInside) {
+      onCloseRef.current();
+    }
+  };
+
+  if (!isOpen) {
+    return null;
+  }
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          {/* Latar gelap di belakang modal; mengkliknya menutup modal */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm"
-          />
-
-          {/* Panel putih modal (muncul dengan efek membesar halus) */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            ref={dialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={title ? titleId : undefined}
-            aria-label={!title ? "Dialog" : undefined}
-            tabIndex={-1}
-            className={`relative w-full ${maxWidthClasses[maxWidth]} bg-white rounded-2xl shadow-xl overflow-hidden z-10 my-8`}
+    <dialog
+      ref={dialogRef}
+      onCancel={handleCancel}
+      onClick={handleBackdropClick}
+      aria-labelledby={title ? titleId : undefined}
+      aria-label={!title ? "Dialog" : undefined}
+      className={`fixed inset-0 m-auto w-[calc(100%-2rem)] ${maxWidthClasses[maxWidth]} rounded-2xl bg-white p-0 shadow-2xl backdrop:bg-stone-900/60 backdrop:backdrop-blur-sm z-50 overflow-hidden border border-stone-200/60 focus:outline-none`}
+    >
+      <div className="relative w-full flex flex-col max-h-[85vh]">
+        {/* Header Dialog */}
+        {title ? (
+          <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200 bg-stone-50 shrink-0">
+            <h3 id={titleId} className="text-lg font-bold text-stone-900">
+              {title}
+            </h3>
+            <button
+              type="button"
+              ref={closeButtonRef}
+              onClick={() => onCloseRef.current()}
+              className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+              aria-label="Tutup dialog"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            ref={closeButtonRef}
+            onClick={() => onCloseRef.current()}
+            className="absolute top-4 right-4 z-20 p-2 rounded-full bg-stone-100/80 text-stone-600 hover:text-stone-900 hover:bg-stone-200 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+            aria-label="Tutup dialog"
           >
-            {/* Jika ada judul: tampilkan bilah judul + tombol X di dalamnya */}
-            {title && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200 bg-stone-50">
-                <h3 id={titleId} className="text-lg font-bold text-stone-900">{title}</h3>
-                <button
-                  type="button"
-                  ref={closeButtonRef}
-                  onClick={onClose}
-                  className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200 transition"
-                  aria-label="Tutup dialog"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            )}
+            <X className="w-5 h-5" />
+          </button>
+        )}
 
-            {/* Jika tanpa judul: tombol X melayang di pojok kanan atas */}
-            {!title && (
-              <button
-                type="button"
-                ref={closeButtonRef}
-                onClick={onClose}
-                className="absolute top-4 right-4 z-20 p-2 rounded-full bg-stone-100/80 text-stone-600 hover:text-stone-900 hover:bg-stone-200 transition"
-                aria-label="Tutup dialog"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
-
-            <div className="p-6 max-h-[80vh] overflow-y-auto">{children}</div>
-
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+        {/* Konten Dialog */}
+        <div className="p-6 overflow-y-auto flex-1">{children}</div>
+      </div>
+    </dialog>
   );
 };

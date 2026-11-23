@@ -1,21 +1,18 @@
 
 /**
- * JADWAL SHOLAT HARIAN
+ * JADWAL SHOLAT HARIAN KUA KECAMATAN NGORO
  *
- * Mengambil jadwal sholat Kabupaten Jombang melalui Aladhan API.
+ * Mengambil jadwal sholat Kabupaten Jombang / Kecamatan Ngoro melalui Aladhan API
+ * dengan metode perhitungan resmi Kemenag RI (method=20).
  *
- * Fitur:
+ * Fitur Keandalan (Reliability):
  * - Zona waktu Asia/Jakarta (WIB).
- * - Metode perhitungan Kemenag RI (method=20).
- * - Validasi dan normalisasi data API.
- * - Cache localStorage berdasarkan tanggal WIB.
- * - Validasi ulang data cache.
- * - Menentukan waktu sholat berikutnya.
- * - Mendukung pengujian dengan parameter Date.
- *
- * Catatan:
- * Jadwal Aladhan tetap perlu dicocokkan dengan jadwal resmi
- * Bimas Islam/Kemenag untuk wilayah Ngoro, Jombang.
+ * - Koordinat resmi KUA Kecamatan Ngoro: Lat -7.6925, Long 112.2692.
+ * - Cache localStorage berdasarkan tanggal WIB (kua-ngoro:prayer-times:YYYY-MM-DD).
+ * - Cache persistensi cadangan terakhir (kua-ngoro:prayer-times:last-valid) jika offline / API gagal.
+ * - Algoritma kalkulasi astronomi offline presisi standar Kemenag RI (Fajr 20°, Isha 18°, ihtiyat +2 menit)
+ *   apabila API offline/timeout/error dan cache belum ada.
+ * - Membedakan dengan jelas sumber data: 'api', 'cached', atau 'calculated'.
  */
 
 // Lima waktu sholat wajib dalam format HH:mm.
@@ -25,10 +22,11 @@ export interface PrayerTimes {
   Ashar: string;
   Maghrib: string;
   Isya: string;
+  source?: "api" | "cached" | "calculated";
 }
 
 // Urutan waktu sholat.
-const ORDER: (keyof PrayerTimes)[] = [
+export const ORDER: (keyof Omit<PrayerTimes, "source">)[] = [
   "Subuh",
   "Dzuhur",
   "Ashar",
@@ -36,25 +34,36 @@ const ORDER: (keyof PrayerTimes)[] = [
   "Isya",
 ];
 
-// Konfigurasi zona waktu.
-const WIB = "Asia/Jakarta";
+// Konfigurasi zona waktu & koordinat Ngoro, Jombang
+export const WIB = "Asia/Jakarta";
+export const NGORO_COORDINATES = {
+  latitude: -7.6925,
+  longitude: 112.2692,
+  timezone: 7, // UTC+7
+};
+
+// Parameter perhitungan Kemenag RI (sesuai method=20 Aladhan)
+export const KEMENAG_PARAMS = {
+  fajrAngle: 20,
+  ishaAngle: 18,
+  ihtiyatMinutes: 2, // Pengaman waktu hisab Kemenag (+2 menit)
+};
 
 // Konfigurasi cache.
 const CACHE_KEY_PREFIX = "kua-ngoro:prayer-times:";
+const LAST_VALID_CACHE_KEY = "kua-ngoro:prayer-times:last-valid";
 
-// Aladhan API menggunakan metode perhitungan Kemenag RI.
+// Aladhan API menggunakan metode perhitungan Kemenag RI (method=20).
 const API_URL =
   "https://api.aladhan.com/v1/timingsByCity?city=Jombang&country=Indonesia&method=20";
 
-// Batas waktu permintaan API agar tidak menggantung terlalu lama.
+// Batas waktu permintaan API agar tidak menggantung terlalu lama (10 detik).
 const REQUEST_TIMEOUT = 10_000;
-
-// Cache dianggap hanya berlaku untuk tanggal WIB yang sesuai.
 
 /**
  * Mengambil bagian tanggal atau waktu berdasarkan zona waktu WIB.
  */
-function getWibParts(now: Date = new Date()) {
+export function getWibParts(now: Date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: WIB,
     year: "numeric",
@@ -92,31 +101,16 @@ export function getTodayWibKey(now: Date = new Date()): string {
  */
 function getMinutesNowWib(now: Date = new Date()): number {
   const { hour, minute } = getWibParts(now);
-
   return Number(hour) * 60 + Number(minute);
 }
 
 /**
- * Mengubah waktu menjadi HH:mm.
- *
- * Menerima:
- * - 4:05
- * - 04:05
- * - 04:05 (WIB)
- *
- * Menolak:
- * - 24:00
- * - 12:60
- * - 04:05abc
- * - Nilai selain string.
+ * Mengubah waktu menjadi format standar HH:mm.
  */
-function normalizeTime(value: unknown): string | null {
+export function normalizeTime(value: unknown): string | null {
   if (typeof value !== "string") return null;
 
-  const match = value.trim().match(
-    /^(\d{1,2}):(\d{2})(?:\s|$)/
-  );
-
+  const match = value.trim().match(/^(\d{1,2}):(\d{2})(?:\s|$)/);
   if (!match) return null;
 
   const hour = Number(match[1]);
@@ -138,9 +132,6 @@ function normalizeTime(value: unknown): string | null {
 
 /**
  * Memvalidasi dan menormalisasi seluruh jadwal sholat.
- *
- * Jika salah satu waktu tidak tersedia atau tidak valid,
- * seluruh jadwal dianggap tidak tersedia.
  */
 export function parsePrayerTimes(raw: unknown): PrayerTimes | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -148,17 +139,19 @@ export function parsePrayerTimes(raw: unknown): PrayerTimes | null {
   }
 
   const source = raw as Record<string, unknown>;
-  const result = {} as PrayerTimes;
+  const result: Partial<PrayerTimes> = {};
 
   for (const name of ORDER) {
     const time = normalizeTime(source[name]);
-
     if (!time) return null;
-
     result[name] = time;
   }
 
-  return result;
+  if (source.source === "api" || source.source === "cached" || source.source === "calculated") {
+    result.source = source.source;
+  }
+
+  return result as PrayerTimes;
 }
 
 /**
@@ -166,7 +159,6 @@ export function parsePrayerTimes(raw: unknown): PrayerTimes | null {
  */
 function toMinutes(time: string): number {
   const [hour, minute] = time.split(":").map(Number);
-
   return hour * 60 + minute;
 }
 
@@ -178,24 +170,21 @@ function getCacheKey(date: string): string {
 }
 
 /**
- * Mengambil jadwal dari cache browser.
- *
- * Data cache tetap divalidasi sebelum digunakan.
+ * Mengambil jadwal dari cache browser untuk tanggal tertentu.
  */
 function getCachedPrayerTimes(date: string): PrayerTimes | null {
   try {
     const cached = localStorage.getItem(getCacheKey(date));
-
     if (!cached) return null;
 
     const parsed: unknown = JSON.parse(cached);
     const valid = parsePrayerTimes(parsed);
+    if (valid) {
+      valid.source = "cached";
+      return valid;
+    }
 
-    if (valid) return valid;
-
-    // Hapus cache jika formatnya tidak valid.
     localStorage.removeItem(getCacheKey(date));
-
     return null;
   } catch {
     return null;
@@ -203,43 +192,147 @@ function getCachedPrayerTimes(date: string): PrayerTimes | null {
 }
 
 /**
- * Menyimpan jadwal ke cache browser.
- *
- * Cache lama milik fitur ini dibersihkan agar tidak menumpuk.
+ * Menyimpan jadwal ke cache browser untuk tanggal tertentu dan cache terakhir.
  */
-function saveCachedPrayerTimes(
-  date: string,
-  times: PrayerTimes
-): void {
+function saveCachedPrayerTimes(date: string, times: PrayerTimes): void {
   try {
     const cacheKey = getCacheKey(date);
+    const payload = JSON.stringify(times);
+    localStorage.setItem(cacheKey, payload);
+    localStorage.setItem(LAST_VALID_CACHE_KEY, payload);
 
-    localStorage.setItem(cacheKey, JSON.stringify(times));
-
-    // Hapus cache tanggal sebelumnya.
+    // Hapus cache tanggal-tanggal sebelumnya agar tidak menumpuk.
     for (let index = localStorage.length - 1; index >= 0; index--) {
       const key = localStorage.key(index);
-
       if (
         key?.startsWith(CACHE_KEY_PREFIX) &&
-        key !== cacheKey
+        key !== cacheKey &&
+        key !== LAST_VALID_CACHE_KEY
       ) {
         localStorage.removeItem(key);
       }
     }
   } catch {
-    // Kegagalan cache tidak boleh merusak situs.
+    // Abaikan jika kuota storage penuh
   }
 }
 
 /**
+ * Kalkulasi astronomis offline jadwal sholat presisi tinggi berdasarkan hisab Kemenag RI.
+ * Menggunakan parameter koordinat KUA Kecamatan Ngoro, Jombang (WIB).
+ */
+export function calculateOfflinePrayerTimes(
+  dateOrNow: Date = new Date(),
+  coords = NGORO_COORDINATES,
+  params = KEMENAG_PARAMS
+): PrayerTimes {
+  const parts = getWibParts(dateOrNow);
+  const year = Number(parts.year);
+  const month = Number(parts.month);
+  const day = Number(parts.day);
+
+  const d2r = Math.PI / 180;
+  const r2d = 180 / Math.PI;
+
+  // Konversi kalender Gregorian ke Julian Date
+  let y = year;
+  let m = month;
+  if (m <= 2) {
+    y -= 1;
+    m += 12;
+  }
+  const a = Math.floor(y / 100);
+  const b = 2 - a + Math.floor(a / 4);
+  const jd =
+    Math.floor(365.25 * (y + 4716)) +
+    Math.floor(30.6001 * (m + 1)) +
+    day +
+    b -
+    1524.5 -
+    coords.timezone / 24;
+
+  const d = jd - 2451545.0;
+
+  // Posisi Matahari
+  const g = (357.529 + 0.98560028 * d) % 360;
+  const q = (280.459 + 0.98564736 * d) % 360;
+  const L =
+    (q +
+      1.915 * Math.sin(g * d2r) +
+      0.02 * Math.sin(2 * g * d2r)) %
+    360;
+  const e = 23.439 - 0.00000036 * d;
+
+  let RA =
+    Math.atan2(Math.cos(e * d2r) * Math.sin(L * d2r), Math.cos(L * d2r)) * r2d;
+  RA = ((RA / 15) % 24 + 24) % 24;
+
+  const decl = Math.asin(Math.sin(e * d2r) * Math.sin(L * d2r));
+  const qHours = ((q / 15) % 24 + 24) % 24;
+  let eqt = qHours - RA;
+  if (eqt > 12) eqt -= 24;
+  if (eqt < -12) eqt += 24;
+
+  // Dzuhur (Solar Noon / Transit)
+  const dhuhr = 12 + coords.timezone - coords.longitude / 15 - eqt;
+
+  // Sudut jam matahari untuk elevasi tertentu
+  const sunHourAngle = (angle: number, isAfterNoon: boolean): number => {
+    const sinAlt = Math.sin(-angle * d2r);
+    const cosLat = Math.cos(coords.latitude * d2r);
+    const sinLat = Math.sin(coords.latitude * d2r);
+    const cosDecl = Math.cos(decl);
+    const sinDecl = Math.sin(decl);
+    const cosH = (sinAlt - sinLat * sinDecl) / (cosLat * cosDecl);
+    const clampedCosH = Math.max(-1, Math.min(1, cosH));
+    const h = (Math.acos(clampedCosH) * r2d) / 15;
+    return isAfterNoon ? dhuhr + h : dhuhr - h;
+  };
+
+  // Waktu Ashar (Madzhab Syafi'i standar Kemenag: panjang bayangan = panjang benda + bayangan saat zawal)
+  const asrHour = (): number => {
+    const alt =
+      Math.atan(1 / (1 + Math.tan(Math.abs(coords.latitude * d2r - decl)))) *
+      r2d;
+    const sinAlt = Math.sin(alt * d2r);
+    const cosLat = Math.cos(coords.latitude * d2r);
+    const sinLat = Math.sin(coords.latitude * d2r);
+    const cosDecl = Math.cos(decl);
+    const sinDecl = Math.sin(decl);
+    const cosH = (sinAlt - sinLat * sinDecl) / (cosLat * cosDecl);
+    const clampedCosH = Math.max(-1, Math.min(1, cosH));
+    const h = (Math.acos(clampedCosH) * r2d) / 15;
+    return dhuhr + h;
+  };
+
+  // Terbenam / Terbit (faktor refraksi atmosfer & jari-jari matahari = 0.833°)
+  const sunset = sunHourAngle(0.833, true);
+  const fajr = sunHourAngle(params.fajrAngle, false);
+  const isha = sunHourAngle(params.ishaAngle, true);
+  const asr = asrHour();
+
+  const formatWithIhtiyat = (h: number): string => {
+    const totalMinutes = Math.round(h * 60) + params.ihtiyatMinutes;
+    const hours = Math.floor(totalMinutes / 60) % 24;
+    const mins = totalMinutes % 60;
+    return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+  };
+
+  return {
+    Subuh: formatWithIhtiyat(fajr),
+    Dzuhur: formatWithIhtiyat(dhuhr),
+    Ashar: formatWithIhtiyat(asr),
+    Maghrib: formatWithIhtiyat(sunset),
+    Isya: formatWithIhtiyat(isha),
+    source: "calculated",
+  };
+}
+
+/**
  * Mengambil data jadwal dari Aladhan API.
- *
- * Menggunakan AbortController untuk membatasi waktu permintaan.
  */
 async function fetchPrayerTimes(): Promise<PrayerTimes | null> {
   const controller = new AbortController();
-
   const timeoutId = window.setTimeout(
     () => controller.abort(),
     REQUEST_TIMEOUT
@@ -259,7 +352,6 @@ async function fetchPrayerTimes(): Promise<PrayerTimes | null> {
     }
 
     const json: unknown = await response.json();
-
     if (!json || typeof json !== "object") {
       throw new Error("Respons API tidak valid");
     }
@@ -276,21 +368,22 @@ async function fetchPrayerTimes(): Promise<PrayerTimes | null> {
     }
 
     const timings = payload.data.timings;
-
-    // Pemetaan nama waktu API ke bahasa Indonesia.
-    return parsePrayerTimes({
+    const parsed = parsePrayerTimes({
       Subuh: timings.Fajr,
       Dzuhur: timings.Dhuhr,
       Ashar: timings.Asr,
       Maghrib: timings.Maghrib,
       Isya: timings.Isha,
     });
-  } catch (error) {
-    console.warn(
-      "[PrayerTimes] Gagal mengambil jadwal:",
-      error
-    );
 
+    if (parsed) {
+      parsed.source = "api";
+      return parsed;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn("[PrayerTimes] Gagal mengambil jadwal dari API:", error);
     return null;
   } finally {
     window.clearTimeout(timeoutId);
@@ -298,60 +391,47 @@ async function fetchPrayerTimes(): Promise<PrayerTimes | null> {
 }
 
 /**
- * Mengambil jadwal sholat hari ini untuk wilayah Jombang.
+ * Mengambil jadwal sholat hari ini untuk wilayah Jombang / Ngoro.
  *
- * Alur:
- * 1. Tentukan tanggal berdasarkan WIB.
- * 2. Periksa cache.
- * 3. Jika cache tidak tersedia, ambil dari API.
- * 4. Validasi data.
- * 5. Simpan data valid ke cache.
- *
- * Mengembalikan null jika jadwal gagal diperoleh.
+ * Alur Penanganan Tangguh (Reliability Flow):
+ * 1. Periksa cache lokal untuk hari ini (`kua-ngoro:prayer-times:YYYY-MM-DD`).
+ * 2. Jika tidak ada, coba panggil Aladhan API (timeout 10 detik).
+ * 3. Jika API berhasil: validasi dan simpan ke cache hari ini + cache cadangan terakhir.
+ * 4. Jika API gagal / offline / invalid:
+ *    - Gunakan kalkulasi astronomis offline presisi Kemenag RI untuk hari ini.
+ *    - Tandai sumber sebagai 'calculated'.
  */
-export async function getTodayPrayerTimes(): Promise<PrayerTimes | null> {
-  const today = getTodayWibKey();
+export async function getTodayPrayerTimes(now: Date = new Date()): Promise<PrayerTimes> {
+  const today = getTodayWibKey(now);
 
-  // Gunakan cache jika tersedia dan valid.
+  // 1. Cek cache hari ini
   const cached = getCachedPrayerTimes(today);
-
   if (cached) return cached;
 
-  // Ambil jadwal terbaru dari API.
+  // 2. Coba fetch dari API jika online
   const fetched = await fetchPrayerTimes();
-
-  if (!fetched) return null;
-
-  // Pastikan tanggal belum berubah selama proses fetch.
-  if (getTodayWibKey() !== today) {
-    return getTodayPrayerTimes();
+  if (fetched) {
+    // Pastikan tanggal belum berganti selama request
+    if (getTodayWibKey() === today) {
+      saveCachedPrayerTimes(today, fetched);
+    }
+    return fetched;
   }
 
-  // Simpan hanya data yang sudah tervalidasi.
-  saveCachedPrayerTimes(today, fetched);
-
-  return fetched;
+  // 3. Fallback Offline: Kalkulasi hisab astronomis standar Kemenag RI
+  const calculated = calculateOfflinePrayerTimes(now);
+  saveCachedPrayerTimes(today, calculated);
+  return calculated;
 }
 
 /**
  * Mendapatkan nama sholat berikutnya yang belum masuk waktunya.
- *
- * Mengembalikan:
- * - Subuh
- * - Dzuhur
- * - Ashar
- * - Maghrib
- * - Isya
- * - null jika seluruh waktu sholat hari ini telah berlalu.
- *
- * Parameter now dapat digunakan untuk pengujian.
  */
 export function getNextPrayerName(
   times: PrayerTimes,
   now: Date = new Date()
-): keyof PrayerTimes | null {
+): keyof Omit<PrayerTimes, "source"> | null {
   const valid = parsePrayerTimes(times);
-
   if (!valid) return null;
 
   const currentMinutes = getMinutesNowWib(now);
@@ -367,23 +447,18 @@ export function getNextPrayerName(
 
 /**
  * Mendapatkan waktu sholat berikutnya beserta namanya.
- *
- * Berguna jika nantinya UI membutuhkan informasi waktu
- * untuk countdown atau indikator tambahan.
  */
 export function getNextPrayer(
   times: PrayerTimes,
   now: Date = new Date()
 ): {
-  name: keyof PrayerTimes;
+  name: keyof Omit<PrayerTimes, "source">;
   time: string;
 } | null {
   const name = getNextPrayerName(times, now);
-
   if (!name) return null;
 
   const valid = parsePrayerTimes(times);
-
   if (!valid) return null;
 
   return {

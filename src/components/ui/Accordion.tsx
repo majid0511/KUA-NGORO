@@ -2,7 +2,7 @@
 // Hanya satu item yang terbuka dalam satu waktu.
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 /**
  * Properti satu item akordeon: id, judul, isi (children), status terbuka, dan fungsi yang dipanggil saat judul diklik.

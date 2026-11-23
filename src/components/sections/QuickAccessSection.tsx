@@ -2,7 +2,7 @@
 // Datanya diambil dari profil di Supabase; jika kosong, memakai data lokal.
 import React, { useEffect, useState } from "react";
 import { MapPin, Phone, MessageSquare, Clock } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { profileData } from "../../data/profile";
 import { getProfil } from "../../lib/cms";
 import type { Profil } from "../../lib/cms/types";

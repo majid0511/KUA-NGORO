@@ -3,7 +3,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, HeartHandshake } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { marriageSteps } from "../../data/marriage";
 
 /**

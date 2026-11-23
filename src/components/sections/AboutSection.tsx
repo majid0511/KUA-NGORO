@@ -3,7 +3,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { profileData } from "../../data/profile";
 import { SectionHeading } from "../ui/SectionHeading";
 import fotoNikah from "../../assets/fotoNikah.webp";

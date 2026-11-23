@@ -18,6 +18,7 @@ const PAGES = [
   ['/informasi', '0.7'],
   ['/kegiatan', '0.5'],
   ['/kontak', '0.6'],
+  ['/updates', '0.6'],
 ];
 
 // Membaca VITE_SITE_URL dari file .env (untuk pemakaian lokal; di Vercel sudah ada di process.env)

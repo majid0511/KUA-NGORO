@@ -15,10 +15,12 @@ import Information from "./pages/Information";
 import Activities from "./pages/Activities";
 import Contact from "./pages/Contact";
 import NewsDetail from "./pages/NewsDetail";
+import Updates from "./pages/Updates";
 import NotFound from "./pages/NotFound";
 import { MaintenanceScreen } from "./components/MaintenanceScreen";
 import { isMaintenanceMode } from "./lib/cms/profil";
 import { PrayerTimesBar } from "./components/PrayerTimesBar";
+import { UpdateAnnouncementModal } from "./components/UpdateAnnouncementModal";
 
 // Panel admin dimuat terpisah (tidak menambah bundle halaman publik)
 const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
@@ -109,6 +111,9 @@ export default function App() {
           {/* Detail berita */}
           <Route path="/news/:slug" element={<NewsDetail />} />
 
+          {/* Catatan Rilis & Pembaruan Sistem */}
+          <Route path="/updates" element={<Updates />} />
+
           {/* Alias lama -> URL utama (satu URL per halaman, baik untuk SEO) */}
           <Route path="/news" element={<Navigate to="/informasi" replace />} />
           <Route path="/pengumuman" element={<Navigate to="/informasi" replace />} />
@@ -129,6 +134,8 @@ export default function App() {
       <Footer />
       {/* Tombol cepat (telepon/WhatsApp) yang menempel di bawah layar HP */}
       <MobileBottomNav />
+      {/* Modal pengumuman pembaruan versi baru */}
+      <UpdateAnnouncementModal />
     </div>
   );
 }

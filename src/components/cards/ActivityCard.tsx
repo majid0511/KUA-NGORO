@@ -3,7 +3,7 @@
 import React from "react";
 import { Calendar, MapPin, ZoomIn } from "lucide-react";
 import { Badge } from "../ui/Badge";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 /**
  * Data satu kegiatan. location opsional; onPreview = fungsi yang dipanggil saat kartu diklik.

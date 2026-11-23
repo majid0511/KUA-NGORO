@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, HeartHandshake, Building2, Landmark, ShieldCheck, BookOpen, Info, Users } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 /**
  * Data satu layanan. detailUrl = halaman detail di situs ini; externalUrl (opsional) = jika diisi,
